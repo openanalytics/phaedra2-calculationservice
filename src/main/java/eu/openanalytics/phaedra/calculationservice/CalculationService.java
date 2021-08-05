@@ -17,15 +17,14 @@ import javax.servlet.ServletContext;
 import javax.sql.DataSource;
 
 @SpringBootApplication
-@Slf4j
 public class CalculationService {
-    @Value("${API_GATEWAY}")
-    private String apiGatewayHost;
+    private final ServletContext servletContext;
+    private final Environment environment;
 
-    @Autowired
-    private ServletContext servletContext;
-    @Autowired
-    private Environment environment;
+    public CalculationService(ServletContext servletContext, Environment environment) {
+        this.servletContext = servletContext;
+        this.environment = environment;
+    }
 
     public static void main(String[] args) {
         SpringApplication.run(CalculationService.class, args);
@@ -55,6 +54,7 @@ public class CalculationService {
 
     @Bean
     public OpenAPI customOpenAPI() {
-        return new OpenAPI().addServersItem(new Server().url(apiGatewayHost + servletContext.getContextPath()));
+        Server server = new Server().url(servletContext.getContextPath()).description("Default Server URL");
+        return new OpenAPI().addServersItem(server);
     }
 }
