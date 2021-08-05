@@ -32,6 +32,7 @@ services:
       - DB_PASSWORD=phaedra_usr
       - JAVA_OPTS=
         -DSERVICE_REGISTRY=http://phaedra2-serviceregistry:8761/eureka/
+        -DAPI_GATEWAY=http://localhost:3131
     ports:
       - 3005:3005
 
