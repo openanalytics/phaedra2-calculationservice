@@ -5,11 +5,9 @@ import eu.openanalytics.phaedra.calculationservice.enumeration.Category;
 import eu.openanalytics.phaedra.calculationservice.enumeration.Language;
 import lombok.Data;
 import org.springframework.data.annotation.Id;
-import org.springframework.data.relational.core.mapping.Table;
 
-import javax.inject.Scope;
 import javax.validation.constraints.NotNull;
-import java.util.Date;
+import java.time.LocalDateTime;
 
 @Data
 public class Formula {
@@ -30,9 +28,9 @@ public class Formula {
     @NotNull
     private String created_by;
     @NotNull
-    private Date created_on = new Date();
+    private LocalDateTime created_on;
     @NotNull
     private String updated_by;
     @NotNull
-    private Date updated_on;
+    private LocalDateTime updated_on;
 }

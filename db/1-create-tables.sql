@@ -1,31 +1,38 @@
-create schema if not exists calculations;
+CREATE SCHEMA IF NOT EXISTS calculations;
 
-drop table if exists calculations.formula_execution_log;
-drop table if exists calculations.formula;
+DROP TABLE IF EXISTS calculations.formula_execution_log;
+DROP TABLE IF EXISTS calculations.formula;
+-- drop table calculations.formula CASCADE ;
 
-create table if not exists calculations.formula
+CREATE TYPE calculations.scope AS ENUM ('PLATE', 'FEATURE', 'WELL', 'SUB_WELL');
+CREATE CAST (CHARACTER VARYING AS calculations.scope) WITH INOUT AS IMPLICIT;
+CREATE TYPE calculations.category AS ENUM ('CALCULATION', 'HIT_CALLING', 'OUTLIER_DETECTION', 'POLISHING');
+CREATE CAST (CHARACTER VARYING AS calculations.category) WITH INOUT AS IMPLICIT;
+
+
+CREATE TABLE IF NOT EXISTS calculations.formula
 (
     id          bigserial,
-    name        text      not null,
+    name        text                  NOT NULL,
     description text,
-    category    text      not null,
-    formula     text      not null,
-    language    text      not null,
-    scope       integer   not null,
-    created_by  text      not null,
-    created_on  timestamp not null,
-    updated_by  text      not null,
-    updated_on  timestamp not null,
-    primary key (id)
+    category    calculations.category NOT NULL,
+    formula     text                  NOT NULL,
+    language    text                  NOT NULL,
+    scope       calculations.scope    NOT NULL,
+    created_by  text                  NOT NULL,
+    created_on  timestamp             NOT NULL,
+    updated_by  text                  NOT NULL,
+    updated_on  timestamp             NOT NULL,
+    PRIMARY KEY (id)
 );
 
-create table if not exists calculations.formula_execution_log
+CREATE TABLE IF NOT EXISTS calculations.formula_execution_log
 (
     id          bigserial,
-    formula_id  bigint    not null,
-    feature_id  bigint    not null,
-    executed_by text      not null,
-    executed_on timestamp not null,
-    primary key (id),
-    foreign key (formula_id) references calculations.formula (id)
+    formula_id  bigint    NOT NULL,
+    feature_id  bigint    NOT NULL,
+    executed_by text      NOT NULL,
+    executed_on timestamp NOT NULL,
+    PRIMARY KEY (id),
+    FOREIGN KEY (formula_id) REFERENCES calculations.formula (id)
 );

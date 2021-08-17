@@ -2,10 +2,7 @@ package eu.openanalytics.phaedra.calculationservice.dto;
 
 import com.fasterxml.jackson.annotation.JsonInclude;
 import lombok.Data;
-import org.springframework.data.annotation.Id;
-import org.springframework.data.relational.core.mapping.Table;
 
-import javax.validation.constraints.NotNull;
 import java.util.Date;
 
 @Data
