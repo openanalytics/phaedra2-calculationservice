@@ -15,7 +15,7 @@ import java.util.stream.Collectors;
 
 @Service
 public class FormulaService {
-    private static final ModelMapper modelMapper = new ModelMapper();
+    private final ModelMapper modelMapper = new ModelMapper();
 
     private final FormulaRepository formulaRepository;
 

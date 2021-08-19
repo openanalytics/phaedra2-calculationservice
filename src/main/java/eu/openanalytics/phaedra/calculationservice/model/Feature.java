@@ -3,6 +3,8 @@ package eu.openanalytics.phaedra.calculationservice.model;
 import eu.openanalytics.phaedra.calculationservice.enumeration.FeatureType;
 import lombok.Value;
 
+import java.util.List;
+
 @Value
 public class Feature {
 
@@ -21,4 +23,7 @@ public class Feature {
     Integer sequence;
 
     Formula formula;
+
+    List<CalculationInputValue> calculationInputValues;
+
 }
