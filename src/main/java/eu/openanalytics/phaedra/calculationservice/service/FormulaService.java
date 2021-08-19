@@ -9,6 +9,7 @@ import org.springframework.stereotype.Service;
 
 import java.time.LocalDateTime;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 import java.util.stream.Collectors;
 
@@ -81,6 +82,15 @@ public class FormulaService {
                 .collect(Collectors.toList());
     }
 
+    public Map<Long, Formula> getFormulasByIds(List<Long> formulaIds) {
+        return ((List<Formula>) formulaRepository.findAllById(formulaIds))
+                .stream()
+                .collect(Collectors.toMap(
+                        Formula::getId,
+                        (f) -> f
+                ));
+    }
+
     private FormulaDTO map(Formula formula, FormulaDTO formulaDTO) {
         modelMapper.typeMap(Formula.class, FormulaDTO.class).map(formula, formulaDTO);
         return formulaDTO;
@@ -104,4 +114,5 @@ public class FormulaService {
 
         return result;
     }
+
 }

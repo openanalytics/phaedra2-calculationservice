@@ -1,6 +1,6 @@
 package eu.openanalytics.phaedra.calculationservice.service;
 
-public class FormulaNotFoundException extends Exception{
+public class FormulaNotFoundException extends Exception {
 
     private final long requestedId;
 

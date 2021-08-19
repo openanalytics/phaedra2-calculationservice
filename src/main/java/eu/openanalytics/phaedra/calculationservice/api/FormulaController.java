@@ -1,10 +1,12 @@
 package eu.openanalytics.phaedra.calculationservice.api;
 
 import com.fasterxml.jackson.databind.exc.InvalidFormatException;
+import eu.openanalytics.phaedra.calculationservice.controller.clients.impl.HttpProtocolServiceClient;
 import eu.openanalytics.phaedra.calculationservice.dto.FormulaDTO;
 import eu.openanalytics.phaedra.calculationservice.dto.validation.OnCreate;
 import eu.openanalytics.phaedra.calculationservice.dto.validation.OnUpdate;
 import eu.openanalytics.phaedra.calculationservice.enumeration.Category;
+import eu.openanalytics.phaedra.calculationservice.model.Protocol;
 import eu.openanalytics.phaedra.calculationservice.service.FormulaNotFoundException;
 import eu.openanalytics.phaedra.calculationservice.service.FormulaService;
 import lombok.extern.slf4j.Slf4j;
@@ -14,7 +16,6 @@ import org.springframework.http.converter.HttpMessageNotReadableException;
 import org.springframework.validation.FieldError;
 import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.MethodArgumentNotValidException;
-import org.springframework.web.bind.annotation.CrossOrigin;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -39,9 +40,11 @@ import java.util.stream.Collectors;
 public class FormulaController {
 
     private final FormulaService formulaService;
+    private final HttpProtocolServiceClient httpProtocolServiceClient;
 
-    public FormulaController(FormulaService formulaService) {
+    public FormulaController(FormulaService formulaService, HttpProtocolServiceClient httpProtocolServiceClient) {
         this.formulaService = formulaService;
+        this.httpProtocolServiceClient = httpProtocolServiceClient;
     }
 
     @PostMapping
@@ -73,6 +76,11 @@ public class FormulaController {
     @GetMapping(params = {"category"})
     public List<FormulaDTO> getFormulasByCategory(@RequestParam(value = "category", required = false) Category category) {
         return formulaService.getFormulasByCategory(category);
+    }
+
+    @PostMapping("/debug")
+    public ResponseEntity<Optional<Protocol>> debug() {
+        return ResponseEntity.ok(httpProtocolServiceClient.getProtocol(1));
     }
 
     @ResponseStatus(HttpStatus.BAD_REQUEST)
