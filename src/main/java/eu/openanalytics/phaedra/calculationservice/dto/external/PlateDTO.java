@@ -14,39 +14,39 @@ import java.util.Date;
 @NoArgsConstructor
 public class PlateDTO {
 
-	private Long id;
-	private String barcode;
-	private String description;
-	private Long experimentId;
+    private Long id;
+    private String barcode;
+    private String description;
+    private Long experimentId;
 
-	private Integer rows;
-	private Integer columns;
-	private Integer sequence;
-	
-	private LinkStatus linkStatus;
-	private String linkSource;
-	private String linkTemplateId;
-	private Date linkedOn;
+    private Integer rows;
+    private Integer columns;
+    private Integer sequence;
 
-	private CalculationStatus calculationStatus;
-	private String calculationError;
-	private String calculatedBy;
-	private Date calculatedOn;
+    private LinkStatus linkStatus;
+    private String linkSource;
+    private String linkTemplateId;
+    private Date linkedOn;
 
-	private ValidationStatus validationStatus;
-	private String validatedBy;
-	private Date validatedOn;
+    private CalculationStatus calculationStatus;
+    private String calculationError;
+    private String calculatedBy;
+    private Date calculatedOn;
 
-	private ApprovalStatus approvalStatus;
-	private String approvedBy;
-	private Date approvedOn;
+    private ValidationStatus validationStatus;
+    private String validatedBy;
+    private Date validatedOn;
 
-	private UploadStatus uploadStatus;
-	private String uploadedBy;
-	private Date uploadedOn;
+    private ApprovalStatus approvalStatus;
+    private String approvedBy;
+    private Date approvedOn;
 
-	private Date createdOn;
-	private String createdBy;
-	private Date updatedOn;
-	private String updatedBy;
+    private UploadStatus uploadStatus;
+    private String uploadedBy;
+    private Date uploadedOn;
+
+    private Date createdOn;
+    private String createdBy;
+    private Date updatedOn;
+    private String updatedBy;
 }
