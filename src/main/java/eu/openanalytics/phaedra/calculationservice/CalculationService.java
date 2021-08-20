@@ -1,9 +1,12 @@
 package eu.openanalytics.phaedra.calculationservice;
 
+import eu.openanalytics.phaedra.calculationservice.scriptengineclient.config.ScriptEngineClientConfiguration;
+import eu.openanalytics.phaedra.calculationservice.scriptengineclient.model.TargetRuntime;
 import eu.openanalytics.phaedra.util.jdbc.JDBCUtils;
 import io.swagger.v3.oas.models.OpenAPI;
 import io.swagger.v3.oas.models.servers.Server;
 import org.apache.commons.lang3.StringUtils;
+import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
 import org.springframework.cloud.client.loadbalancer.LoadBalanced;
@@ -60,8 +63,23 @@ public class CalculationService {
     }
 
     @Bean
+    public RestTemplate unLoadBalancedRestTemplate() {
+        return new RestTemplate();
+    }
+
+    @Bean
     public OpenAPI customOpenAPI() {
         Server server = new Server().url(servletContext.getContextPath()).description("Default Server URL");
         return new OpenAPI().addServersItem(server);
+    }
+
+    public static final String R_FAST_LANE = "R_FAST_LANE";
+
+    @Bean
+    public ScriptEngineClientConfiguration scriptEngineConfiguration() {
+        var config = new ScriptEngineClientConfiguration();
+        config.setClientName("libraryTest");
+        config.addTargetRuntime(R_FAST_LANE, new TargetRuntime("R", "fast-lane", "v1"));
+        return config;
     }
 }
