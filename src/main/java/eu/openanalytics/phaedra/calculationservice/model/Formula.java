@@ -2,7 +2,7 @@ package eu.openanalytics.phaedra.calculationservice.model;
 
 import eu.openanalytics.phaedra.calculationservice.enumeration.CalculationScope;
 import eu.openanalytics.phaedra.calculationservice.enumeration.Category;
-import eu.openanalytics.phaedra.calculationservice.enumeration.Language;
+import eu.openanalytics.phaedra.calculationservice.enumeration.ScriptLanguage;
 import lombok.Data;
 import org.springframework.data.annotation.Id;
 
@@ -22,7 +22,7 @@ public class Formula {
     @NotNull
     private String formula;
     @NotNull
-    private Language language;
+    private ScriptLanguage language;
     @NotNull
     private CalculationScope scope;
     @NotNull

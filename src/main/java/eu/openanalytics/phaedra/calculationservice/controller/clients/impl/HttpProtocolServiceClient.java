@@ -9,20 +9,22 @@ import eu.openanalytics.phaedra.calculationservice.model.CalculationInputValue;
 import eu.openanalytics.phaedra.calculationservice.model.Feature;
 import eu.openanalytics.phaedra.calculationservice.model.Formula;
 import eu.openanalytics.phaedra.calculationservice.model.Protocol;
+import eu.openanalytics.phaedra.calculationservice.model.Sequence;
 import eu.openanalytics.phaedra.calculationservice.service.FormulaService;
 import org.modelmapper.ModelMapper;
 import org.springframework.stereotype.Component;
 import org.springframework.web.client.HttpClientErrorException;
 import org.springframework.web.client.RestTemplate;
 
+import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.stream.Collectors;
 
 @Component
 public class HttpProtocolServiceClient implements ProtocolServiceClient {
-
-    private static final String PHAEDRA_PROTOCOL_SERVICE = "http://PHAEDRA-PROTOCOL-SERVICE/phaedra/protocol-service";
 
     private final RestTemplate restTemplate;
     private final FormulaService formulaService;
@@ -45,7 +47,7 @@ public class HttpProtocolServiceClient implements ProtocolServiceClient {
 
         // 3. get formulas corresponding to the features
         var formulaIds = features.stream()
-                .map(FeatureDTO::getFormula)
+                .map(FeatureDTO::getFormulaId)
                 .collect(Collectors.toUnmodifiableList());
         var formulas = formulaService.getFormulasByIds(formulaIds);
 
@@ -61,24 +63,23 @@ public class HttpProtocolServiceClient implements ProtocolServiceClient {
                 ));
 
         // 5. create features with corresponding formulas and calculationInputValues
-        var resFeatures = features
-                .stream()
-                .map((feature) -> {
-                    try {
-                        return map(feature, formulas.get(feature.getFormula()), calculationInputValuesMap.get(feature.getFormula()));
-                    } catch (ProtocolUnresolvableException e) {
-                        throw new RuntimeException(e); // TODO find better workaround
-                    }
-                })
-                .collect(Collectors.toUnmodifiableList());
+        var resFeatures = new HashMap<Integer, List<Feature>>();
+        for (var feature : features) {
+            resFeatures.putIfAbsent(feature.getSequence(), new ArrayList<>());
+            resFeatures.get(feature.getSequence()).add(map(feature, formulas.get(feature.getFormulaId()), calculationInputValuesMap.get(feature.getId())));
+        }
+        var resSequences = new HashMap<Integer, Sequence>();
+        for (var entry : resFeatures.entrySet()) {
+            resSequences.put(entry.getKey(), new Sequence(entry.getKey(), entry.getValue()));
+        }
 
         // 5. create protocol
-        return map(protocol, resFeatures);
+        return map(protocol, resSequences);
     }
 
     private ProtocolDTO get(long protocolId) throws ProtocolUnresolvableException {
         try {
-            var res = restTemplate.getForObject(HttpProtocolServiceClient.PHAEDRA_PROTOCOL_SERVICE + "/protocols/" + protocolId, ProtocolDTO.class);
+            var res = restTemplate.getForObject(UrlFactory.protocol(protocolId), ProtocolDTO.class);
             if (res == null) {
                 throw new ProtocolUnresolvableException("Protocol could not be converted");
             }
@@ -92,7 +93,7 @@ public class HttpProtocolServiceClient implements ProtocolServiceClient {
 
     private List<FeatureDTO> getFeatures(long protocolId) throws ProtocolUnresolvableException {
         try {
-            var res = restTemplate.getForObject(HttpProtocolServiceClient.PHAEDRA_PROTOCOL_SERVICE + String.format("/protocols/%s/features", protocolId), FeatureDTO[].class);
+            var res = restTemplate.getForObject(UrlFactory.protocolFeatures(protocolId), FeatureDTO[].class);
             if (res == null) {
                 throw new ProtocolUnresolvableException("Features could not be converted");
             }
@@ -106,7 +107,7 @@ public class HttpProtocolServiceClient implements ProtocolServiceClient {
 
     private List<CalculationInputValueDTO> getCivs(long protocolId) throws ProtocolUnresolvableException {
         try {
-            var res = restTemplate.getForObject(HttpProtocolServiceClient.PHAEDRA_PROTOCOL_SERVICE + String.format("/protocols/%s/calculationinputvalue", protocolId), CalculationInputValueDTO[].class);
+            var res = restTemplate.getForObject(UrlFactory.protocolCiv(protocolId), CalculationInputValueDTO[].class);
             if (res == null) {
                 throw new ProtocolUnresolvableException("Civs could not be converted");
             }
@@ -124,7 +125,7 @@ public class HttpProtocolServiceClient implements ProtocolServiceClient {
         return calculationInputValue;
     }
 
-    private Protocol map(ProtocolDTO p, List<Feature> features) {
+    private Protocol map(ProtocolDTO p, Map<Integer, Sequence> sequences) {
         return new Protocol(
                 p.getId(),
                 p.getName(),
@@ -133,7 +134,7 @@ public class HttpProtocolServiceClient implements ProtocolServiceClient {
                 p.isInDevelopment(),
                 p.getLowWelltype(),
                 p.getHighWelltype(),
-                features);
+                sequences);
     }
 
     private Feature map(FeatureDTO feature, Formula formula, List<CalculationInputValue> civs) throws ProtocolUnresolvableException {

@@ -4,7 +4,7 @@ import eu.openanalytics.phaedra.calculationservice.dto.validation.OnCreate;
 import eu.openanalytics.phaedra.calculationservice.dto.validation.OnUpdate;
 import eu.openanalytics.phaedra.calculationservice.enumeration.CalculationScope;
 import eu.openanalytics.phaedra.calculationservice.enumeration.Category;
-import eu.openanalytics.phaedra.calculationservice.enumeration.Language;
+import eu.openanalytics.phaedra.calculationservice.enumeration.ScriptLanguage;
 import lombok.Data;
 
 import javax.validation.constraints.NotBlank;
@@ -31,7 +31,7 @@ public class FormulaDTO {
     private String formula;
 
     @NotNull(message = "Language is mandatory", groups = {OnCreate.class})
-    private Language language;
+    private ScriptLanguage language;
 
     @NotNull(message = "Scope is mandatory", groups = {OnCreate.class})
     private CalculationScope scope;

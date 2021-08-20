@@ -3,6 +3,7 @@ package eu.openanalytics.phaedra.calculationservice.model;
 import lombok.Value;
 
 import java.util.List;
+import java.util.Map;
 
 @Value
 public class Protocol {
@@ -21,5 +22,5 @@ public class Protocol {
 
     String highWelltype;
 
-    List<Feature> features;
+    Map<Integer, Sequence> sequences;
 }
