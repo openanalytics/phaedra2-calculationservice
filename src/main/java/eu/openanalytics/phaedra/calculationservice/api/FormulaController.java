@@ -1,12 +1,10 @@
 package eu.openanalytics.phaedra.calculationservice.api;
 
 import com.fasterxml.jackson.databind.exc.InvalidFormatException;
-import eu.openanalytics.phaedra.calculationservice.controller.clients.impl.HttpProtocolServiceClient;
 import eu.openanalytics.phaedra.calculationservice.dto.FormulaDTO;
 import eu.openanalytics.phaedra.calculationservice.dto.validation.OnCreate;
 import eu.openanalytics.phaedra.calculationservice.dto.validation.OnUpdate;
 import eu.openanalytics.phaedra.calculationservice.enumeration.Category;
-import eu.openanalytics.phaedra.calculationservice.model.Protocol;
 import eu.openanalytics.phaedra.calculationservice.service.FormulaNotFoundException;
 import eu.openanalytics.phaedra.calculationservice.service.FormulaService;
 import lombok.extern.slf4j.Slf4j;
@@ -40,11 +38,9 @@ import java.util.stream.Collectors;
 public class FormulaController {
 
     private final FormulaService formulaService;
-    private final HttpProtocolServiceClient httpProtocolServiceClient;
 
-    public FormulaController(FormulaService formulaService, HttpProtocolServiceClient httpProtocolServiceClient) {
+    public FormulaController(FormulaService formulaService) {
         this.formulaService = formulaService;
-        this.httpProtocolServiceClient = httpProtocolServiceClient;
     }
 
     @PostMapping
@@ -52,6 +48,7 @@ public class FormulaController {
         return formulaService.createFormula(formulaDTO);
     }
 
+    // TODO use id in URL
     @PutMapping
     public FormulaDTO updateFormula(@Validated(OnUpdate.class) @RequestBody FormulaDTO formulaDTO) throws FormulaNotFoundException {
         return formulaService.updateFormula(formulaDTO);
@@ -76,11 +73,6 @@ public class FormulaController {
     @GetMapping(params = {"category"})
     public List<FormulaDTO> getFormulasByCategory(@RequestParam(value = "category", required = false) Category category) {
         return formulaService.getFormulasByCategory(category);
-    }
-
-    @PostMapping("/debug")
-    public ResponseEntity<Optional<Protocol>> debug() {
-        return ResponseEntity.ok(httpProtocolServiceClient.getProtocol(1));
     }
 
     @ResponseStatus(HttpStatus.BAD_REQUEST)

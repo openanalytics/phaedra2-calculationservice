@@ -66,7 +66,7 @@ public class ScriptEngineClient implements MessageListener {
             if (input != null) {
                 input.getOutput().complete(output);
             } else {
-               logger.warn("No execution found, for output id " + output.getInputId());
+                logger.warn("No execution found, for output id " + output.getInputId());
             }
         } catch (IOException e) {
             logger.warn("Exception during handling of incoming output message", e);

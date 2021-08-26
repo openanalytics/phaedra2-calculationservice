@@ -26,8 +26,6 @@ import org.springframework.stereotype.Service;
 
 import java.util.ArrayList;
 import java.util.HashMap;
-import java.util.Timer;
-import java.util.TimerTask;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Future;
 import java.util.concurrent.SynchronousQueue;
@@ -56,13 +54,6 @@ public class ProtocolExecutorService {
         this.objectMapper = new ObjectMapper(); // TODO thread-safe?
 
         executorService = new ThreadPoolExecutor(8, 1024, 60L, TimeUnit.SECONDS, new SynchronousQueue<>());
-        new Timer().schedule(new TimerTask() {
-            @Override
-            public void run() {
-                System.out.println("Number of active threads " + executorService.getActiveCount());
-                System.out.println("Number of threads " + executorService.getPoolSize());
-            }
-        }, 0, 250);
     }
 
     public Future<?> execute(long protocolId, long plateId, long measId) {
