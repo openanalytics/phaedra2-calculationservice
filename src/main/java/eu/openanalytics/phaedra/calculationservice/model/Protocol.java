@@ -2,7 +2,6 @@ package eu.openanalytics.phaedra.calculationservice.model;
 
 import lombok.Value;
 
-import java.util.List;
 import java.util.Map;
 
 @Value

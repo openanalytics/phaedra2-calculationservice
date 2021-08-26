@@ -10,6 +10,8 @@ import eu.openanalytics.phaedra.calculationservice.controller.clients.PlateServi
 import eu.openanalytics.phaedra.calculationservice.controller.clients.ProtocolServiceClient;
 import eu.openanalytics.phaedra.calculationservice.controller.clients.ProtocolUnresolvableException;
 import eu.openanalytics.phaedra.calculationservice.controller.clients.ResultDataServiceClient;
+import eu.openanalytics.phaedra.calculationservice.controller.clients.ResultDataUnresolvableException;
+import eu.openanalytics.phaedra.calculationservice.controller.clients.ResultSetUnresolvableException;
 import eu.openanalytics.phaedra.calculationservice.enumeration.Category;
 import eu.openanalytics.phaedra.calculationservice.enumeration.ScriptLanguage;
 import eu.openanalytics.phaedra.calculationservice.model.Feature;
@@ -76,7 +78,7 @@ public class ProtocolExecutorService {
             Protocol protocol = protocolServiceClient.getProtocol(protocolId);
 
             // 0. create ResultDataSet
-            var resultId = resultDataServiceClient.createResultDataSet(protocolId, plateId, measId);
+            var resultSet = resultDataServiceClient.createResultDataSet(protocolId, plateId, measId);
 
             // sequentially execute every sequence
             for (var seq = 0; seq < protocol.getSequences().size(); seq++) {
@@ -88,7 +90,7 @@ public class ProtocolExecutorService {
                 for (var feature : currentSequence.getFeatures()) {
                     calculations.add(Pair.of(feature, executorService.submit(() -> {
                         try {
-                            return executeFeature(feature, measId, currentSequence.getSequenceNumber(), resultId);
+                            return executeFeature(feature, measId, currentSequence.getSequenceNumber(), resultSet.getId());
                         } catch (MeasUnresolvableException | JsonProcessingException | ExecutionException | InterruptedException e) {
                             e.printStackTrace();
                             return null; // TODO
@@ -112,7 +114,7 @@ public class ProtocolExecutorService {
                     var output = calculation.getRight().get().getOutput().get();
                     if (output.getStatusCode() == ResponseStatusCode.SUCCESS) {
                         OutputWrapper outputValue = objectMapper.readValue(output.getOutput(), OutputWrapper.class);
-                        resultDataServiceClient.addResultData(resultId, feature.getId(), outputValue.output, 1, output.getStatusMessage());
+                        resultDataServiceClient.addResultData(resultSet.getId(), feature.getId(), outputValue.output, output.getStatusCode(), output.getStatusMessage(), output.getExitCode());
                     } else if (output.getStatusCode() == ResponseStatusCode.SCRIPT_ERROR) {
                         // TODO
                     } else if (output.getStatusCode() == ResponseStatusCode.WORKER_INTERNAL_ERROR) {
@@ -123,16 +125,15 @@ public class ProtocolExecutorService {
             }
 
             // 5. set plate status
-            resultDataServiceClient.finishResultDataSet(resultId, "Completed");
+            resultDataServiceClient.completeResultDataSet(resultSet.getId(), "Completed");
 
-        } catch (ProtocolUnresolvableException | ExecutionException | InterruptedException |
-                JsonProcessingException e) {
+        } catch (ProtocolUnresolvableException | ExecutionException | InterruptedException | JsonProcessingException | ResultSetUnresolvableException | ResultDataUnresolvableException e) {
             e.printStackTrace();
         }
 
     }
 
-    private ScriptExecutionInput executeFeature(Feature feature, long measId, long currentSequence, long resultId) throws MeasUnresolvableException, JsonProcessingException, ExecutionException, InterruptedException {
+    private ScriptExecutionInput executeFeature(Feature feature, long measId, long currentSequence, long resultId) throws MeasUnresolvableException, JsonProcessingException, ExecutionException, InterruptedException, ResultDataUnresolvableException {
         var inputVariables = collectVariablesForFeature(feature, measId, currentSequence, resultId);
         if (feature.getFormula().getCategory() != Category.CALCULATION || feature.getFormula().getLanguage() != ScriptLanguage.R) {
 //            || feature.getFormula().getScope() != CalculationScope.WELL) { // TODO
@@ -152,7 +153,7 @@ public class ProtocolExecutorService {
         return execution;
     }
 
-    private HashMap<String, float[]> collectVariablesForFeature(Feature feature, long measId, long currentSequence, long resultId) throws MeasUnresolvableException {
+    private HashMap<String, float[]> collectVariablesForFeature(Feature feature, long measId, long currentSequence, long resultId) throws MeasUnresolvableException, ResultDataUnresolvableException {
         var inputVariables = new HashMap<String, float[]>();
 
         for (var civ : feature.getCalculationInputValues()) {
@@ -164,7 +165,7 @@ public class ProtocolExecutorService {
                 if (currentSequence == 0) {
                     throw new IllegalStateException("should not happen.."); // TODO
                 }
-                inputVariables.put(civ.getVariableName(), resultDataServiceClient.getResultData(resultId, civ.getSourceFeatureId()));
+                inputVariables.put(civ.getVariableName(), resultDataServiceClient.getResultData(resultId, civ.getSourceFeatureId()).getValues());
             } else if (civ.getSourceMeasColName() != null) {
                 inputVariables.put(civ.getVariableName(), measServiceClient.getWellData(measId, civ.getSourceMeasColName()));
             } else {

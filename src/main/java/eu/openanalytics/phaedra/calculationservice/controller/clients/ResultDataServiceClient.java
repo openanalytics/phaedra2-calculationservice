@@ -1,13 +1,17 @@
 package eu.openanalytics.phaedra.calculationservice.controller.clients;
 
+import eu.openanalytics.phaedra.calculationservice.dto.external.ResultDataDTO;
+import eu.openanalytics.phaedra.calculationservice.dto.external.ResultSetDTO;
+import eu.openanalytics.phaedra.calculationservice.scriptengineclient.model.ResponseStatusCode;
+
 public interface ResultDataServiceClient {
 
-    long createResultDataSet(long protocolId, long plateId, long measId);
+    ResultSetDTO createResultDataSet(long protocolId, long plateId, long measId) throws ResultSetUnresolvableException;
 
-    void finishResultDataSet(long resultId, String outcome);
+    ResultSetDTO completeResultDataSet(long resultSetId, String outcome) throws ResultSetUnresolvableException;
 
-    void addResultData(long resultId, long featureId, float[] result, int statusCode, String statusMessage);
+    ResultDataDTO addResultData(long resultSetId, long featureId, float[] values, ResponseStatusCode statusCode, String statusMessage, Integer exitCode) throws ResultDataUnresolvableException;
 
-    float[] getResultData(long resultId, long featureId);
+    ResultDataDTO getResultData(long resultSetId, long featureId) throws ResultDataUnresolvableException;
 
 }

@@ -1,12 +1,12 @@
 package eu.openanalytics.phaedra.calculationservice;
 
+import eu.openanalytics.phaedra.calculationservice.controller.clients.impl.ERestTemplate;
 import eu.openanalytics.phaedra.calculationservice.scriptengineclient.config.ScriptEngineClientConfiguration;
 import eu.openanalytics.phaedra.calculationservice.scriptengineclient.model.TargetRuntime;
 import eu.openanalytics.phaedra.util.jdbc.JDBCUtils;
 import io.swagger.v3.oas.models.OpenAPI;
 import io.swagger.v3.oas.models.servers.Server;
 import org.apache.commons.lang3.StringUtils;
-import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
 import org.springframework.cloud.client.loadbalancer.LoadBalanced;
@@ -14,7 +14,6 @@ import org.springframework.cloud.netflix.eureka.EnableEurekaClient;
 import org.springframework.context.annotation.Bean;
 import org.springframework.core.env.Environment;
 import org.springframework.jdbc.datasource.DriverManagerDataSource;
-import org.springframework.web.client.RestTemplate;
 
 import javax.servlet.ServletContext;
 import javax.sql.DataSource;
@@ -58,13 +57,13 @@ public class CalculationService {
 
     @Bean
     @LoadBalanced
-    public RestTemplate restTemplate() {
-        return new RestTemplate();
+    public ERestTemplate restTemplate() {
+        return new ERestTemplate();
     }
 
     @Bean
-    public RestTemplate unLoadBalancedRestTemplate() {
-        return new RestTemplate();
+    public ERestTemplate unLoadBalancedRestTemplate() {
+        return new ERestTemplate();
     }
 
     @Bean

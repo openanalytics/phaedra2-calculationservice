@@ -1,7 +1,6 @@
 package eu.openanalytics.phaedra.calculationservice.model;
 
 import eu.openanalytics.phaedra.calculationservice.enumeration.FeatureType;
-import lombok.Builder;
 import lombok.Value;
 
 import java.util.List;
