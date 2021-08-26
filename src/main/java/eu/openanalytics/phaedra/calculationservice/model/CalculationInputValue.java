@@ -13,4 +13,21 @@ public class CalculationInputValue {
     private Long sourceFeatureId;
     private String variableName;
 
+    public String getType() {
+        if (sourceMeasColName != null) {
+            return "fromMeasurement";
+        } else if (sourceFeatureId != null) {
+            return "fromFeature";
+        }
+        return null;
+    }
+
+    public String getSource() {
+        if (sourceMeasColName != null) {
+            return sourceMeasColName;
+        } else if (sourceFeatureId != null) {
+            return String.valueOf(sourceFeatureId);
+        }
+        return null;
+    }
 }
