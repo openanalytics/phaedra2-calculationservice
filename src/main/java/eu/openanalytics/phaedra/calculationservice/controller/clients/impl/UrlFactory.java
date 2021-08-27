@@ -2,8 +2,8 @@ package eu.openanalytics.phaedra.calculationservice.controller.clients.impl;
 
 public class UrlFactory {
 
-    private static final String PROTOCOL_SERVICE = "http://PHAEDRA-PROTOCOL-SERVICE/phaedra/protocol-service";
-    private static final String RESULTDATA_SERVICE = "http://PHAEDRA-RESULTDATA-SERVICE/phaedra/resultdata-service";
+    private static final String PROTOCOL_SERVICE = "http://phaedra-protocol-service/phaedra/protocol-service";
+    private static final String RESULTDATA_SERVICE = "http://phaedra-resultdata-service/phaedra/resultdata-service";
     private static final String MEAS_SERVICE = "http://127.0.0.1:3008";
 
     public static String protocol(long protocolId) {
