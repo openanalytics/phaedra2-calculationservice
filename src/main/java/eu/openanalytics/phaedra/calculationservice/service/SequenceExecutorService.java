@@ -87,23 +87,23 @@ public class SequenceExecutorService {
                             output.getStatusMessage(),
                             output.getExitCode());
                 } catch (JsonProcessingException e) {
-                    errorCollector.handleError(e, "execution sequence => processing output => parsing output", feature);
+                    errorCollector.handleError(e, "executing sequence => processing output => parsing output", feature);
                 }
             } else if (output.getStatusCode() == ResponseStatusCode.SCRIPT_ERROR) {
                 resultDataServiceClient.addResultData(
                         resultSet.getId(),
                         feature.getId(),
-                        null,
+                        new float[]{},
                         output.getStatusCode(),
                         output.getStatusMessage(),
                         output.getExitCode());
 
                 errorCollector.handleScriptError(output, feature);
             } else if (output.getStatusCode() == ResponseStatusCode.WORKER_INTERNAL_ERROR) {
-                // TODO
+                // TODO re-schedule script?
             }
-        } catch (ResultDataUnresolvableException e) {
-            errorCollector.handleError(e, "execution sequence => processing output => saving resultdata", feature);
+        } catch (Exception e) {
+            errorCollector.handleError(e, "executing sequence => processing output => saving resultdata", feature);
         }
     }
 

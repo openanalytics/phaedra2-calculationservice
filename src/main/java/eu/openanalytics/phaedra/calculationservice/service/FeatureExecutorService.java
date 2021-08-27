@@ -40,7 +40,7 @@ public class FeatureExecutorService {
             }
             if (feature.getFormula().getCategory() != Category.CALCULATION || feature.getFormula().getLanguage() != ScriptLanguage.R) {
 //            || feature.getFormula().getScope() != CalculationScope.WELL) { // TODO
-                errorCollector.handleError(null, "executing feature => unsupported formula found", feature);
+                errorCollector.handleError("executing feature => unsupported formula found", feature);
                 return null;
             }
 
@@ -72,19 +72,19 @@ public class FeatureExecutorService {
 
                 if (civ.getSourceFeatureId() != null) {
                     if (currentSequence == 0) {
-                        errorCollector.handleError(null, "collecting variables for feature => retrieving measurement => trying to get feature in sequence 0", feature, civ);
+                        errorCollector.handleError("executing sequence => executing feature => collecting variables for feature => retrieving measurement => trying to get feature in sequence 0", feature, civ);
                         return null;
                     }
                     inputVariables.put(civ.getVariableName(), resultDataServiceClient.getResultData(resultId, civ.getSourceFeatureId()).getValues());
                 } else if (civ.getSourceMeasColName() != null) {
                     inputVariables.put(civ.getVariableName(), measServiceClient.getWellData(measId, civ.getSourceMeasColName()));
                 } else {
-                    errorCollector.handleError(null, "collecting variables for feature => retrieving measurement => civ has no valid source", feature, civ);
+                    errorCollector.handleError("executing sequence => executing feature => collecting variables for feature => retrieving measurement => civ has no valid source", feature, civ);
                     return null;
                 }
 
             } catch (MeasUnresolvableException | ResultDataUnresolvableException e) {
-                errorCollector.handleError(e, "collecting variables for feature => retrieving measurement", feature,  civ);
+                errorCollector.handleError(e, "executing sequence => executing feature => collecting variables for feature => retrieving measurement", feature,  civ);
                 return null;
             }
         }
