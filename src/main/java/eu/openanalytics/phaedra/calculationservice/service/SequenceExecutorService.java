@@ -5,7 +5,6 @@ import com.fasterxml.jackson.annotation.JsonProperty;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import eu.openanalytics.phaedra.calculationservice.controller.clients.ResultDataServiceClient;
-import eu.openanalytics.phaedra.calculationservice.controller.clients.ResultDataUnresolvableException;
 import eu.openanalytics.phaedra.calculationservice.dto.external.ResultSetDTO;
 import eu.openanalytics.phaedra.calculationservice.model.Feature;
 import eu.openanalytics.phaedra.calculationservice.model.Sequence;
@@ -87,7 +86,7 @@ public class SequenceExecutorService {
                             output.getStatusMessage(),
                             output.getExitCode());
                 } catch (JsonProcessingException e) {
-                    errorCollector.handleError(e, "executing sequence => processing output => parsing output", feature);
+                    errorCollector.handleError(e, "executing sequence => processing output => parsing output", feature, output);
                 }
             } else if (output.getStatusCode() == ResponseStatusCode.SCRIPT_ERROR) {
                 resultDataServiceClient.addResultData(

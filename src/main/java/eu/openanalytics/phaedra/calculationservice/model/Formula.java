@@ -3,34 +3,49 @@ package eu.openanalytics.phaedra.calculationservice.model;
 import eu.openanalytics.phaedra.calculationservice.enumeration.CalculationScope;
 import eu.openanalytics.phaedra.calculationservice.enumeration.Category;
 import eu.openanalytics.phaedra.calculationservice.enumeration.ScriptLanguage;
-import lombok.Data;
+import lombok.AllArgsConstructor;
+import lombok.Builder;
+import lombok.Value;
+import lombok.With;
 import org.springframework.data.annotation.Id;
 
 import javax.validation.constraints.NotNull;
 import java.time.LocalDateTime;
 
-@Data
+//@Data
+@Value
+@With
+@Builder
+@AllArgsConstructor
 public class Formula {
     @Id
-    private Long id;
+    Long id;
+
     @NotNull
-    private String name;
+    String name;
+
     @NotNull
-    private String description;
+    String description;
+
     @NotNull
-    private Category category;
+    Category category;
+
     @NotNull
-    private String formula;
+    String formula;
+
     @NotNull
-    private ScriptLanguage language;
+    ScriptLanguage language;
+
     @NotNull
-    private CalculationScope scope;
+    CalculationScope scope;
+
     @NotNull
-    private String created_by;
+    String createdBy;
+
     @NotNull
-    private LocalDateTime created_on;
-    @NotNull
-    private String updated_by;
-    @NotNull
-    private LocalDateTime updated_on;
+    LocalDateTime createdOn;
+
+    String updatedBy;
+
+    LocalDateTime updatedOn;
 }

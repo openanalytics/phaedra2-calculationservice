@@ -141,9 +141,9 @@ public class HttpProtocolServiceClient implements ProtocolServiceClient {
         if (formula == null) {
             throw new ProtocolUnresolvableException(String.format("Did not found formula for feature with id %s", feature.getId()));
         }
-//            if (civs == null || civs.isEmpty()) { // TODO check this logic
-//            throw new ProtocolUnresolvableException(String.format("Did not found civs for feature with id %s", feature.getId()));
-//        }
+        if (civs == null || civs.isEmpty()) { // TODO check this logic
+            throw new ProtocolUnresolvableException(String.format("Did not found civs for feature with id %s", feature.getId()));
+        }
         return new Feature(feature.getId(),
                 feature.getName(),
                 feature.getAlias(),

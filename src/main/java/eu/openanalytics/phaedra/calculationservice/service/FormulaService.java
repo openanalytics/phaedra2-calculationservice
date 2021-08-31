@@ -27,12 +27,17 @@ public class FormulaService {
     }
 
     public FormulaDTO createFormula(FormulaDTO formulaDTO) {
-        Formula formula = map(formulaDTO, new Formula());
-
-        formula.setCreated_on(LocalDateTime.now());
-        formula.setCreated_by("Anonymous"); // TODO
-        formula.setUpdated_on(LocalDateTime.now());
-        formula.setUpdated_by("Anonymous"); // TODO
+        Formula formula = Formula.builder()
+                .id(formulaDTO.getId())
+                .name(formulaDTO.getName())
+                .description(formulaDTO.getDescription())
+                .category(formulaDTO.getCategory())
+                .formula(formulaDTO.getFormula())
+                .language(formulaDTO.getLanguage())
+                .scope(formulaDTO.getScope())
+                .createdBy("Anonymous") // TODO
+                .createdOn(LocalDateTime.now())
+                .build();
 
         return save(formula);
     }
@@ -43,11 +48,9 @@ public class FormulaService {
             throw new FormulaNotFoundException(formulaDTO.getId());
         }
 
-        Formula updatedFormula = map(formulaDTO, existingFormula.get());
-
-        updatedFormula.setUpdated_on(LocalDateTime.now());
-        updatedFormula.setUpdated_by("Anonymous"); // TODO
-
+        Formula updatedFormula = map(formulaDTO, existingFormula.get())
+                .withUpdatedBy("Anonymous") // TODO
+                .withUpdatedOn(LocalDateTime.now());
         return save(updatedFormula);
     }
 
@@ -98,10 +101,6 @@ public class FormulaService {
 
     private Formula map(FormulaDTO formulaDTO, Formula formula) {
         modelMapper.typeMap(FormulaDTO.class, Formula.class)
-                .addMappings(m -> m.skip(Formula::setUpdated_by))
-                .addMappings(m -> m.skip(Formula::setUpdated_on))
-                .addMappings(m -> m.skip(Formula::setCreated_by))
-                .addMappings(m -> m.skip(Formula::setCreated_on))
                 .map(formulaDTO, formula);
         return formula;
     }

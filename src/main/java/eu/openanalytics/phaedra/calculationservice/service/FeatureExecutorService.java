@@ -56,6 +56,7 @@ public class FeatureExecutorService {
 
             return execution;
         } catch (JsonProcessingException e) {
+            // this error will probably never occur, see: https://stackoverflow.com/q/26716020/1393103 for examples where it does
             errorCollector.handleError(e, "executing feature => writing input variables and request", feature);
         }
         return null;
@@ -67,7 +68,9 @@ public class FeatureExecutorService {
         for (var civ : feature.getCalculationInputValues()) {
             try {
                 if (inputVariables.containsKey(civ.getVariableName())) {
-                    throw new RuntimeException("Double variable name!");
+                    // the ProtocolService makes sure this cannot happen, but extra check to make sure
+                    errorCollector.handleError("executing sequence => executing feature => collecting variables for feature => duplicate variable name detected", feature, civ);
+                    return null;
                 }
 
                 if (civ.getSourceFeatureId() != null) {
@@ -79,12 +82,13 @@ public class FeatureExecutorService {
                 } else if (civ.getSourceMeasColName() != null) {
                     inputVariables.put(civ.getVariableName(), measServiceClient.getWellData(measId, civ.getSourceMeasColName()));
                 } else {
+                    // the ProtocolService makes sure this cannot happen, but extra check to make sure
                     errorCollector.handleError("executing sequence => executing feature => collecting variables for feature => retrieving measurement => civ has no valid source", feature, civ);
                     return null;
                 }
 
             } catch (MeasUnresolvableException | ResultDataUnresolvableException e) {
-                errorCollector.handleError(e, "executing sequence => executing feature => collecting variables for feature => retrieving measurement", feature,  civ);
+                errorCollector.handleError(e, "executing sequence => executing feature => collecting variables for feature => retrieving measurement", feature, civ);
                 return null;
             }
         }

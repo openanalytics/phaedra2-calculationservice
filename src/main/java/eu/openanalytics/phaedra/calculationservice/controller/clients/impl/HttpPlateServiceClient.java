@@ -59,11 +59,9 @@ public class HttpPlateServiceClient implements PlateServiceClient {
                     plate.getUpdatedBy()
             );
 
-        } catch (
-                HttpClientErrorException.NotFound ex) {
+        } catch (HttpClientErrorException.NotFound ex) {
             throw new PlateUnresolvableException("Plate not found");
-        } catch (
-                HttpClientErrorException ex) {
+        } catch (HttpClientErrorException ex) {
             throw new PlateUnresolvableException("Error while fetching plate");
         }
     }

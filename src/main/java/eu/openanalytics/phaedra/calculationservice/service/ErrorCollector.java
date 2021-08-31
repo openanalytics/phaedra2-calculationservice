@@ -52,6 +52,27 @@ public class ErrorCollector {
         logger.info(error.toString(), e);
     }
 
+
+    public void handleError(Exception e, String description, Feature feature, ScriptExecutionOutput output) {
+        // TODO store output here ?
+        var error = Error.builder()
+                .exceptionClassName(e.getClass().getSimpleName())
+                .exceptionMessage(e.getMessage())
+                .timestamp(LocalDateTime.now())
+                .description(description)
+                .featureId(feature.getId())
+                .featureName(feature.getName())
+                .sequenceNumber(feature.getSequence())
+                .formulaId(feature.getFormula().getId())
+                .formulaName(feature.getFormula().getName())
+                .exitCode(output.getExitCode())
+                .statusMessage(output.getStatusMessage())
+                .build();
+        errors.add(error);
+        logger.info(error.toString(), e);
+
+    }
+
     public void handleError(Exception e, String description, Feature feature, CalculationInputValue civ) {
         var error = Error.builder()
                 .timestamp(LocalDateTime.now())
@@ -80,6 +101,9 @@ public class ErrorCollector {
                 .sequenceNumber(feature.getSequence())
                 .formulaId(feature.getFormula().getId())
                 .formulaName(feature.getFormula().getName())
+                .civType(civ.getType())
+                .civVariableName(civ.getVariableName())
+                .civSource(civ.getSource())
                 .build();
         errors.add(error);
         logger.info(error.toString());
@@ -99,6 +123,15 @@ public class ErrorCollector {
                 .build();
         errors.add(error);
         logger.info(error.toString(), e);
+    }
+
+    public void handleError(String description, int sequenceNumber) {
+        var error = Error.builder()
+                .timestamp(LocalDateTime.now())
+                .description(description)
+                .sequenceNumber(sequenceNumber)
+                .build();
+        errors.add(error);
     }
 
     public void handleError(String description, Feature feature) {

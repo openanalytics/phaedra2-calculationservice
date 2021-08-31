@@ -5,9 +5,12 @@ import eu.openanalytics.phaedra.calculationservice.controller.clients.ProtocolUn
 import eu.openanalytics.phaedra.calculationservice.controller.clients.ResultDataServiceClient;
 import eu.openanalytics.phaedra.calculationservice.controller.clients.ResultSetUnresolvableException;
 import eu.openanalytics.phaedra.calculationservice.dto.external.ErrorDTO;
-import eu.openanalytics.phaedra.calculationservice.model.Protocol;
+import eu.openanalytics.phaedra.calculationservice.dto.external.ResultSetDTO;
 import eu.openanalytics.phaedra.calculationservice.model.Error;
+import eu.openanalytics.phaedra.calculationservice.model.Protocol;
 import eu.openanalytics.phaedra.calculationservice.model.Sequence;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
 
 import java.util.ArrayList;
@@ -26,6 +29,8 @@ public class ProtocolExecutorService {
     private final ResultDataServiceClient resultDataServiceClient;
     private final SequenceExecutorService sequenceExecutorService;
 
+    private final Logger logger = LoggerFactory.getLogger(getClass());
+
     public ProtocolExecutorService(ProtocolServiceClient protocolServiceClient, ResultDataServiceClient resultDataServiceClient, SequenceExecutorService sequenceExecutorService) {
         this.protocolServiceClient = protocolServiceClient;
         this.resultDataServiceClient = resultDataServiceClient;
@@ -34,45 +39,47 @@ public class ProtocolExecutorService {
         executorService = new ThreadPoolExecutor(8, 1024, 60L, TimeUnit.SECONDS, new SynchronousQueue<>());
     }
 
-    public Future<?> execute(long protocolId, long plateId, long measId) {
+    public Future<ResultSetDTO> execute(long protocolId, long plateId, long measId) {
         // submit execution to the ThreadPool/ExecutorService and return a future
         return executorService.submit(() -> {
-            executeProtocol(protocolId, plateId, measId);
-            return true;
+            return executeProtocol(protocolId, plateId, measId);
         });
     }
 
-    private void executeProtocol(long protocolId, long plateId, long measId) {
-        try {
-            // 1. get protocol
-            Protocol protocol = protocolServiceClient.getProtocol(protocolId);
+    private ResultSetDTO executeProtocol(long protocolId, long plateId, long measId) throws ProtocolUnresolvableException, ResultSetUnresolvableException {
+        // 1. get protocol
+        Protocol protocol = protocolServiceClient.getProtocol(protocolId);
 
-            // 2. create ResultSet
-            var resultSet = resultDataServiceClient.createResultDataSet(protocolId, plateId, measId);
-            var errorCollector = new ErrorCollector();
+        // 2. create ResultSet
+        var resultSet = resultDataServiceClient.createResultDataSet(protocolId, plateId, measId);
+        var errorCollector = new ErrorCollector();
 
-            // 3. sequentially execute every sequence
-            for (var seq = 0; seq < protocol.getSequences().size(); seq++) {
-                Sequence currentSequence = protocol.getSequences().get(seq);
-                var success = sequenceExecutorService.executeSequence(executorService, errorCollector, currentSequence, measId, resultSet);
+        // 3. sequentially execute every sequence
+        for (var seq = 0; seq < protocol.getSequences().size(); seq++) {
+            Sequence currentSequence = protocol.getSequences().get(seq);
+            if (currentSequence == null) {
+                errorCollector.handleError("executing protocol => missing sequence", seq);
+                return saveError(resultSet, errorCollector);
+            }
+            var success = sequenceExecutorService.executeSequence(executorService, errorCollector, currentSequence, measId, resultSet);
 
-                // 4. check for errors
-                if (!success) {
-                    System.out.println(errorCollector.getErrorDescription());
-                    resultDataServiceClient.completeResultDataSet(resultSet.getId(), "Error", map(errorCollector.getErrors()), errorCollector.getErrorDescription());
-                    return;
-                }
-
-                // 5. no errors -> continue processing sequences
+            // 4. check for errors
+            if (!success) {
+                return saveError(resultSet, errorCollector);
             }
 
-            // 6. set ResultData status
-            resultDataServiceClient.completeResultDataSet(resultSet.getId(), "Completed", new ArrayList<>(), "");
-        } catch (ProtocolUnresolvableException | ResultSetUnresolvableException e) {
-            e.printStackTrace();
+            // 5. no errors -> continue processing sequences
         }
+
+        // 6. set ResultData status
+        return resultDataServiceClient.completeResultDataSet(resultSet.getId(), "Completed", new ArrayList<>(), "");
     }
-    
+
+    private ResultSetDTO saveError(ResultSetDTO resultSet, ErrorCollector errorCollector) throws ResultSetUnresolvableException {
+        logger.warn("Protocol failed with errorDescription\n" + errorCollector.getErrorDescription());
+        return resultDataServiceClient.completeResultDataSet(resultSet.getId(), "Error", map(errorCollector.getErrors()), errorCollector.getErrorDescription());
+    }
+
     private List<ErrorDTO> map(List<Error> errors) {
         return errors.stream().map((e) -> new ErrorDTO(
                 e.getTimestamp(),
