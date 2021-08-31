@@ -8,6 +8,7 @@ import lombok.Value;
 import lombok.With;
 
 import java.time.LocalDateTime;
+import java.util.List;
 
 @Value
 @Builder
@@ -29,5 +30,9 @@ public class ResultSetDTO {
     LocalDateTime executionEndTimeStamp;
 
     String outcome;
+
+    List<ErrorDTO> errors;
+
+    String errorsText;
 
 }
