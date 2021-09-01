@@ -1,17 +1,21 @@
 package eu.openanalytics.phaedra.calculationservice.model;
 
-import lombok.Data;
+import lombok.AllArgsConstructor;
+import lombok.Builder;
+import lombok.Value;
 import org.springframework.data.annotation.Id;
 
-@Data
+@Value
+@AllArgsConstructor
+@Builder(toBuilder = true)
 public class CalculationInputValue {
 
     @Id
-    private Long id;
-    private Long featureId;
-    private String sourceMeasColName;
-    private Long sourceFeatureId;
-    private String variableName;
+    Long id;
+    Long featureId;
+    String sourceMeasColName;
+    Long sourceFeatureId;
+    String variableName;
 
     public String getType() {
         if (sourceMeasColName != null) {
@@ -30,4 +34,5 @@ public class CalculationInputValue {
         }
         return null;
     }
+
 }

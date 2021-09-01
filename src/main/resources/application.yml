@@ -1,23 +1,17 @@
 server:
   servlet:
-    context-path: /phaedra/plate-service
-  port: 3005
+    context-path: /phaedra/calculation-service
+  port: 6010
 
 spring:
+  cloud:
+    kubernetes:
+      enabled: false
   application:
-    name: PHAEDRA-CALCULATIONS-SERVICE
-#  datasource:
-#    driver-class-name: org.postgresql.Driver
-#    url: jdbc:postgresql://localhost:5432/phaedra2?currentSchema=calculations
-#    username: phaedra_usr
-#    password: phaedra_usr
-  jackson:
-    serialization:
-      indent_output: true
+    name: phaedra-calculation-service
 
 eureka:
-  instance:
-    appname: ${spring.application.name}
   client:
-    service-url:
-      defaultZone: ${SERVICE_REGISTRY:http://localhost:8761/eureka}
+    enabled: true
+
+LOGGING_LEVEL_ROOT: DEBUG

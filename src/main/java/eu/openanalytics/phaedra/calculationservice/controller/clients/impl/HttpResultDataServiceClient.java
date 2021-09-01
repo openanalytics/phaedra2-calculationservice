@@ -3,6 +3,7 @@ package eu.openanalytics.phaedra.calculationservice.controller.clients.impl;
 import eu.openanalytics.phaedra.calculationservice.controller.clients.ResultDataServiceClient;
 import eu.openanalytics.phaedra.calculationservice.controller.clients.ResultDataUnresolvableException;
 import eu.openanalytics.phaedra.calculationservice.controller.clients.ResultSetUnresolvableException;
+import eu.openanalytics.phaedra.calculationservice.dto.external.ErrorDTO;
 import eu.openanalytics.phaedra.calculationservice.dto.external.PageDTO;
 import eu.openanalytics.phaedra.calculationservice.dto.external.ResultDataDTO;
 import eu.openanalytics.phaedra.calculationservice.dto.external.ResultSetDTO;
@@ -10,7 +11,9 @@ import eu.openanalytics.phaedra.calculationservice.scriptengineclient.model.Resp
 import org.springframework.core.ParameterizedTypeReference;
 import org.springframework.stereotype.Component;
 import org.springframework.web.client.HttpClientErrorException;
+import org.springframework.web.client.HttpServerErrorException;
 
+import java.util.List;
 import java.util.Objects;
 
 @Component
@@ -41,14 +44,18 @@ public class HttpResultDataServiceClient implements ResultDataServiceClient {
             return res;
         } catch (HttpClientErrorException ex) {
             throw new ResultSetUnresolvableException("Error while creating ResultSet", ex);
+        } catch (HttpServerErrorException ex) {
+            throw new ResultSetUnresolvableException("Server Error while creating ResultSet", ex);
         }
     }
 
     @Override
-    public ResultSetDTO completeResultDataSet(long resultSetId, String outcome) throws ResultSetUnresolvableException {
+    public ResultSetDTO completeResultDataSet(long resultSetId, String outcome, List<ErrorDTO> errors, String errorsText) throws ResultSetUnresolvableException {
         Objects.requireNonNull(outcome, "Outcome may not be null");
         var resultSet = ResultSetDTO.builder()
                 .outcome(outcome)
+                .errors(errors)
+                .errorsText(errorsText)
                 .build();
 
         try {

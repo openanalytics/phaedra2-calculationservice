@@ -1,0 +1,13 @@
+# automatically gets loaded by Spring Cloud Kubernetes when using Kubernetes
+server:
+  port:
+    8080
+
+spring:
+  cloud:
+    kubernetes:
+      enabled: true
+
+eureka:
+  client:
+    enabled: false

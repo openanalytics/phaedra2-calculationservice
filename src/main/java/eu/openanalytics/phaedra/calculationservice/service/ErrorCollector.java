@@ -1,83 +1,167 @@
 package eu.openanalytics.phaedra.calculationservice.service;
 
-import com.fasterxml.jackson.core.JsonProcessingException;
-import eu.openanalytics.phaedra.calculationservice.controller.clients.MeasUnresolvableException;
-import eu.openanalytics.phaedra.calculationservice.controller.clients.ResultDataUnresolvableException;
 import eu.openanalytics.phaedra.calculationservice.model.CalculationInputValue;
+import eu.openanalytics.phaedra.calculationservice.model.Error;
 import eu.openanalytics.phaedra.calculationservice.model.Feature;
-import eu.openanalytics.phaedra.calculationservice.model.Formula;
 import eu.openanalytics.phaedra.calculationservice.scriptengineclient.model.ScriptExecutionOutput;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
+import java.time.LocalDateTime;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
-import java.util.concurrent.ExecutionException;
 
+// TODO store in DB
+// TODO keep track of state
 public class ErrorCollector {
 
-    // TODO MAKES THIS TRHEAD_SAFE!!!!
-    private final List<Throwable> errors = new ArrayList<>();
-    private final List<String> messages = new ArrayList<>();
+    private final List<Error> errors = Collections.synchronizedList(new ArrayList<>());
+    private final Logger logger = LoggerFactory.getLogger(getClass());
 
-    public ErrorCollector() {
-
-    }
-
-//    public void handleError(InterruptedException e) {
-//        errors.add(e);
-//        messages.add(e.getMessage());
-//    }
-//
-//    public void handleError(MeasUnresolvableException e) {
-//        errors.add(e);
-//        messages.add(e.getMessage());
-//    }
-//
-//    public void handleError(ExecutionException e) {
-//        errors.add(e);
-//        messages.add(e.getMessage());
-//    }
-
-    public void handleError(ResultDataUnresolvableException e) {
-        errors.add(e);
-        messages.add(e.getMessage());
+    public List<Error> getErrors() {
+        return errors;
     }
 
     public String getErrorDescription() {
-        return String.join("\n", messages);
+        StringBuilder description = new StringBuilder();
+        for (var error : errors) {
+            description.append(error);
+            description.append("\n");
+        }
+        return description.toString();
     }
 
     public boolean hasError() {
-        return messages.size() > 0;
+        return errors.size() > 0;
     }
 
-    public void handleError(Throwable e, String location, Feature feature) {
-        errors.add(e);
-        messages.add(String.format("Type: [%s], location: [%s], sequenceNumber: [%s], feature: [%s=>%s]",
-                e.getClass().getSimpleName(), location, feature.getSequence(), feature.getId(), feature.getName()));
+    public void handleError(Throwable e, String description, Feature feature) {
+        var error = Error.builder()
+                .timestamp(LocalDateTime.now())
+                .exceptionClassName(e.getClass().getSimpleName())
+                .exceptionMessage(e.getMessage())
+                .description(description)
+                .sequenceNumber(feature.getSequence())
+                .featureId(feature.getId())
+                .featureName(feature.getName())
+                .formulaId(feature.getFormula().getId())
+                .formulaName(feature.getFormula().getName())
+                .build();
+        errors.add(error);
+        logger.info(error.toString(), e);
     }
 
-    public void handleError(Exception e, String location, Feature feature, CalculationInputValue civ) {
-        if (e == null) {
-            messages.add(String.format("Location: [%s], sequenceNumber: [%s], feature: [%s=>%s], civType: [%s], civVariableName: [%s], civSource: [%s]",
-                    location, feature.getSequence(), feature.getId(), feature.getName(), civ.getType(), civ.getVariableName(), civ.getSource()));
-        } else {
-            messages.add(String.format("Type: [%s], location: [%s], sequenceNumber: [%s], feature: [%s=>%s], civType: [%s], civVariableName: [%s], civSource: [%s]",
-                    e.getClass().getSimpleName(), location, feature.getSequence(), feature.getId(), feature.getName(), civ.getType(), civ.getVariableName(), civ.getSource()));
-        }
+
+    public void handleError(Exception e, String description, Feature feature, ScriptExecutionOutput output) {
+        // TODO store output here ?
+        var error = Error.builder()
+                .exceptionClassName(e.getClass().getSimpleName())
+                .exceptionMessage(e.getMessage())
+                .timestamp(LocalDateTime.now())
+                .description(description)
+                .featureId(feature.getId())
+                .featureName(feature.getName())
+                .sequenceNumber(feature.getSequence())
+                .formulaId(feature.getFormula().getId())
+                .formulaName(feature.getFormula().getName())
+                .exitCode(output.getExitCode())
+                .statusMessage(output.getStatusMessage())
+                .build();
+        errors.add(error);
+        logger.info(error.toString(), e);
+
     }
 
-    public void handleError(Exception e, String location, Feature feature) {
-        if (e == null) {
-            messages.add(String.format("Location: [%s], sequenceNumber: [%s], feature: [%s=>%s], formula: [%s=>%s]",
-                    location, feature.getSequence(), feature.getId(), feature.getName(), feature.getFormula().getId(), feature.getFormula().getName()));
-        } else {
-            messages.add(String.format("Type: [%s], Location: [%s], sequenceNumber: [%s], feature: [%s=>%s], formula: [%s=>%s]",
-                    e.getClass().getSimpleName(), location, feature.getSequence(), feature.getId(), feature.getName(), feature.getFormula().getId(), feature.getFormula().getName()));
-        }
+    public void handleError(Exception e, String description, Feature feature, CalculationInputValue civ) {
+        var error = Error.builder()
+                .timestamp(LocalDateTime.now())
+                .exceptionClassName(e.getClass().getSimpleName())
+                .exceptionMessage(e.getMessage())
+                .description(description)
+                .sequenceNumber(feature.getSequence())
+                .featureId(feature.getId())
+                .featureName(feature.getName())
+                .formulaId(feature.getFormula().getId())
+                .formulaName(feature.getFormula().getName())
+                .civType(civ.getType())
+                .civVariableName(civ.getVariableName())
+                .civSource(civ.getSource())
+                .build();
+        errors.add(error);
+        logger.info(error.toString(), e);
     }
+
+    public void handleError(String description, Feature feature, CalculationInputValue civ) {
+        var error = Error.builder()
+                .timestamp(LocalDateTime.now())
+                .description(description)
+                .featureId(feature.getId())
+                .featureName(feature.getName())
+                .sequenceNumber(feature.getSequence())
+                .formulaId(feature.getFormula().getId())
+                .formulaName(feature.getFormula().getName())
+                .civType(civ.getType())
+                .civVariableName(civ.getVariableName())
+                .civSource(civ.getSource())
+                .build();
+        errors.add(error);
+        logger.info(error.toString());
+    }
+
+    public void handleError(Exception e, String description, Feature feature) {
+        var error = Error.builder()
+                .exceptionClassName(e.getClass().getSimpleName())
+                .exceptionMessage(e.getMessage())
+                .timestamp(LocalDateTime.now())
+                .description(description)
+                .featureId(feature.getId())
+                .featureName(feature.getName())
+                .sequenceNumber(feature.getSequence())
+                .formulaId(feature.getFormula().getId())
+                .formulaName(feature.getFormula().getName())
+                .build();
+        errors.add(error);
+        logger.info(error.toString(), e);
+    }
+
+    public void handleError(String description, int sequenceNumber) {
+        var error = Error.builder()
+                .timestamp(LocalDateTime.now())
+                .description(description)
+                .sequenceNumber(sequenceNumber)
+                .build();
+        errors.add(error);
+    }
+
+    public void handleError(String description, Feature feature) {
+        var error = Error.builder()
+                .timestamp(LocalDateTime.now())
+                .description(description)
+                .featureId(feature.getId())
+                .featureName(feature.getName())
+                .sequenceNumber(feature.getSequence())
+                .formulaId(feature.getFormula().getId())
+                .formulaName(feature.getFormula().getName())
+                .build();
+        errors.add(error);
+        logger.info(error.toString());
+    }
+
 
     public void handleScriptError(ScriptExecutionOutput output, Feature feature) {
-        messages.add(String.format("Location: [execution sequence => processing output => output indicates script error], sequenceNumber: [%s], feature: [%s=>%s], formula: [%s=>%s], exitCode: [%s], statusMessage of script: [%s]",
-                feature.getSequence(), feature.getId(), feature.getName(), feature.getFormula().getId(), feature.getFormula().getName(), output.getExitCode(), output.getStatusMessage()));
+        var error = Error.builder()
+                .timestamp(LocalDateTime.now())
+                .description("executing sequence => processing output => output indicates script error")
+                .sequenceNumber(feature.getSequence())
+                .featureId(feature.getId())
+                .featureName(feature.getName())
+                .formulaId(feature.getFormula().getId())
+                .formulaName(feature.getFormula().getName())
+                .exitCode(output.getExitCode())
+                .statusMessage(output.getStatusMessage())
+                .build();
+        errors.add(error);
+        logger.info(error.toString());
     }
 }

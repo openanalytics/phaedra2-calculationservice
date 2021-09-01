@@ -12,7 +12,7 @@ public class HttpMeasServiceClient implements MeasServiceClient {
 
     private final RestTemplate restTemplate;
 
-    public HttpMeasServiceClient(@Qualifier("unLoadBalancedRestTemplate") RestTemplate restTemplate) {
+    public HttpMeasServiceClient(RestTemplate restTemplate) {
         this.restTemplate = restTemplate;
     }
 

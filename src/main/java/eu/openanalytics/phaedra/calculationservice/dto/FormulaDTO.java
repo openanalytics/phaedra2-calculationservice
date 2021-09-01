@@ -36,15 +36,15 @@ public class FormulaDTO {
     @NotNull(message = "Scope is mandatory", groups = {OnCreate.class})
     private CalculationScope scope;
 
-    @Null(groups = {OnCreate.class, OnUpdate.class}, message = "Created_by must be null when creating a formula")
-    private String created_by;
+    @Null(groups = {OnCreate.class, OnUpdate.class}, message = "CreatedBy must be null when creating a formula")
+    private String createdBy;
 
-    @Null(groups = {OnCreate.class, OnUpdate.class}, message = "Created_on must be null when creating a formula")
-    private LocalDateTime created_on;
+    @Null(groups = {OnCreate.class, OnUpdate.class}, message = "CreatedOn must be null when creating a formula")
+    private LocalDateTime createdOn;
 
-    @Null(groups = {OnCreate.class, OnUpdate.class}, message = "Updated_by must be null when creating a formula")
-    private String updated_by;
+    @Null(groups = {OnCreate.class, OnUpdate.class}, message = "UpdatedBy must be null when creating a formula")
+    private String updatedBy;
 
-    @Null(groups = {OnCreate.class, OnUpdate.class}, message = "Updated_on must be null when creating a formula")
-    private LocalDateTime updated_on;
+    @Null(groups = {OnCreate.class, OnUpdate.class}, message = "UpdatedOn must be null when creating a formula")
+    private LocalDateTime updatedOn;
 }
