@@ -15,7 +15,7 @@ import org.apache.commons.lang3.tuple.Pair;
 import org.springframework.stereotype.Service;
 
 import java.util.ArrayList;
-import java.util.List;
+import java.util.Optional;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Future;
@@ -35,7 +35,7 @@ public class SequenceExecutorService {
 
     public boolean executeSequence(ExecutorService executorService, ErrorCollector errorCollector, Sequence currentSequence, long measId, ResultSetDTO resultSet) {
         // A. asynchronously create inputs and submit them to the ScriptEngine
-        var calculations = new ArrayList<Pair<Feature, Future<ScriptExecutionInput>>>();
+        var calculations = new ArrayList<Pair<Feature, Future<Optional<ScriptExecutionInput>>>>();
 
         for (var feature : currentSequence.getFeatures()) {
             calculations.add(Pair.of(feature, executorService.submit(() ->
@@ -43,29 +43,36 @@ public class SequenceExecutorService {
         }
 
         // B. wait (block !) for execution to be sent to the ScriptEngine
-        var outputFutures = safelyMapFutures(errorCollector, calculations,
-                (calculation) -> {
-                    var res = calculation.get();
-                    if (res != null) {
-                        return (Future<ScriptExecutionOutput>) res.getOutput();
-                    }
-                    return null;
-                },
-                "executing sequence => waiting for feature to be sent"
-        );
-
-        // C. wait (block !) for outputs to be received from ScriptEngine
-        var outputs = safelyMapFutures(errorCollector, outputFutures,
-                Future::get,
-                "executing sequence => waiting for output to be received");
-
-        // D. check for errors
-        if (outputs == null || errorCollector.hasError()) {
-            // -> we got an error, do not process the output
-            return false;
+        var outputFutures = new ArrayList<Pair<Feature, Future<ScriptExecutionOutput>>>();
+        for (var calculation : calculations) {
+            try {
+                if (calculation.getRight().get().isPresent()) {
+                    outputFutures.add(Pair.of(calculation.getLeft(), calculation.getRight().get().get().getOutput()));
+                }
+            } catch (InterruptedException e) {
+                errorCollector.handleError(e, "executing sequence => waiting for feature to be sent => interrupted", calculation.getLeft());
+            } catch (ExecutionException e) {
+                errorCollector.handleError(e.getCause(), "executing sequence => waiting for feature to be sent => exception during execution", calculation.getLeft());
+            } catch (Throwable e) {
+                errorCollector.handleError(e, "executing sequence => waiting for feature to be sent => exception during execution", calculation.getLeft());
+            }
         }
 
-        // G. process the output
+        // C. wait (block !) for output to be received from the ScriptEngine
+        var outputs = new ArrayList<Pair<Feature, ScriptExecutionOutput>>();
+        for (var outputFuture : outputFutures) {
+            try {
+                outputs.add(Pair.of(outputFuture.getLeft(), outputFuture.getRight().get()));
+            } catch (InterruptedException e) {
+                errorCollector.handleError(e, "executing sequence => waiting for output to be received => interrupted", outputFuture.getLeft());
+            } catch (ExecutionException e) {
+                errorCollector.handleError(e.getCause(), "executing sequence => waiting for output to be received => exception during execution", outputFuture.getLeft());
+            } catch (Throwable e) {
+                errorCollector.handleError(e, "executing sequence => waiting for output to be received => exception during execution", outputFuture.getLeft());
+            }
+        }
+
+        // D. save the output
         for (var el : outputs) {
             saveOutput(errorCollector, resultSet, el.getLeft(), el.getRight());
         }
@@ -104,44 +111,6 @@ public class SequenceExecutorService {
         } catch (Exception e) {
             errorCollector.handleError(e, "executing sequence => processing output => saving resultdata", feature);
         }
-    }
-
-    public interface Map<T, R> {
-        R apply(T var1) throws InterruptedException, ExecutionException;
-    }
-
-    public <T, R> ArrayList<Pair<Feature, R>> safelyMapFutures(ErrorCollector errorCollector,
-                                                               List<Pair<Feature, Future<T>>> futures,
-                                                               Map<Future<T>, R> map,
-                                                               String location) {
-
-        // pre-execution: check for errors
-        if (errorCollector.hasError()) {
-            // -> we got an error, cancel not started tasks, but don't interrupt them
-            if (futures == null) return null;
-            for (var el : futures) {
-                if (el != null && el.getRight() != null) {
-                    el.getRight().cancel(false);
-                }
-            }
-            return null;
-        }
-
-        var res = new ArrayList<Pair<Feature, R>>();
-
-        for (var el : futures) {
-            try {
-                res.add(Pair.of(el.getLeft(), map.apply(el.getRight())));
-            } catch (InterruptedException e) {
-                errorCollector.handleError(e, location + " => interrupted", el.getLeft());
-            } catch (ExecutionException e) {
-                errorCollector.handleError(e.getCause(), location + " => exception during execution", el.getLeft());
-            } catch (Exception e) {
-                errorCollector.handleError(e, location + " => exception during execution", el.getLeft());
-            }
-        }
-
-        return res;
     }
 
     static class OutputWrapper {

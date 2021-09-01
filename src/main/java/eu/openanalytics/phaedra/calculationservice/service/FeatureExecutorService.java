@@ -14,6 +14,7 @@ import eu.openanalytics.phaedra.calculationservice.scriptengineclient.model.Scri
 import org.springframework.stereotype.Service;
 
 import java.util.HashMap;
+import java.util.Optional;
 
 import static eu.openanalytics.phaedra.calculationservice.CalculationService.R_FAST_LANE;
 
@@ -32,16 +33,16 @@ public class FeatureExecutorService {
     }
 
 
-    public ScriptExecutionInput executeFeature(ErrorCollector errorCollector, Feature feature, long measId, long currentSequence, long resultId) {
+    public Optional<ScriptExecutionInput> executeFeature(ErrorCollector errorCollector, Feature feature, long measId, long currentSequence, long resultId) {
         try {
             var inputVariables = collectVariablesForFeature(errorCollector, feature, measId, currentSequence, resultId);
-            if (inputVariables == null) {
-                return null;
+            if (inputVariables.isEmpty()) {
+                return Optional.empty();
             }
             if (feature.getFormula().getCategory() != Category.CALCULATION || feature.getFormula().getLanguage() != ScriptLanguage.R) {
 //            || feature.getFormula().getScope() != CalculationScope.WELL) { // TODO
                 errorCollector.handleError("executing feature => unsupported formula found", feature);
-                return null;
+                return Optional.empty();
             }
 
             var script = feature.getFormula().getFormula();
@@ -49,20 +50,20 @@ public class FeatureExecutorService {
             var execution = scriptEngineClient.newScriptExecution(
                     R_FAST_LANE,
                     script,
-                    objectMapper.writeValueAsString(inputVariables)
+                    objectMapper.writeValueAsString(inputVariables.get())
             );
 
             scriptEngineClient.execute(execution);
 
-            return execution;
+            return Optional.of(execution);
         } catch (JsonProcessingException e) {
             // this error will probably never occur, see: https://stackoverflow.com/q/26716020/1393103 for examples where it does
             errorCollector.handleError(e, "executing feature => writing input variables and request", feature);
         }
-        return null;
+        return Optional.empty();
     }
 
-    private HashMap<String, float[]> collectVariablesForFeature(ErrorCollector errorCollector, Feature feature, long measId, long currentSequence, long resultId) {
+    private Optional<HashMap<String, float[]>> collectVariablesForFeature(ErrorCollector errorCollector, Feature feature, long measId, long currentSequence, long resultId) {
         var inputVariables = new HashMap<String, float[]>();
 
         for (var civ : feature.getCalculationInputValues()) {
@@ -70,13 +71,13 @@ public class FeatureExecutorService {
                 if (inputVariables.containsKey(civ.getVariableName())) {
                     // the ProtocolService makes sure this cannot happen, but extra check to make sure
                     errorCollector.handleError("executing sequence => executing feature => collecting variables for feature => duplicate variable name detected", feature, civ);
-                    return null;
+                    return Optional.empty();
                 }
 
                 if (civ.getSourceFeatureId() != null) {
                     if (currentSequence == 0) {
                         errorCollector.handleError("executing sequence => executing feature => collecting variables for feature => retrieving measurement => trying to get feature in sequence 0", feature, civ);
-                        return null;
+                        return Optional.empty();
                     }
                     inputVariables.put(civ.getVariableName(), resultDataServiceClient.getResultData(resultId, civ.getSourceFeatureId()).getValues());
                 } else if (civ.getSourceMeasColName() != null) {
@@ -84,15 +85,15 @@ public class FeatureExecutorService {
                 } else {
                     // the ProtocolService makes sure this cannot happen, but extra check to make sure
                     errorCollector.handleError("executing sequence => executing feature => collecting variables for feature => retrieving measurement => civ has no valid source", feature, civ);
-                    return null;
+                    return Optional.empty();
                 }
 
             } catch (MeasUnresolvableException | ResultDataUnresolvableException e) {
                 errorCollector.handleError(e, "executing sequence => executing feature => collecting variables for feature => retrieving measurement", feature, civ);
-                return null;
+                return Optional.empty();
             }
         }
-        return inputVariables;
+        return Optional.of(inputVariables);
     }
 }
 
