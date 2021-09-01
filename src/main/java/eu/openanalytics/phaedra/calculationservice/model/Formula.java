@@ -14,7 +14,7 @@ import java.time.LocalDateTime;
 
 @Value
 @With
-@Builder
+@Builder(toBuilder = true)
 @AllArgsConstructor
 public class Formula {
     @Id

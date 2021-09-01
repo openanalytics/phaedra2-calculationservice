@@ -64,11 +64,6 @@ public class CalculationService {
     }
 
     @Bean
-    public ERestTemplate unLoadBalancedRestTemplate() {
-        return new ERestTemplate();
-    }
-
-    @Bean
     public OpenAPI customOpenAPI() {
         Server server = new Server().url(servletContext.getContextPath()).description("Default Server URL");
         return new OpenAPI().addServersItem(server);

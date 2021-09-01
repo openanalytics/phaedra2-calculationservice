@@ -1,16 +1,13 @@
 package eu.openanalytics.phaedra.calculationservice.model;
 
-import lombok.AccessLevel;
 import lombok.AllArgsConstructor;
-import lombok.Data;
-import lombok.NoArgsConstructor;
+import lombok.Builder;
 import lombok.Value;
 import org.springframework.data.annotation.Id;
 
-//@Data
 @Value
-@NoArgsConstructor(force = true)
 @AllArgsConstructor
+@Builder(toBuilder = true)
 public class CalculationInputValue {
 
     @Id
@@ -37,4 +34,5 @@ public class CalculationInputValue {
         }
         return null;
     }
+
 }
