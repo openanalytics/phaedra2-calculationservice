@@ -6,6 +6,7 @@ import eu.openanalytics.phaedra.calculationservice.controller.clients.MeasServic
 import eu.openanalytics.phaedra.calculationservice.controller.clients.MeasUnresolvableException;
 import eu.openanalytics.phaedra.calculationservice.controller.clients.ResultDataServiceClient;
 import eu.openanalytics.phaedra.calculationservice.controller.clients.ResultDataUnresolvableException;
+import eu.openanalytics.phaedra.calculationservice.enumeration.CalculationScope;
 import eu.openanalytics.phaedra.calculationservice.enumeration.Category;
 import eu.openanalytics.phaedra.calculationservice.enumeration.ScriptLanguage;
 import eu.openanalytics.phaedra.calculationservice.model.Feature;
@@ -39,8 +40,9 @@ public class FeatureExecutorService {
             if (inputVariables.isEmpty()) {
                 return Optional.empty();
             }
-            if (feature.getFormula().getCategory() != Category.CALCULATION || feature.getFormula().getLanguage() != ScriptLanguage.R) {
-//            || feature.getFormula().getScope() != CalculationScope.WELL) { // TODO
+            if (feature.getFormula().getCategory() != Category.CALCULATION
+                    || feature.getFormula().getLanguage() != ScriptLanguage.R
+                    || feature.getFormula().getScope() != CalculationScope.WELL) {
                 errorCollector.handleError("executing feature => unsupported formula found", feature);
                 return Optional.empty();
             }

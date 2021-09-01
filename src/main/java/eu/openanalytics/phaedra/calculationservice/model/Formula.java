@@ -12,7 +12,6 @@ import org.springframework.data.annotation.Id;
 import javax.validation.constraints.NotNull;
 import java.time.LocalDateTime;
 
-//@Data
 @Value
 @With
 @Builder
