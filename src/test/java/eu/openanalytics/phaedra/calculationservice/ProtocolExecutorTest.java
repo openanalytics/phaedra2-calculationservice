@@ -38,8 +38,11 @@ import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
+import java.util.Timer;
+import java.util.TimerTask;
 
 import static eu.openanalytics.phaedra.calculationservice.CalculationService.R_FAST_LANE;
+import static org.mockito.Mockito.doAnswer;
 import static org.mockito.Mockito.doNothing;
 import static org.mockito.Mockito.doReturn;
 import static org.mockito.Mockito.doThrow;
@@ -106,6 +109,10 @@ public class ProtocolExecutorTest {
         Assertions.assertEquals(Collections.emptyList(), resultSet.getErrors());
         Assertions.assertEquals("", resultSet.getErrorsText());
 
+        var result1 = resultDataServiceClient.getResultData(0, 1);
+        Assertions.assertArrayEquals(new float[]{2.0f, 4.0f, 6.0f, 10.0f, 16.0f}, result1.getValues());
+        Assertions.assertEquals(ResponseStatusCode.SUCCESS, result1.getStatusCode());
+
         verifyNoMoreInteractions(protocolServiceClient, measServiceClient, scriptEngineClient);
     }
 
@@ -145,6 +152,8 @@ public class ProtocolExecutorTest {
         Assertions.assertEquals("abc", error.getCivVariableName());
         Assertions.assertNull(error.getExitCode());
         Assertions.assertNull(error.getStatusMessage());
+
+        Assertions.assertThrows(ResultDataUnresolvableException.class, () -> resultDataServiceClient.getResultData(0, 1));
 
         verifyNoMoreInteractions(protocolServiceClient, measServiceClient, scriptEngineClient);
     }
@@ -203,6 +212,12 @@ public class ProtocolExecutorTest {
         Assertions.assertNull(error.getExitCode());
         Assertions.assertNull(error.getStatusMessage());
 
+        var result1 = resultDataServiceClient.getResultData(0, 1);
+        Assertions.assertArrayEquals(new float[]{2.0f, 4.0f, 6.0f, 10.0f, 16.0f}, result1.getValues());
+        Assertions.assertEquals(ResponseStatusCode.SUCCESS, result1.getStatusCode());
+
+        Assertions.assertThrows(ResultDataUnresolvableException.class, () -> resultDataServiceClient.getResultData(0, 2));
+
         verifyNoMoreInteractions(protocolServiceClient, measServiceClient, scriptEngineClient);
     }
 
@@ -244,6 +259,8 @@ public class ProtocolExecutorTest {
         Assertions.assertNull(error.getExitCode());
         Assertions.assertNull(error.getStatusMessage());
 
+        Assertions.assertThrows(ResultDataUnresolvableException.class, () -> resultDataServiceClient.getResultData(0, 1));
+
         verifyNoMoreInteractions(protocolServiceClient, measServiceClient, scriptEngineClient);
     }
 
@@ -255,7 +272,7 @@ public class ProtocolExecutorTest {
                 new HashMap<>() {{
                     put(0, new Sequence(0, List.of(new Feature(1L, "Feature1", null, null, "AFormat", FeatureType.CALCULATION, 0,
                             new Formula(1L, "abc_duplicator", null, Category.CALCULATION, formula1, ScriptLanguage.R, CalculationScope.FEATURE, "me", LocalDateTime.now(), "me", LocalDateTime.now()),
-                            List.of(new CalculationInputValue(1L, 1L, null, null, "abc") )))));
+                            List.of(new CalculationInputValue(1L, 1L, null, null, "abc"))))));
                 }}));
 
         var resultSet = protocolExecutorService.execute(1, 1, 4).get();
@@ -282,6 +299,8 @@ public class ProtocolExecutorTest {
         Assertions.assertNull(error.getExitCode());
         Assertions.assertNull(error.getStatusMessage());
 
+        Assertions.assertThrows(ResultDataUnresolvableException.class, () -> resultDataServiceClient.getResultData(0, 1));
+
         verifyNoMoreInteractions(protocolServiceClient, measServiceClient, scriptEngineClient);
     }
 
@@ -293,7 +312,7 @@ public class ProtocolExecutorTest {
                 new HashMap<>() {{
                     put(0, new Sequence(0, List.of(new Feature(1L, "Feature1", null, null, "AFormat", FeatureType.CALCULATION, 0,
                             new Formula(1L, "abc_duplicator", null, Category.CALCULATION, formula1, ScriptLanguage.R, CalculationScope.FEATURE, "me", LocalDateTime.now(), "me", LocalDateTime.now()),
-                            List.of(new CalculationInputValue(1L, 1L, null, 1L, "abc") )))));
+                            List.of(new CalculationInputValue(1L, 1L, null, 1L, "abc"))))));
                 }}));
 
         var resultSet = protocolExecutorService.execute(1, 1, 4).get();
@@ -319,6 +338,8 @@ public class ProtocolExecutorTest {
         Assertions.assertEquals("abc", error.getCivVariableName());
         Assertions.assertNull(error.getExitCode());
         Assertions.assertNull(error.getStatusMessage());
+
+        Assertions.assertThrows(ResultDataUnresolvableException.class, () -> resultDataServiceClient.getResultData(0, 1));
 
         verifyNoMoreInteractions(protocolServiceClient, measServiceClient, scriptEngineClient);
     }
@@ -355,6 +376,9 @@ public class ProtocolExecutorTest {
         Assertions.assertNull(error.getCivVariableName());
         Assertions.assertNull(error.getExitCode());
         Assertions.assertNull(error.getStatusMessage());
+
+        Assertions.assertThrows(ResultDataUnresolvableException.class, () -> resultDataServiceClient.getResultData(0, 1));
+
         verifyNoMoreInteractions(protocolServiceClient, measServiceClient, scriptEngineClient);
     }
 
@@ -402,8 +426,11 @@ public class ProtocolExecutorTest {
         Assertions.assertEquals(42, error.getExitCode());
         Assertions.assertEquals("Script did not create output file!", error.getStatusMessage());
 
-        verifyNoMoreInteractions(protocolServiceClient, measServiceClient, scriptEngineClient);
+        var result1 = resultDataServiceClient.getResultData(0, 1);
+        Assertions.assertArrayEquals(new float[]{}, result1.getValues());
+        Assertions.assertEquals(ResponseStatusCode.SCRIPT_ERROR, result1.getStatusCode());
 
+        verifyNoMoreInteractions(protocolServiceClient, measServiceClient, scriptEngineClient);
     }
 
     @Test
@@ -450,6 +477,241 @@ public class ProtocolExecutorTest {
         Assertions.assertEquals(0, error.getExitCode());
         Assertions.assertEquals("Ok", error.getStatusMessage());
 
+        Assertions.assertThrows(ResultDataUnresolvableException.class, () -> resultDataServiceClient.getResultData(0, 1));
+
+        verifyNoMoreInteractions(protocolServiceClient, measServiceClient, scriptEngineClient);
+    }
+
+    @Test
+    public void exceptionDuringExecution() throws Exception {
+        var formula = "output <- input$abc * 2";
+        var input = new ScriptExecutionInput(new TargetRuntime("R", "fast-lane", "v1"), formula,
+                "{\"abc\":[1.0,2.0,3.0,5.0,8.0]}",
+                "libraryTest" // TODO
+        );
+
+        stubGetProtocol(new Protocol(1L, "TestProtocol", null, true, true, "lc", "hc",
+                new HashMap<>() {{
+                    put(0, new Sequence(0, List.of(new Feature(1L, "Feature1", null, null, "AFormat", FeatureType.CALCULATION, 0,
+                            new Formula(1L, "abc_duplicator", null, Category.CALCULATION, formula, ScriptLanguage.R, CalculationScope.FEATURE, "me", LocalDateTime.now(), "me", LocalDateTime.now()),
+                            List.of(new CalculationInputValue(1L, 1L, "abc", null, "abc"))))));
+                }}));
+
+        stubGetWellData(4L, "abc", new float[]{1.0f, 2.0f, 3.0f, 5.0f, 8.0f});
+        stubNewScriptExecution(R_FAST_LANE, input);
+        stubExecute(input);
+        input.getOutput().completeExceptionally(new RuntimeException("Some error during execution!"));
+
+        var resultSet = protocolExecutorService.execute(1, 1, 4).get();
+        Assertions.assertEquals("Error", resultSet.getOutcome());
+        Assertions.assertEquals(0L, resultSet.getId());
+        Assertions.assertEquals(1L, resultSet.getProtocolId());
+        Assertions.assertEquals(4L, resultSet.getMeasId());
+        Assertions.assertEquals(1L, resultSet.getPlateId());
+        Assertions.assertEquals(1, resultSet.getErrors().size());
+        Assertions.assertNotNull(resultSet.getErrorsText());
+
+        var error = resultSet.getErrors().get(0);
+        Assertions.assertEquals("executing sequence => waiting for output to be received => exception during execution", error.getDescription());
+        Assertions.assertEquals("RuntimeException", error.getExceptionClassName());
+        Assertions.assertEquals("Some error during execution!", error.getExceptionMessage());
+        Assertions.assertEquals(1, error.getFeatureId());
+        Assertions.assertEquals("Feature1", error.getFeatureName());
+        Assertions.assertEquals(0, error.getSequenceNumber());
+        Assertions.assertEquals(1, error.getFormulaId());
+        Assertions.assertEquals("abc_duplicator", error.getFormulaName());
+        Assertions.assertNull(error.getCivType());
+        Assertions.assertNull(error.getCivSource());
+        Assertions.assertNull(error.getCivVariableName());
+        Assertions.assertNull(error.getExitCode());
+
+        Assertions.assertThrows(ResultDataUnresolvableException.class, () -> resultDataServiceClient.getResultData(0, 1));
+
+        verifyNoMoreInteractions(protocolServiceClient, measServiceClient, scriptEngineClient);
+    }
+
+    @Test
+    public void exceptionDuringExecutionMultipleFeatures() throws Exception {
+        var formula1 = "output <- input$abc * 2";
+        var formula2 = "output <- input$abc * 3";
+        var formula3 = "output <- input$abc * 4";
+        var input1 = new ScriptExecutionInput(new TargetRuntime("R", "fast-lane", "v1"), formula1,
+                "{\"abc\":[1.0,2.0,3.0,5.0,8.0]}",
+                "libraryTest" // TODO
+        );
+        var input2 = new ScriptExecutionInput(new TargetRuntime("R", "fast-lane", "v1"), formula2,
+                "{\"abc\":[1.0,2.0,3.0,5.0,8.0]}",
+                "libraryTest" // TODO
+        );
+        var input3 = new ScriptExecutionInput(new TargetRuntime("R", "fast-lane", "v1"), formula3,
+                "{\"abc\":[1.0,2.0,3.0,5.0,8.0]}",
+                "libraryTest" // TODO
+        );
+
+        stubGetProtocol(new Protocol(1L, "TestProtocol", null, true, true, "lc", "hc",
+                new HashMap<>() {{
+                    put(0, new Sequence(0, List.of(
+                            new Feature(1L, "Feature1", null, null, "AFormat", FeatureType.CALCULATION, 0,
+                                    new Formula(1L, "abc_duplicator", null, Category.CALCULATION, formula1, ScriptLanguage.R, CalculationScope.FEATURE, "me", LocalDateTime.now(), "me", LocalDateTime.now()),
+                                    List.of(new CalculationInputValue(1L, 1L, "abc", null, "abc"))),
+                            new Feature(2L, "Feature2", null, null, "AFormat", FeatureType.CALCULATION, 0,
+                                    new Formula(2L, "abc_times_three", null, Category.CALCULATION, formula2, ScriptLanguage.R, CalculationScope.FEATURE, "me", LocalDateTime.now(), "me", LocalDateTime.now()),
+                                    List.of(new CalculationInputValue(2L, 2L, "abc", null, "abc"))),
+                            new Feature(3L, "Feature2", null, null, "AFormat", FeatureType.CALCULATION, 0,
+                                    new Formula(3L, "abc_times_four", null, Category.CALCULATION, formula3, ScriptLanguage.R, CalculationScope.FEATURE, "me", LocalDateTime.now(), "me", LocalDateTime.now()),
+                                    List.of(new CalculationInputValue(3L, 3L, "abc", null, "abc"))))
+                    ));
+                }}));
+
+        stubGetWellData(4L, "abc", new float[]{1.0f, 2.0f, 3.0f, 5.0f, 8.0f});
+
+        stubNewScriptExecution(R_FAST_LANE, input1);
+        stubNewScriptExecution(R_FAST_LANE, input2);
+        stubNewScriptExecution(R_FAST_LANE, input3);
+        stubExecute(input1);
+        stubExecute(input2);
+        stubExecute(input3);
+
+        // input 1: return value after 100 ms
+        completeInputSuccessfullyWithDelay(input1, "{\"output\": [2.0,4.0,6.0,10.0,16.0]}", 100);
+
+        // input 2: return error after 250 ms
+        completeInputWithExceptionAndDelay(input2, new RuntimeException("Some error during execution!"), 250);
+
+        // input 3:  return value after 1000ms -> should NOT get cancelled
+        completeInputSuccessfullyWithDelay(input3, "{\"output\": [4.0,8.0,12.0,20.0,32.0]}", 1000);
+
+        var resultSet = protocolExecutorService.execute(1, 1, 4).get();
+
+        Assertions.assertFalse(input1.getOutput().isCancelled());
+        Assertions.assertFalse(input2.getOutput().isCancelled());
+        Assertions.assertFalse(input3.getOutput().isCancelled());
+
+        Assertions.assertEquals("Error", resultSet.getOutcome());
+        Assertions.assertEquals(0L, resultSet.getId());
+        Assertions.assertEquals(1L, resultSet.getProtocolId());
+        Assertions.assertEquals(4L, resultSet.getMeasId());
+        Assertions.assertEquals(1L, resultSet.getPlateId());
+        Assertions.assertEquals(1, resultSet.getErrors().size());
+        Assertions.assertNotNull(resultSet.getErrorsText());
+
+        var error = resultSet.getErrors().get(0);
+        Assertions.assertEquals("executing sequence => waiting for output to be received => exception during execution", error.getDescription());
+        Assertions.assertEquals("RuntimeException", error.getExceptionClassName());
+        Assertions.assertEquals("Some error during execution!", error.getExceptionMessage());
+        Assertions.assertEquals(2, error.getFeatureId());
+        Assertions.assertEquals("Feature2", error.getFeatureName());
+        Assertions.assertEquals(0, error.getSequenceNumber());
+        Assertions.assertEquals(2, error.getFormulaId());
+        Assertions.assertEquals("abc_times_three", error.getFormulaName());
+        Assertions.assertNull(error.getCivType());
+        Assertions.assertNull(error.getCivSource());
+        Assertions.assertNull(error.getCivVariableName());
+        Assertions.assertNull(error.getExitCode());
+
+        // check resultData
+        var result1 = resultDataServiceClient.getResultData(0, 1);
+        Assertions.assertArrayEquals(new float[]{2.0f, 4.0f, 6.0f, 10.0f, 16.0f}, result1.getValues());
+        Assertions.assertEquals(ResponseStatusCode.SUCCESS, result1.getStatusCode());
+
+        Assertions.assertThrows(ResultDataUnresolvableException.class, () -> resultDataServiceClient.getResultData(0, 2));
+
+        var result3 = resultDataServiceClient.getResultData(0, 3);
+        Assertions.assertArrayEquals(new float[]{4.0f, 8.0f, 12.0f, 20.0f, 32.0f}, result3.getValues());
+        Assertions.assertEquals(ResponseStatusCode.SUCCESS, result3.getStatusCode());
+
+        verifyNoMoreInteractions(protocolServiceClient, measServiceClient, scriptEngineClient);
+    }
+
+    @Test
+    public void errorDuringSendingShouldCancelOutputs() throws Exception {
+        var formula1 = "output <- input$abc * 2";
+        var formula2 = "output <- input$abc * 3";
+        var formula3 = "output <- input$abc * 4";
+        var input1 = new ScriptExecutionInput(new TargetRuntime("R", "fast-lane", "v1"), formula1,
+                "{\"abc\":[1.0,2.0,3.0,5.0,8.0]}",
+                "libraryTest" // TODO
+        );
+        var input2 = new ScriptExecutionInput(new TargetRuntime("R", "fast-lane", "v1"), formula2,
+                "{\"abc\":[1.0,2.0,3.0,5.0,8.0]}",
+                "libraryTest" // TODO
+        );
+        var input3 = new ScriptExecutionInput(new TargetRuntime("R", "fast-lane", "v1"), formula3,
+                "{\"abc\":[1.0,2.0,3.0,5.0,8.0]}",
+                "libraryTest" // TODO
+        );
+
+        stubGetProtocol(new Protocol(1L, "TestProtocol", null, true, true, "lc", "hc",
+                new HashMap<>() {{
+                    put(0, new Sequence(0, List.of(
+                            new Feature(1L, "Feature1", null, null, "AFormat", FeatureType.CALCULATION, 0,
+                                    new Formula(1L, "abc_duplicator", null, Category.CALCULATION, formula1, ScriptLanguage.R, CalculationScope.FEATURE, "me", LocalDateTime.now(), "me", LocalDateTime.now()),
+                                    List.of(new CalculationInputValue(1L, 1L, "abc", null, "abc"))),
+                            new Feature(2L, "Feature2", null, null, "AFormat", FeatureType.CALCULATION, 0,
+                                    new Formula(2L, "abc_times_three", null, Category.CALCULATION, formula2, ScriptLanguage.R, CalculationScope.FEATURE, "me", LocalDateTime.now(), "me", LocalDateTime.now()),
+                                    List.of(new CalculationInputValue(2L, 2L, "abc", null, "abc"))),
+                            new Feature(3L, "Feature2", null, null, "AFormat", FeatureType.CALCULATION, 0,
+                                    new Formula(3L, "abc_times_four", null, Category.CALCULATION, formula3, ScriptLanguage.R, CalculationScope.FEATURE, "me", LocalDateTime.now(), "me", LocalDateTime.now()),
+                                    List.of(new CalculationInputValue(3L, 3L, "abc", null, "abc"))))
+                    ));
+                }}));
+
+        stubGetWellData(4L, "abc", new float[]{1.0f, 2.0f, 3.0f, 5.0f, 8.0f});
+
+        stubNewScriptExecution(R_FAST_LANE, input1);
+        stubNewScriptExecution(R_FAST_LANE, input2);
+        stubNewScriptExecution(R_FAST_LANE, input3);
+        stubExecute(input1);
+        stubExecuteWithExceptionAndDelay(input2, new RuntimeException("Error during sending of execution!"), 1000);
+        stubExecute(input3);
+
+        // input 1: return value after 100 ms
+        completeInputSuccessfullyWithDelay(input1, "{\"output\": [2.0,4.0,6.0,10.0,16.0]}", 100);
+
+        // input 3:  return value after 1000ms -> should NOT get cancelled
+        completeInputSuccessfullyWithDelay(input3, "{\"output\": [4.0,8.0,12.0,20.0,32.0]}", 1000);
+
+        var resultSet = protocolExecutorService.execute(1, 1, 4).get();
+
+        Assertions.assertFalse(input1.getOutput().isCancelled()); //
+        Assertions.assertFalse(input2.getOutput().isCancelled());
+        Assertions.assertFalse(input2.getOutput().isDone());
+        Assertions.assertFalse(input2.getOutput().isCompletedExceptionally());
+        Assertions.assertFalse(input3.getOutput().isCancelled());
+
+        Assertions.assertEquals("Error", resultSet.getOutcome());
+        Assertions.assertEquals(0L, resultSet.getId());
+        Assertions.assertEquals(1L, resultSet.getProtocolId());
+        Assertions.assertEquals(4L, resultSet.getMeasId());
+        Assertions.assertEquals(1L, resultSet.getPlateId());
+        Assertions.assertEquals(1, resultSet.getErrors().size());
+        Assertions.assertNotNull(resultSet.getErrorsText());
+
+        var error = resultSet.getErrors().get(0);
+        Assertions.assertEquals("executing sequence => waiting for feature to be sent => exception during execution", error.getDescription());
+        Assertions.assertEquals("RuntimeException", error.getExceptionClassName());
+        Assertions.assertEquals("Error during sending of execution!", error.getExceptionMessage());
+        Assertions.assertEquals(2, error.getFeatureId());
+        Assertions.assertEquals("Feature2", error.getFeatureName());
+        Assertions.assertEquals(0, error.getSequenceNumber());
+        Assertions.assertEquals(2, error.getFormulaId());
+        Assertions.assertEquals("abc_times_three", error.getFormulaName());
+        Assertions.assertNull(error.getCivType());
+        Assertions.assertNull(error.getCivSource());
+        Assertions.assertNull(error.getCivVariableName());
+        Assertions.assertNull(error.getExitCode());
+
+        // check resultData
+        var result1 = resultDataServiceClient.getResultData(0, 1);
+        Assertions.assertArrayEquals(new float[]{2.0f, 4.0f, 6.0f, 10.0f, 16.0f}, result1.getValues());
+        Assertions.assertEquals(ResponseStatusCode.SUCCESS, result1.getStatusCode());
+
+        Assertions.assertThrows(ResultDataUnresolvableException.class, () -> resultDataServiceClient.getResultData(0, 2));
+
+        var result3 = resultDataServiceClient.getResultData(0, 3);
+        Assertions.assertArrayEquals(new float[]{4.0f, 8.0f, 12.0f, 20.0f, 32.0f}, result3.getValues());
+        Assertions.assertEquals(ResponseStatusCode.SUCCESS, result3.getStatusCode());
+
         verifyNoMoreInteractions(protocolServiceClient, measServiceClient, scriptEngineClient);
     }
 
@@ -463,6 +725,13 @@ public class ProtocolExecutorTest {
         doNothing().when(scriptEngineClient).execute(input);
     }
 
+    private void stubExecuteWithExceptionAndDelay(ScriptExecutionInput input, Throwable ex, long delay) throws JsonProcessingException {
+        doAnswer(invocation -> {
+            Thread.sleep(delay);
+            throw ex;
+        }).when(scriptEngineClient).execute(input);
+    }
+
     private void stubGetWellData(Long measId, String columnName, float[] values) throws MeasUnresolvableException {
         doReturn(values).when(measServiceClient).getWellData(measId, columnName);
     }
@@ -473,6 +742,24 @@ public class ProtocolExecutorTest {
 
     private void completeInputSuccessfully(ScriptExecutionInput input, String output) {
         input.getOutput().complete(new ScriptExecutionOutput(input.getId().toString(), output, ResponseStatusCode.SUCCESS, "Ok", 0));
+    }
+
+    private void completeInputSuccessfullyWithDelay(ScriptExecutionInput input, String output, long delay) {
+        new Timer().schedule(new TimerTask() {
+            @Override
+            public void run() {
+                input.getOutput().complete(new ScriptExecutionOutput(input.getId().toString(), output, ResponseStatusCode.SUCCESS, "Ok", 0));
+            }
+        }, delay);
+    }
+
+    private void completeInputWithExceptionAndDelay(ScriptExecutionInput input, Throwable ex, long delay) {
+        new Timer().schedule(new TimerTask() {
+            @Override
+            public void run() {
+                input.getOutput().completeExceptionally(ex);
+            }
+        }, delay);
     }
 
     private void completeInputScriptError(ScriptExecutionInput input) {

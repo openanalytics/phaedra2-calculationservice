@@ -1,6 +1,7 @@
 package eu.openanalytics.phaedra.calculationservice;
 
 import eu.openanalytics.phaedra.calculationservice.controller.clients.ResultDataServiceClient;
+import eu.openanalytics.phaedra.calculationservice.controller.clients.ResultDataUnresolvableException;
 import eu.openanalytics.phaedra.calculationservice.dto.external.ErrorDTO;
 import eu.openanalytics.phaedra.calculationservice.dto.external.ResultDataDTO;
 import eu.openanalytics.phaedra.calculationservice.dto.external.ResultSetDTO;
@@ -45,8 +46,12 @@ public class InMemoryResultDataServiceClient implements ResultDataServiceClient 
     }
 
     @Override
-    public ResultDataDTO getResultData(long resultId, long featureId) {
-        return resultData.get(resultId).stream().filter((x) -> x.getFeatureId().equals(featureId)).findFirst().get();
+    public ResultDataDTO getResultData(long resultId, long featureId) throws ResultDataUnresolvableException {
+        var res = resultData.get(resultId).stream().filter((x) -> x.getFeatureId().equals(featureId)).findFirst();
+        if (res.isEmpty()) {
+            throw new ResultDataUnresolvableException("ResultData not found");
+        }
+        return res.get();
     }
 
 }
