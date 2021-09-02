@@ -9,7 +9,11 @@ spring:
       enabled: false
   application:
     name: phaedra-calculation-service
+  liquibase:
+    enabled: false
 
 eureka:
   client:
     enabled: true
+
+

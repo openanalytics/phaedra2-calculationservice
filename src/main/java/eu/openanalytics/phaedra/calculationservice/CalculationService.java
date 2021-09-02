@@ -68,19 +68,19 @@ public class CalculationService {
         return new ERestTemplate();
     }
 
-    @Bean
-    public SpringLiquibase liquibase() {
-        SpringLiquibase liquibase = new SpringLiquibase();
-        liquibase.setChangeLog("classpath:liquibase-changeLog.xml");
-
-        String schema = environment.getProperty("DB_SCHEMA");
-        if (!StringUtils.isEmpty(schema)) {
-            liquibase.setDefaultSchema(schema);
-        }
-
-        liquibase.setDataSource(dataSource());
-        return liquibase;
-    }
+//    @Bean
+//    public SpringLiquibase liquibase() {
+//        SpringLiquibase liquibase = new SpringLiquibase();
+//        liquibase.setChangeLog("classpath:liquibase-changeLog.xml");
+//
+//        String schema = environment.getProperty("DB_SCHEMA");
+//        if (!StringUtils.isEmpty(schema)) {
+//            liquibase.setDefaultSchema(schema);
+//        }
+//
+//        liquibase.setDataSource(dataSource());
+//        return liquibase;
+//    }
 
     @Bean
     public OpenAPI customOpenAPI() {
