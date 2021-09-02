@@ -25,12 +25,14 @@ import eu.openanalytics.phaedra.calculationservice.scriptengineclient.model.Targ
 import eu.openanalytics.phaedra.calculationservice.service.FeatureExecutorService;
 import eu.openanalytics.phaedra.calculationservice.service.ProtocolExecutorService;
 import eu.openanalytics.phaedra.calculationservice.service.SequenceExecutorService;
-import org.junit.Before;
-import org.junit.Rule;
-import org.junit.Test;
 import org.junit.jupiter.api.Assertions;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.junit.MockitoJUnit;
 import org.mockito.junit.MockitoRule;
+import org.mockito.junit.jupiter.MockitoExtension;
+import org.mockito.junit.jupiter.MockitoSettings;
 import org.mockito.quality.Strictness;
 
 import java.time.LocalDateTime;
@@ -49,6 +51,8 @@ import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verifyNoMoreInteractions;
 
+@MockitoSettings(strictness = Strictness.STRICT_STUBS)
+@ExtendWith(MockitoExtension.class)
 public class ProtocolExecutorTest {
 
     private <T> T mockUnimplemented(Class<T> clazz) {
@@ -56,9 +60,6 @@ public class ProtocolExecutorTest {
             throw new IllegalStateException(String.format("[%s:%s] must be stubbed with arguments [%s]!", invocation.getMock().getClass().getSimpleName(), invocation.getMethod().getName(), Arrays.toString(invocation.getArguments())));
         });
     }
-
-    @Rule
-    public MockitoRule rule = MockitoJUnit.rule().strictness(Strictness.STRICT_STUBS);
 
     private ProtocolServiceClient protocolServiceClient;
     private ResultDataServiceClient resultDataServiceClient;
@@ -69,7 +70,7 @@ public class ProtocolExecutorTest {
     private SequenceExecutorService sequenceExecutorService;
     private ProtocolExecutorService protocolExecutorService;
 
-    @Before
+    @BeforeEach
     public void before() {
         protocolServiceClient = mockUnimplemented(ProtocolServiceClient.class);
         resultDataServiceClient = new InMemoryResultDataServiceClient();

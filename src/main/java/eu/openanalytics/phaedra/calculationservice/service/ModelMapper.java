@@ -33,7 +33,6 @@ public class ModelMapper {
         modelMapper.createTypeMap(CalculationInputValueDTO.class, CalculationInputValue.CalculationInputValueBuilder.class, builderConfiguration)
                 .setPropertyCondition(Conditions.isNotNull());
 
-
         modelMapper.validate(); // ensure that objects can be mapped
     }
 
