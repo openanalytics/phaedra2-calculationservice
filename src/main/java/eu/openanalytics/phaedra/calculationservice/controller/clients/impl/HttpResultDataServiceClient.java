@@ -21,7 +21,7 @@ public class HttpResultDataServiceClient implements ResultDataServiceClient {
 
     private final ERestTemplate restTemplate;
 
-    private final static ParameterizedTypeReference<PageDTO<ResultDataDTO>> PAGED_RESULTDATA_TYPE = new ParameterizedTypeReference<PageDTO<ResultDataDTO>>() {
+    private final static ParameterizedTypeReference<PageDTO<ResultDataDTO>> PAGED_RESULTDATA_TYPE = new ParameterizedTypeReference<>() {
     };
 
     public HttpResultDataServiceClient(ERestTemplate restTemplate) {

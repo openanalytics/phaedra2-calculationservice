@@ -48,6 +48,7 @@ public class ProtocolExecutorService {
 
     private ResultSetDTO executeProtocol(long protocolId, long plateId, long measId) throws ProtocolUnresolvableException, ResultSetUnresolvableException {
         // 1. get protocol
+        // TODO handle these errors
         Protocol protocol = protocolServiceClient.getProtocol(protocolId);
 
         // 2. create ResultSet

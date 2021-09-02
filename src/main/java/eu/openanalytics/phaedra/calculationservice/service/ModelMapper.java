@@ -33,6 +33,11 @@ public class ModelMapper {
         modelMapper.createTypeMap(CalculationInputValueDTO.class, CalculationInputValue.CalculationInputValueBuilder.class, builderConfiguration)
                 .setPropertyCondition(Conditions.isNotNull());
 
+        modelMapper.createTypeMap(FeatureDTO.class, Feature.FeatureBuilder.class, builderConfiguration)
+                .setPropertyCondition(Conditions.isNotNull())
+                .addMappings(mapper -> mapper.skip(Feature.FeatureBuilder::formula))
+                .addMappings(mapper -> mapper.skip(Feature.FeatureBuilder::calculationInputValues));
+
         modelMapper.validate(); // ensure that objects can be mapped
     }
 

@@ -1,0 +1,50 @@
+<databaseChangeLog
+        xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+        xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
+   https://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-3.4.xsd">
+
+    <changeSet id="01_initial_db" author="Tobia">
+        <sql>CREATE TYPE scope AS ENUM ('PLATE', 'FEATURE', 'WELL', 'SUB_WELL');</sql>
+        <sql>CREATE CAST (CHARACTER VARYING AS scope) WITH INOUT AS IMPLICIT;;</sql>
+        <sql>CREATE TYPE category AS ENUM ('CALCULATION', 'HIT_CALLING', 'OUTLIER_DETECTION', 'POLISHING')</sql>
+        <sql>CREATE CAST (CHARACTER VARYING AS category) WITH INOUT AS IMPLICIT;</sql>
+
+        <createTable tableName="formula">
+            <column name="id" type="bigint" autoIncrement="true">
+                <constraints nullable="false" primaryKey="true"/>
+            </column>
+            <column name="name" type="text">
+                <constraints nullable="false"/>
+            </column>
+            <column name="description" type="text">
+                <constraints nullable="true"/>
+            </column>
+            <column name="category" type="category">
+                <constraints nullable="false"/>
+            </column>
+            <column name="formula" type="text">
+                <constraints nullable="false"/>
+            </column>
+            <column name="language" type="text">
+                <constraints nullable="false"/>
+            </column>
+            <column name="scope" type="scope">
+                <constraints nullable="false"/>
+            </column>
+            <column name="created_by" type="text">
+                <constraints nullable="false"/>
+            </column>
+            <column name="created_on" type="timestamp">
+                <constraints nullable="false"/>
+            </column>
+            <column name="updated_by" type="text">
+                <constraints nullable="true"/>
+            </column>
+            <column name="updated_on" type="timestamp">
+                <constraints nullable="true"/>
+            </column>
+        </createTable>
+    </changeSet>
+
+</databaseChangeLog>
