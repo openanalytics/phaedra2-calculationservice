@@ -24,3 +24,9 @@
 hs_err_pid*
 
 /.idea/
+
+# Eclipse IDE files
+/target/
+/.settings/
+/.project
+/.classpath
