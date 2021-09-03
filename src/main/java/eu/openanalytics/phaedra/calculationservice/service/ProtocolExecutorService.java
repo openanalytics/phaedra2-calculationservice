@@ -4,11 +4,11 @@ import eu.openanalytics.phaedra.calculationservice.controller.clients.ProtocolSe
 import eu.openanalytics.phaedra.calculationservice.controller.clients.ProtocolUnresolvableException;
 import eu.openanalytics.phaedra.calculationservice.controller.clients.ResultDataServiceClient;
 import eu.openanalytics.phaedra.calculationservice.controller.clients.ResultSetUnresolvableException;
-import eu.openanalytics.phaedra.calculationservice.dto.external.ErrorDTO;
-import eu.openanalytics.phaedra.calculationservice.dto.external.ResultSetDTO;
-import eu.openanalytics.phaedra.calculationservice.model.Error;
-import eu.openanalytics.phaedra.calculationservice.model.Protocol;
-import eu.openanalytics.phaedra.calculationservice.model.Sequence;
+import eu.openanalytics.phaedra.model.v2.dto.ErrorDTO;
+import eu.openanalytics.phaedra.model.v2.dto.ResultSetDTO;
+import eu.openanalytics.phaedra.model.v2.runtime.Protocol;
+import eu.openanalytics.phaedra.model.v2.runtime.Sequence;
+import eu.openanalytics.phaedra.model.v2.runtime.Error;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;

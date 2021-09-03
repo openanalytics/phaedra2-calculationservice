@@ -2,8 +2,8 @@ package eu.openanalytics.phaedra.calculationservice.controller.clients.impl;
 
 import eu.openanalytics.phaedra.calculationservice.controller.clients.PlateServiceClient;
 import eu.openanalytics.phaedra.calculationservice.controller.clients.PlateUnresolvableException;
-import eu.openanalytics.phaedra.calculationservice.dto.external.PlateDTO;
-import eu.openanalytics.phaedra.calculationservice.model.Plate;
+import eu.openanalytics.phaedra.model.v2.dto.PlateDTO;
+import eu.openanalytics.phaedra.model.v2.runtime.Plate;
 import org.springframework.stereotype.Component;
 import org.springframework.web.client.HttpClientErrorException;
 import org.springframework.web.client.RestTemplate;

@@ -1,7 +1,7 @@
 package eu.openanalytics.phaedra.calculationservice.repository;
 
-import eu.openanalytics.phaedra.calculationservice.enumeration.Category;
-import eu.openanalytics.phaedra.calculationservice.model.Formula;
+import eu.openanalytics.phaedra.model.v2.enumeration.Category;
+import eu.openanalytics.phaedra.model.v2.runtime.Formula;
 import org.springframework.data.jdbc.repository.query.Query;
 import org.springframework.data.repository.CrudRepository;
 import org.springframework.data.repository.query.Param;

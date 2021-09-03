@@ -1,12 +1,12 @@
 package eu.openanalytics.phaedra.calculationservice.api;
 
 import com.fasterxml.jackson.databind.exc.InvalidFormatException;
-import eu.openanalytics.phaedra.calculationservice.dto.FormulaDTO;
-import eu.openanalytics.phaedra.calculationservice.dto.validation.OnCreate;
-import eu.openanalytics.phaedra.calculationservice.dto.validation.OnUpdate;
-import eu.openanalytics.phaedra.calculationservice.enumeration.Category;
 import eu.openanalytics.phaedra.calculationservice.service.FormulaNotFoundException;
 import eu.openanalytics.phaedra.calculationservice.service.FormulaService;
+import eu.openanalytics.phaedra.model.v2.dto.FormulaDTO;
+import eu.openanalytics.phaedra.model.v2.enumeration.Category;
+import eu.openanalytics.phaedra.model.v2.validation.OnCreate;
+import eu.openanalytics.phaedra.model.v2.validation.OnUpdate;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
