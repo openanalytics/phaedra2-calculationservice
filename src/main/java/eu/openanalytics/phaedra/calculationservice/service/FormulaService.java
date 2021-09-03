@@ -7,6 +7,7 @@ import eu.openanalytics.phaedra.model.v2.enumeration.Category;
 import eu.openanalytics.phaedra.model.v2.runtime.Formula;
 import org.springframework.stereotype.Service;
 
+import java.time.Clock;
 import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Map;
@@ -18,30 +19,32 @@ public class FormulaService {
 
     private final FormulaRepository formulaRepository;
     private final ModelMapper modelMapper;
+    private final Clock clock;
 
-    public FormulaService(FormulaRepository formulaRepository, ModelMapper modelMapper) {
+    public FormulaService(FormulaRepository formulaRepository, ModelMapper modelMapper, Clock clock) {
         this.formulaRepository = formulaRepository;
         this.modelMapper = modelMapper;
+        this.clock = clock;
     }
 
     public FormulaDTO createFormula(FormulaDTO formulaDTO) {
         var formula = modelMapper.map(formulaDTO)
                 .createdBy("Anonymous")
-                .createdOn(LocalDateTime.now())
+                .createdOn(LocalDateTime.now(clock))
                 .build();
 
         return save(formula);
     }
 
-    public FormulaDTO updateFormula(FormulaDTO formulaDTO) throws FormulaNotFoundException {
-        Optional<Formula> existingFormula = formulaRepository.findById(formulaDTO.getId());
+    public FormulaDTO updateFormula(long formulaId, FormulaDTO formulaDTO) throws FormulaNotFoundException {
+        Optional<Formula> existingFormula = formulaRepository.findById(formulaId);
         if (existingFormula.isEmpty()) {
-            throw new FormulaNotFoundException(formulaDTO.getId());
+            throw new FormulaNotFoundException(formulaId);
         }
 
         Formula updatedFormula = modelMapper.map(formulaDTO, existingFormula.get())
                 .updatedBy("Anonymous")
-                .updatedOn(LocalDateTime.now())
+                .updatedOn(LocalDateTime.now(clock))
                 .build();
         return save(updatedFormula);
     }
