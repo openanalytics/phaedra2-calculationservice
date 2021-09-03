@@ -14,4 +14,4 @@ eureka:
   client:
     enabled: true
 
-LOGGING_LEVEL_ROOT: DEBUG
+

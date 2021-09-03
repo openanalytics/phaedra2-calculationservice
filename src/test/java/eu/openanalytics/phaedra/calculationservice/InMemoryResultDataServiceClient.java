@@ -2,10 +2,10 @@ package eu.openanalytics.phaedra.calculationservice;
 
 import eu.openanalytics.phaedra.calculationservice.controller.clients.ResultDataServiceClient;
 import eu.openanalytics.phaedra.calculationservice.controller.clients.ResultDataUnresolvableException;
-import eu.openanalytics.phaedra.calculationservice.dto.external.ErrorDTO;
-import eu.openanalytics.phaedra.calculationservice.dto.external.ResultDataDTO;
-import eu.openanalytics.phaedra.calculationservice.dto.external.ResultSetDTO;
-import eu.openanalytics.phaedra.calculationservice.scriptengineclient.model.ResponseStatusCode;
+import eu.openanalytics.phaedra.model.v2.dto.ErrorDTO;
+import eu.openanalytics.phaedra.model.v2.dto.ResultDataDTO;
+import eu.openanalytics.phaedra.model.v2.dto.ResultSetDTO;
+import eu.openanalytics.phaedra.model.v2.enumeration.ResponseStatusCode;
 import org.springframework.stereotype.Component;
 
 import java.time.LocalDateTime;

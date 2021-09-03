@@ -3,9 +3,11 @@ package eu.openanalytics.phaedra.calculationservice;
 import eu.openanalytics.phaedra.calculationservice.controller.clients.impl.ERestTemplate;
 import eu.openanalytics.phaedra.calculationservice.scriptengineclient.config.ScriptEngineClientConfiguration;
 import eu.openanalytics.phaedra.calculationservice.scriptengineclient.model.TargetRuntime;
+import eu.openanalytics.phaedra.model.v2.ModelMapper;
 import eu.openanalytics.phaedra.util.jdbc.JDBCUtils;
 import io.swagger.v3.oas.models.OpenAPI;
 import io.swagger.v3.oas.models.servers.Server;
+import liquibase.integration.spring.SpringLiquibase;
 import org.apache.commons.lang3.StringUtils;
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
@@ -36,10 +38,11 @@ public class CalculationService {
     }
 
     @Bean
-    public DataSource plateDataSource() {
+    public DataSource dataSource() {
         String url = environment.getProperty("DB_URL");
         String username = environment.getProperty("DB_USER");
         String password = environment.getProperty("DB_PASSWORD");
+        String schema = environment.getProperty("DB_SCHEMA");
 
         if (StringUtils.isEmpty(url)) {
             throw new RuntimeException("No database URL configured: " + url);
@@ -54,6 +57,9 @@ public class CalculationService {
         dataSource.setUrl(url);
         dataSource.setUsername(username);
         dataSource.setPassword(password);
+        if (!StringUtils.isEmpty(schema)) {
+            dataSource.setSchema(schema);
+        }
         return dataSource;
     }
 
@@ -61,6 +67,25 @@ public class CalculationService {
     @LoadBalanced
     public ERestTemplate restTemplate() {
         return new ERestTemplate();
+    }
+
+    @Bean
+    public SpringLiquibase liquibase() {
+        SpringLiquibase liquibase = new SpringLiquibase();
+        liquibase.setChangeLog("classpath:liquibase-changeLog.xml");
+
+        String schema = environment.getProperty("DB_SCHEMA");
+        if (!StringUtils.isEmpty(schema)) {
+            liquibase.setDefaultSchema(schema);
+        }
+
+        liquibase.setDataSource(dataSource());
+        return liquibase;
+    }
+
+    @Bean
+    public ModelMapper modelMapper() {
+        return new ModelMapper();
     }
 
     @Bean
