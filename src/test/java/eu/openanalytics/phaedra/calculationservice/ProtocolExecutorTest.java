@@ -8,23 +8,23 @@ import eu.openanalytics.phaedra.calculationservice.controller.clients.ProtocolSe
 import eu.openanalytics.phaedra.calculationservice.controller.clients.ProtocolUnresolvableException;
 import eu.openanalytics.phaedra.calculationservice.controller.clients.ResultDataServiceClient;
 import eu.openanalytics.phaedra.calculationservice.controller.clients.ResultDataUnresolvableException;
+import eu.openanalytics.phaedra.calculationservice.enumeration.CalculationScope;
+import eu.openanalytics.phaedra.calculationservice.enumeration.Category;
+import eu.openanalytics.phaedra.calculationservice.enumeration.FeatureType;
+import eu.openanalytics.phaedra.calculationservice.enumeration.ScriptLanguage;
+import eu.openanalytics.phaedra.calculationservice.model.CalculationInputValue;
+import eu.openanalytics.phaedra.calculationservice.model.Feature;
+import eu.openanalytics.phaedra.calculationservice.model.Formula;
+import eu.openanalytics.phaedra.calculationservice.model.Protocol;
+import eu.openanalytics.phaedra.calculationservice.model.Sequence;
 import eu.openanalytics.phaedra.calculationservice.scriptengineclient.client.ScriptEngineClient;
-import eu.openanalytics.phaedra.calculationservice.scriptengineclient.model.ScriptExecution;
+import eu.openanalytics.phaedra.calculationservice.scriptengineclient.model.ResponseStatusCode;
+import eu.openanalytics.phaedra.calculationservice.scriptengineclient.model.ScriptExecutionInput;
+import eu.openanalytics.phaedra.calculationservice.scriptengineclient.model.ScriptExecutionOutput;
 import eu.openanalytics.phaedra.calculationservice.scriptengineclient.model.TargetRuntime;
 import eu.openanalytics.phaedra.calculationservice.service.FeatureExecutorService;
 import eu.openanalytics.phaedra.calculationservice.service.ProtocolExecutorService;
 import eu.openanalytics.phaedra.calculationservice.service.SequenceExecutorService;
-import eu.openanalytics.phaedra.model.v2.dto.ScriptExecutionOutputDTO;
-import eu.openanalytics.phaedra.model.v2.enumeration.CalculationScope;
-import eu.openanalytics.phaedra.model.v2.enumeration.Category;
-import eu.openanalytics.phaedra.model.v2.enumeration.FeatureType;
-import eu.openanalytics.phaedra.model.v2.enumeration.ResponseStatusCode;
-import eu.openanalytics.phaedra.model.v2.enumeration.ScriptLanguage;
-import eu.openanalytics.phaedra.model.v2.runtime.CalculationInputValue;
-import eu.openanalytics.phaedra.model.v2.runtime.Feature;
-import eu.openanalytics.phaedra.model.v2.runtime.Formula;
-import eu.openanalytics.phaedra.model.v2.runtime.Protocol;
-import eu.openanalytics.phaedra.model.v2.runtime.Sequence;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -82,7 +82,7 @@ public class ProtocolExecutorTest {
     @Test
     public void singleFeatureTest() throws Exception {
         var formula = "output <- input$abc * 2";
-        var input = new ScriptExecution(new TargetRuntime("R", "fast-lane", "v1"), formula,
+        var input = new ScriptExecutionInput(new TargetRuntime("R", "fast-lane", "v1"), formula,
                 "{\"abc\":[1.0,2.0,3.0,5.0,8.0]}",
                 "libraryTest" // TODO
         );
@@ -164,7 +164,7 @@ public class ProtocolExecutorTest {
         sequenceExecutorService = new SequenceExecutorService(resultDataServiceClient, featureExecutorService);
         protocolExecutorService = new ProtocolExecutorService(protocolServiceClient, resultDataServiceClient, sequenceExecutorService);
         var formula1 = "output <- input$abc * 2";
-        var input = new ScriptExecution(new TargetRuntime("R", "fast-lane", "v1"), formula1,
+        var input = new ScriptExecutionInput(new TargetRuntime("R", "fast-lane", "v1"), formula1,
                 "{\"abc\":[1.0,2.0,3.0,5.0,8.0]}",
                 "libraryTest" // TODO
         );
@@ -384,7 +384,7 @@ public class ProtocolExecutorTest {
     @Test
     public void scriptErrorTest() throws Exception {
         var formula = "output <- input$abc * "; // invalid script
-        var input = new ScriptExecution(new TargetRuntime("R", "fast-lane", "v1"), formula,
+        var input = new ScriptExecutionInput(new TargetRuntime("R", "fast-lane", "v1"), formula,
                 "{\"abc\":[1.0,2.0,3.0,5.0,8.0]}",
                 "libraryTest" // TODO
         );
@@ -435,7 +435,7 @@ public class ProtocolExecutorTest {
     @Test
     public void scriptReturnsInvalidOutputTest() throws Exception {
         var formula = "output <- input$abc * 2";
-        var input = new ScriptExecution(new TargetRuntime("R", "fast-lane", "v1"), formula,
+        var input = new ScriptExecutionInput(new TargetRuntime("R", "fast-lane", "v1"), formula,
                 "{\"abc\":[1.0,2.0,3.0,5.0,8.0]}",
                 "libraryTest" // TODO
         );
@@ -484,7 +484,7 @@ public class ProtocolExecutorTest {
     @Test
     public void exceptionDuringExecution() throws Exception {
         var formula = "output <- input$abc * 2";
-        var input = new ScriptExecution(new TargetRuntime("R", "fast-lane", "v1"), formula,
+        var input = new ScriptExecutionInput(new TargetRuntime("R", "fast-lane", "v1"), formula,
                 "{\"abc\":[1.0,2.0,3.0,5.0,8.0]}",
                 "libraryTest" // TODO
         );
@@ -534,15 +534,15 @@ public class ProtocolExecutorTest {
         var formula1 = "output <- input$abc * 2";
         var formula2 = "output <- input$abc * 3";
         var formula3 = "output <- input$abc * 4";
-        var input1 = new ScriptExecution(new TargetRuntime("R", "fast-lane", "v1"), formula1,
+        var input1 = new ScriptExecutionInput(new TargetRuntime("R", "fast-lane", "v1"), formula1,
                 "{\"abc\":[1.0,2.0,3.0,5.0,8.0]}",
                 "libraryTest" // TODO
         );
-        var input2 = new ScriptExecution(new TargetRuntime("R", "fast-lane", "v1"), formula2,
+        var input2 = new ScriptExecutionInput(new TargetRuntime("R", "fast-lane", "v1"), formula2,
                 "{\"abc\":[1.0,2.0,3.0,5.0,8.0]}",
                 "libraryTest" // TODO
         );
-        var input3 = new ScriptExecution(new TargetRuntime("R", "fast-lane", "v1"), formula3,
+        var input3 = new ScriptExecutionInput(new TargetRuntime("R", "fast-lane", "v1"), formula3,
                 "{\"abc\":[1.0,2.0,3.0,5.0,8.0]}",
                 "libraryTest" // TODO
         );
@@ -627,15 +627,15 @@ public class ProtocolExecutorTest {
         var formula1 = "output <- input$abc * 2";
         var formula2 = "output <- input$abc * 3";
         var formula3 = "output <- input$abc * 4";
-        var input1 = new ScriptExecution(new TargetRuntime("R", "fast-lane", "v1"), formula1,
+        var input1 = new ScriptExecutionInput(new TargetRuntime("R", "fast-lane", "v1"), formula1,
                 "{\"abc\":[1.0,2.0,3.0,5.0,8.0]}",
                 "libraryTest" // TODO
         );
-        var input2 = new ScriptExecution(new TargetRuntime("R", "fast-lane", "v1"), formula2,
+        var input2 = new ScriptExecutionInput(new TargetRuntime("R", "fast-lane", "v1"), formula2,
                 "{\"abc\":[1.0,2.0,3.0,5.0,8.0]}",
                 "libraryTest" // TODO
         );
-        var input3 = new ScriptExecution(new TargetRuntime("R", "fast-lane", "v1"), formula3,
+        var input3 = new ScriptExecutionInput(new TargetRuntime("R", "fast-lane", "v1"), formula3,
                 "{\"abc\":[1.0,2.0,3.0,5.0,8.0]}",
                 "libraryTest" // TODO
         );
@@ -720,49 +720,49 @@ public class ProtocolExecutorTest {
                 .getProtocol(protocol.getId());
     }
 
-    private void stubExecute(ScriptExecution scriptExecution) throws JsonProcessingException {
-        doNothing().when(scriptEngineClient).execute(scriptExecution);
+    private void stubExecute(ScriptExecutionInput input) throws JsonProcessingException {
+        doNothing().when(scriptEngineClient).execute(input);
     }
 
-    private void stubExecuteWithExceptionAndDelay(ScriptExecution scriptExecution, Throwable ex, long delay) throws JsonProcessingException {
+    private void stubExecuteWithExceptionAndDelay(ScriptExecutionInput input, Throwable ex, long delay) throws JsonProcessingException {
         doAnswer(invocation -> {
             Thread.sleep(delay);
             throw ex;
-        }).when(scriptEngineClient).execute(scriptExecution);
+        }).when(scriptEngineClient).execute(input);
     }
 
     private void stubGetWellData(Long measId, String columnName, float[] values) throws MeasUnresolvableException {
         doReturn(values).when(measServiceClient).getWellData(measId, columnName);
     }
 
-    private void stubNewScriptExecution(String targetName, ScriptExecution scriptExecution) {
-        doReturn(scriptExecution).when(scriptEngineClient).newScriptExecution(targetName, scriptExecution.getScriptExecutionInput().getScript(), scriptExecution.getScriptExecutionInput().getInput());
+    private void stubNewScriptExecution(String targetName, ScriptExecutionInput input) {
+        doReturn(input).when(scriptEngineClient).newScriptExecution(targetName, input.getScript(), input.getInput());
     }
 
-    private void completeInputSuccessfully(ScriptExecution scriptExecution, String output) {
-        scriptExecution.getOutput().complete(new ScriptExecutionOutputDTO(scriptExecution.getScriptExecutionInput().getId(), output, ResponseStatusCode.SUCCESS, "Ok", 0));
+    private void completeInputSuccessfully(ScriptExecutionInput input, String output) {
+        input.getOutput().complete(new ScriptExecutionOutput(input.getId().toString(), output, ResponseStatusCode.SUCCESS, "Ok", 0));
     }
 
-    private void completeInputSuccessfullyWithDelay(ScriptExecution scriptExecution, String output, long delay) {
+    private void completeInputSuccessfullyWithDelay(ScriptExecutionInput input, String output, long delay) {
         new Timer().schedule(new TimerTask() {
             @Override
             public void run() {
-                scriptExecution.getOutput().complete(new ScriptExecutionOutputDTO(scriptExecution.getScriptExecutionInput().getId(), output, ResponseStatusCode.SUCCESS, "Ok", 0));
+                input.getOutput().complete(new ScriptExecutionOutput(input.getId().toString(), output, ResponseStatusCode.SUCCESS, "Ok", 0));
             }
         }, delay);
     }
 
-    private void completeInputWithExceptionAndDelay(ScriptExecution scriptExecution, Throwable ex, long delay) {
+    private void completeInputWithExceptionAndDelay(ScriptExecutionInput input, Throwable ex, long delay) {
         new Timer().schedule(new TimerTask() {
             @Override
             public void run() {
-                scriptExecution.getOutput().completeExceptionally(ex);
+                input.getOutput().completeExceptionally(ex);
             }
         }, delay);
     }
 
-    private void completeInputScriptError(ScriptExecution scriptExecution) {
-        scriptExecution.getOutput().complete(new ScriptExecutionOutputDTO(scriptExecution.getScriptExecutionInput().getId(), "bogus!", ResponseStatusCode.SCRIPT_ERROR, "Script did not create output file!", 42));
+    private void completeInputScriptError(ScriptExecutionInput input) {
+        input.getOutput().complete(new ScriptExecutionOutput(input.getId().toString(), "bogus!", ResponseStatusCode.SCRIPT_ERROR, "Script did not create output file!", 42));
     }
 
 }

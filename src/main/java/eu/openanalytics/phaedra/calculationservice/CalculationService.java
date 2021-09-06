@@ -3,7 +3,6 @@ package eu.openanalytics.phaedra.calculationservice;
 import eu.openanalytics.phaedra.calculationservice.controller.clients.impl.ERestTemplate;
 import eu.openanalytics.phaedra.calculationservice.scriptengineclient.config.ScriptEngineClientConfiguration;
 import eu.openanalytics.phaedra.calculationservice.scriptengineclient.model.TargetRuntime;
-import eu.openanalytics.phaedra.model.v2.ModelMapper;
 import eu.openanalytics.phaedra.util.jdbc.JDBCUtils;
 import io.swagger.v3.oas.models.OpenAPI;
 import io.swagger.v3.oas.models.servers.Server;
@@ -81,11 +80,6 @@ public class CalculationService {
 
         liquibase.setDataSource(dataSource());
         return liquibase;
-    }
-
-    @Bean
-    public ModelMapper modelMapper() {
-        return new ModelMapper();
     }
 
     @Bean

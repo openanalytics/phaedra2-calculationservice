@@ -1,10 +1,9 @@
 package eu.openanalytics.phaedra.calculationservice.service;
 
+import eu.openanalytics.phaedra.calculationservice.dto.FormulaDTO;
+import eu.openanalytics.phaedra.calculationservice.enumeration.Category;
+import eu.openanalytics.phaedra.calculationservice.model.Formula;
 import eu.openanalytics.phaedra.calculationservice.repository.FormulaRepository;
-import eu.openanalytics.phaedra.model.v2.ModelMapper;
-import eu.openanalytics.phaedra.model.v2.dto.FormulaDTO;
-import eu.openanalytics.phaedra.model.v2.enumeration.Category;
-import eu.openanalytics.phaedra.model.v2.runtime.Formula;
 import org.springframework.stereotype.Service;
 
 import java.time.Clock;

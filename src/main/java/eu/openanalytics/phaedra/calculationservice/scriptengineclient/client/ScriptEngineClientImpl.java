@@ -3,8 +3,8 @@ package eu.openanalytics.phaedra.calculationservice.scriptengineclient.client;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import eu.openanalytics.phaedra.calculationservice.scriptengineclient.config.ScriptEngineClientConfiguration;
-import eu.openanalytics.phaedra.calculationservice.scriptengineclient.model.ScriptExecution;
-import eu.openanalytics.phaedra.model.v2.dto.ScriptExecutionOutputDTO;
+import eu.openanalytics.phaedra.calculationservice.scriptengineclient.model.ScriptExecutionInput;
+import eu.openanalytics.phaedra.calculationservice.scriptengineclient.model.ScriptExecutionOutput;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.amqp.core.Message;
@@ -12,6 +12,7 @@ import org.springframework.amqp.core.MessageListener;
 import org.springframework.amqp.rabbit.core.RabbitTemplate;
 
 import java.io.IOException;
+import java.util.HashMap;
 import java.util.concurrent.ConcurrentHashMap;
 
 public class ScriptEngineClientImpl implements MessageListener, ScriptEngineClient {
@@ -22,7 +23,7 @@ public class ScriptEngineClientImpl implements MessageListener, ScriptEngineClie
 
     private final Logger logger = LoggerFactory.getLogger(getClass());
 
-    private final ConcurrentHashMap<String, ScriptExecution> executionsInProgress = new ConcurrentHashMap<>();
+    private final ConcurrentHashMap<String, ScriptExecutionInput> executionsInProgress = new ConcurrentHashMap<>();
 
     public ScriptEngineClientImpl(ScriptEngineClientConfiguration clientConfig, RabbitTemplate rabbitTemplate) {
         this.clientConfig = clientConfig;
@@ -31,36 +32,41 @@ public class ScriptEngineClientImpl implements MessageListener, ScriptEngineClie
     }
 
     @Override
-    public ScriptExecution newScriptExecution(String targetName, String script, String input) {
+    public ScriptExecutionInput newScriptExecution(String targetName, String script, String input) {
         var target = clientConfig.getTargetRuntime(targetName);
 
-        return new ScriptExecution(
+        return new ScriptExecutionInput(
                 target,
                 script,
                 input,
-                clientConfig.getClientName()
-        );
+                clientConfig.getClientName());
     }
 
     @Override
-    public void execute(ScriptExecution scripExecution) throws JsonProcessingException {
+    public void execute(ScriptExecutionInput input) throws JsonProcessingException {
         // send message
         rabbitTemplate.send(
                 "scriptengine_input",
-                scripExecution.getTargetRuntime().getRoutingKey(),
-                new Message(objectMapper.writeValueAsBytes(scripExecution.getScriptExecutionInput())));
+                input.getTargetRuntime().getRoutingKey(),
+                new Message(objectMapper.writeValueAsBytes(new HashMap<>() {{
+                    put("id", input.getId());
+                    put("input", input.getInput());
+                    put("script", input.getScript());
+                    put("response_topic_suffix", input.getResponseTopicSuffix());
+                    put("queue_timestamp", System.currentTimeMillis());
+                }})));
 
-        executionsInProgress.put(scripExecution.getScriptExecutionInput().getId(), scripExecution);
+        executionsInProgress.put(input.getId().toString(), input);
     }
 
     @Override
     public void onMessage(Message message) {
         try {
-            ScriptExecutionOutputDTO output = objectMapper.readValue(message.getBody(), ScriptExecutionOutputDTO.class);
+            ScriptExecutionOutput output = objectMapper.readValue(message.getBody(), ScriptExecutionOutput.class);
 
-            var scriptExecution = executionsInProgress.get(output.getInputId());
-            if (scriptExecution != null) {
-                scriptExecution.getOutput().complete(output);
+            var input = executionsInProgress.get(output.getInputId());
+            if (input != null) {
+                input.getOutput().complete(output);
             } else {
                 logger.warn("No execution found, for output id " + output.getInputId());
             }

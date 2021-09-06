@@ -1,5 +1,6 @@
 package eu.openanalytics.phaedra.calculationservice.scriptengineclient.config;
 
+import eu.openanalytics.phaedra.calculationservice.scriptengineclient.client.ScriptEngineClient;
 import eu.openanalytics.phaedra.calculationservice.scriptengineclient.client.ScriptEngineClientImpl;
 import org.springframework.amqp.core.AmqpAdmin;
 import org.springframework.amqp.core.Binding;

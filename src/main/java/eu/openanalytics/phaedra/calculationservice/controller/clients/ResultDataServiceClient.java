@@ -1,9 +1,9 @@
 package eu.openanalytics.phaedra.calculationservice.controller.clients;
 
-import eu.openanalytics.phaedra.model.v2.dto.ErrorDTO;
-import eu.openanalytics.phaedra.model.v2.dto.ResultDataDTO;
-import eu.openanalytics.phaedra.model.v2.dto.ResultSetDTO;
-import eu.openanalytics.phaedra.model.v2.enumeration.ResponseStatusCode;
+import eu.openanalytics.phaedra.calculationservice.dto.external.ErrorDTO;
+import eu.openanalytics.phaedra.calculationservice.dto.external.ResultDataDTO;
+import eu.openanalytics.phaedra.calculationservice.dto.external.ResultSetDTO;
+import eu.openanalytics.phaedra.calculationservice.scriptengineclient.model.ResponseStatusCode;
 
 import java.util.List;
 
