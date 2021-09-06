@@ -2,24 +2,20 @@ package eu.openanalytics.phaedra.calculationservice.service;
 
 import eu.openanalytics.phaedra.calculationservice.controller.clients.ProtocolServiceClient;
 import eu.openanalytics.phaedra.calculationservice.controller.clients.ProtocolUnresolvableException;
-import eu.openanalytics.phaedra.calculationservice.controller.clients.ResultDataServiceClient;
-import eu.openanalytics.phaedra.calculationservice.controller.clients.ResultSetUnresolvableException;
-import eu.openanalytics.phaedra.calculationservice.dto.external.ErrorDTO;
-import eu.openanalytics.phaedra.calculationservice.dto.external.ResultSetDTO;
-import eu.openanalytics.phaedra.calculationservice.model.Error;
 import eu.openanalytics.phaedra.calculationservice.model.Protocol;
 import eu.openanalytics.phaedra.calculationservice.model.Sequence;
+import eu.openanalytics.phaedra.resultdataservice.client.ResultDataServiceClient;
+import eu.openanalytics.phaedra.resultdataservice.client.exception.ResultSetUnresolvableException;
+import eu.openanalytics.phaedra.resultdataservice.dto.ResultSetDTO;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
 
 import java.util.ArrayList;
-import java.util.List;
 import java.util.concurrent.Future;
 import java.util.concurrent.SynchronousQueue;
 import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
-import java.util.stream.Collectors;
 
 @Service
 public class ProtocolExecutorService {
@@ -78,26 +74,7 @@ public class ProtocolExecutorService {
 
     private ResultSetDTO saveError(ResultSetDTO resultSet, ErrorCollector errorCollector) throws ResultSetUnresolvableException {
         logger.warn("Protocol failed with errorDescription\n" + errorCollector.getErrorDescription());
-        return resultDataServiceClient.completeResultDataSet(resultSet.getId(), "Error", map(errorCollector.getErrors()), errorCollector.getErrorDescription());
-    }
-
-    private List<ErrorDTO> map(List<Error> errors) {
-        return errors.stream().map((e) -> new ErrorDTO(
-                e.getTimestamp(),
-                e.getExceptionClassName(),
-                e.getExceptionMessage(),
-                e.getDescription(),
-                e.getFeatureId(),
-                e.getFeatureName(),
-                e.getSequenceNumber(),
-                e.getFormulaId(),
-                e.getFormulaName(),
-                e.getCivType(),
-                e.getCivVariableName(),
-                e.getCivSource(),
-                e.getExitCode(),
-                e.getStatusMessage()
-        )).collect(Collectors.toList());
+        return resultDataServiceClient.completeResultDataSet(resultSet.getId(), "Error", errorCollector.getErrors(), errorCollector.getErrorDescription());
     }
 
 }

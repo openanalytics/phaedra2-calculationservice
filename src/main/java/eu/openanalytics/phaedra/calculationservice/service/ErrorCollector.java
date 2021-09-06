@@ -1,9 +1,9 @@
 package eu.openanalytics.phaedra.calculationservice.service;
 
 import eu.openanalytics.phaedra.calculationservice.model.CalculationInputValue;
-import eu.openanalytics.phaedra.calculationservice.model.Error;
 import eu.openanalytics.phaedra.calculationservice.model.Feature;
 import eu.openanalytics.phaedra.calculationservice.scriptengineclient.model.ScriptExecutionOutput;
+import eu.openanalytics.phaedra.resultdataservice.dto.ErrorDTO;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -16,10 +16,10 @@ import java.util.List;
 // TODO keep track of state
 public class ErrorCollector {
 
-    private final List<Error> errors = Collections.synchronizedList(new ArrayList<>());
+    private final List<ErrorDTO> errors = Collections.synchronizedList(new ArrayList<>());
     private final Logger logger = LoggerFactory.getLogger(getClass());
 
-    public List<Error> getErrors() {
+    public List<ErrorDTO> getErrors() {
         return errors;
     }
 
@@ -37,7 +37,7 @@ public class ErrorCollector {
     }
 
     public void handleError(Throwable e, String description, Feature feature) {
-        var error = Error.builder()
+        var error = ErrorDTO.builder()
                 .timestamp(LocalDateTime.now())
                 .exceptionClassName(e.getClass().getSimpleName())
                 .exceptionMessage(e.getMessage())
@@ -55,7 +55,7 @@ public class ErrorCollector {
 
     public void handleError(Exception e, String description, Feature feature, ScriptExecutionOutput output) {
         // TODO store output here ?
-        var error = Error.builder()
+        var error = ErrorDTO.builder()
                 .exceptionClassName(e.getClass().getSimpleName())
                 .exceptionMessage(e.getMessage())
                 .timestamp(LocalDateTime.now())
@@ -74,7 +74,7 @@ public class ErrorCollector {
     }
 
     public void handleError(Exception e, String description, Feature feature, CalculationInputValue civ) {
-        var error = Error.builder()
+        var error = ErrorDTO.builder()
                 .timestamp(LocalDateTime.now())
                 .exceptionClassName(e.getClass().getSimpleName())
                 .exceptionMessage(e.getMessage())
@@ -93,7 +93,7 @@ public class ErrorCollector {
     }
 
     public void handleError(String description, Feature feature, CalculationInputValue civ) {
-        var error = Error.builder()
+        var error = ErrorDTO.builder()
                 .timestamp(LocalDateTime.now())
                 .description(description)
                 .featureId(feature.getId())
@@ -110,7 +110,7 @@ public class ErrorCollector {
     }
 
     public void handleError(Exception e, String description, Feature feature) {
-        var error = Error.builder()
+        var error = ErrorDTO.builder()
                 .exceptionClassName(e.getClass().getSimpleName())
                 .exceptionMessage(e.getMessage())
                 .timestamp(LocalDateTime.now())
@@ -126,7 +126,7 @@ public class ErrorCollector {
     }
 
     public void handleError(String description, int sequenceNumber) {
-        var error = Error.builder()
+        var error = ErrorDTO.builder()
                 .timestamp(LocalDateTime.now())
                 .description(description)
                 .sequenceNumber(sequenceNumber)
@@ -135,7 +135,7 @@ public class ErrorCollector {
     }
 
     public void handleError(String description, Feature feature) {
-        var error = Error.builder()
+        var error = ErrorDTO.builder()
                 .timestamp(LocalDateTime.now())
                 .description(description)
                 .featureId(feature.getId())
@@ -150,7 +150,7 @@ public class ErrorCollector {
 
 
     public void handleScriptError(ScriptExecutionOutput output, Feature feature) {
-        var error = Error.builder()
+        var error = ErrorDTO.builder()
                 .timestamp(LocalDateTime.now())
                 .description("executing sequence => processing output => output indicates script error")
                 .sequenceNumber(feature.getSequence())

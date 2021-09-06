@@ -6,8 +6,6 @@ import eu.openanalytics.phaedra.calculationservice.controller.clients.MeasServic
 import eu.openanalytics.phaedra.calculationservice.controller.clients.MeasUnresolvableException;
 import eu.openanalytics.phaedra.calculationservice.controller.clients.ProtocolServiceClient;
 import eu.openanalytics.phaedra.calculationservice.controller.clients.ProtocolUnresolvableException;
-import eu.openanalytics.phaedra.calculationservice.controller.clients.ResultDataServiceClient;
-import eu.openanalytics.phaedra.calculationservice.controller.clients.ResultDataUnresolvableException;
 import eu.openanalytics.phaedra.calculationservice.enumeration.CalculationScope;
 import eu.openanalytics.phaedra.calculationservice.enumeration.Category;
 import eu.openanalytics.phaedra.calculationservice.enumeration.FeatureType;
@@ -23,8 +21,11 @@ import eu.openanalytics.phaedra.calculationservice.scriptengineclient.model.Scri
 import eu.openanalytics.phaedra.calculationservice.scriptengineclient.model.ScriptExecutionOutput;
 import eu.openanalytics.phaedra.calculationservice.scriptengineclient.model.TargetRuntime;
 import eu.openanalytics.phaedra.calculationservice.service.FeatureExecutorService;
+import eu.openanalytics.phaedra.calculationservice.service.ModelMapper;
 import eu.openanalytics.phaedra.calculationservice.service.ProtocolExecutorService;
 import eu.openanalytics.phaedra.calculationservice.service.SequenceExecutorService;
+import eu.openanalytics.phaedra.resultdataservice.client.ResultDataServiceClient;
+import eu.openanalytics.phaedra.resultdataservice.client.exception.ResultDataUnresolvableException;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -67,6 +68,7 @@ public class ProtocolExecutorTest {
     private FeatureExecutorService featureExecutorService;
     private SequenceExecutorService sequenceExecutorService;
     private ProtocolExecutorService protocolExecutorService;
+    private final ModelMapper modelMapper = new ModelMapper();
 
     @BeforeEach
     public void before() {
@@ -75,7 +77,7 @@ public class ProtocolExecutorTest {
         measServiceClient = mockUnimplemented(MeasServiceClient.class);
         scriptEngineClient = mockUnimplemented(ScriptEngineClient.class);
         featureExecutorService = new FeatureExecutorService(scriptEngineClient, measServiceClient, resultDataServiceClient);
-        sequenceExecutorService = new SequenceExecutorService(resultDataServiceClient, featureExecutorService);
+        sequenceExecutorService = new SequenceExecutorService(resultDataServiceClient, featureExecutorService, modelMapper);
         protocolExecutorService = new ProtocolExecutorService(protocolServiceClient, resultDataServiceClient, sequenceExecutorService);
     }
 
@@ -161,7 +163,7 @@ public class ProtocolExecutorTest {
     public void getResultDataGivesError() throws Exception {
         var mockResultDataServiceClient = mockUnimplemented(ResultDataServiceClient.class);
         featureExecutorService = new FeatureExecutorService(scriptEngineClient, measServiceClient, mockResultDataServiceClient);
-        sequenceExecutorService = new SequenceExecutorService(resultDataServiceClient, featureExecutorService);
+        sequenceExecutorService = new SequenceExecutorService(resultDataServiceClient, featureExecutorService, modelMapper);
         protocolExecutorService = new ProtocolExecutorService(protocolServiceClient, resultDataServiceClient, sequenceExecutorService);
         var formula1 = "output <- input$abc * 2";
         var input = new ScriptExecutionInput(new TargetRuntime("R", "fast-lane", "v1"), formula1,

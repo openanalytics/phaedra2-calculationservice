@@ -4,13 +4,13 @@ import com.fasterxml.jackson.annotation.JsonCreator;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import eu.openanalytics.phaedra.calculationservice.controller.clients.ResultDataServiceClient;
-import eu.openanalytics.phaedra.calculationservice.dto.external.ResultSetDTO;
 import eu.openanalytics.phaedra.calculationservice.model.Feature;
 import eu.openanalytics.phaedra.calculationservice.model.Sequence;
 import eu.openanalytics.phaedra.calculationservice.scriptengineclient.model.ResponseStatusCode;
 import eu.openanalytics.phaedra.calculationservice.scriptengineclient.model.ScriptExecutionInput;
 import eu.openanalytics.phaedra.calculationservice.scriptengineclient.model.ScriptExecutionOutput;
+import eu.openanalytics.phaedra.resultdataservice.client.ResultDataServiceClient;
+import eu.openanalytics.phaedra.resultdataservice.dto.ResultSetDTO;
 import org.apache.commons.lang3.tuple.Pair;
 import org.springframework.stereotype.Service;
 
@@ -27,10 +27,12 @@ public class SequenceExecutorService {
 
     private final ResultDataServiceClient resultDataServiceClient;
     private final FeatureExecutorService featureExecutorService;
+    private final ModelMapper modelMapper;
 
-    public SequenceExecutorService(ResultDataServiceClient resultDataServiceClient, FeatureExecutorService featureExecutorService) {
+    public SequenceExecutorService(ResultDataServiceClient resultDataServiceClient, FeatureExecutorService featureExecutorService, ModelMapper modelMapper) {
         this.resultDataServiceClient = resultDataServiceClient;
         this.featureExecutorService = featureExecutorService;
+        this.modelMapper = modelMapper;
     }
 
     public boolean executeSequence(ExecutorService executorService, ErrorCollector errorCollector, Sequence currentSequence, long measId, ResultSetDTO resultSet) {
@@ -89,7 +91,7 @@ public class SequenceExecutorService {
                             resultSet.getId(),
                             feature.getId(),
                             outputValue.output,
-                            output.getStatusCode(),
+                            modelMapper.map(output.getStatusCode()),
                             output.getStatusMessage(),
                             output.getExitCode());
                 } catch (JsonProcessingException e) {
@@ -100,7 +102,7 @@ public class SequenceExecutorService {
                         resultSet.getId(),
                         feature.getId(),
                         new float[]{},
-                        output.getStatusCode(),
+                        modelMapper.map(output.getStatusCode()),
                         output.getStatusMessage(),
                         output.getExitCode());
 

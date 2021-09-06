@@ -1,8 +1,10 @@
 package eu.openanalytics.phaedra.calculationservice;
 
-import eu.openanalytics.phaedra.calculationservice.controller.clients.impl.ERestTemplate;
 import eu.openanalytics.phaedra.calculationservice.scriptengineclient.config.ScriptEngineClientConfiguration;
 import eu.openanalytics.phaedra.calculationservice.scriptengineclient.model.TargetRuntime;
+import eu.openanalytics.phaedra.resultdataservice.client.ResultDataServiceClient;
+import eu.openanalytics.phaedra.resultdataservice.client.impl.HttpResultDataServiceClient;
+import eu.openanalytics.phaedra.util.PhaedraRestTemplate;
 import eu.openanalytics.phaedra.util.jdbc.JDBCUtils;
 import io.swagger.v3.oas.models.OpenAPI;
 import io.swagger.v3.oas.models.servers.Server;
@@ -19,6 +21,7 @@ import org.springframework.scheduling.annotation.EnableScheduling;
 
 import javax.servlet.ServletContext;
 import javax.sql.DataSource;
+import java.time.Clock;
 
 @SpringBootApplication
 @EnableDiscoveryClient
@@ -64,8 +67,8 @@ public class CalculationService {
 
     @Bean
     @LoadBalanced
-    public ERestTemplate restTemplate() {
-        return new ERestTemplate();
+    public PhaedraRestTemplate restTemplate() {
+        return new PhaedraRestTemplate();
     }
 
     @Bean
@@ -96,5 +99,15 @@ public class CalculationService {
         config.setClientName("libraryTest");
         config.addTargetRuntime(R_FAST_LANE, new TargetRuntime("R", "fast-lane", "v1"));
         return config;
+    }
+
+    @Bean
+    public Clock clock() {
+        return Clock.systemDefaultZone();
+    }
+
+    @Bean
+    public ResultDataServiceClient resultDataServiceClient() {
+        return new HttpResultDataServiceClient(restTemplate());
     }
 }

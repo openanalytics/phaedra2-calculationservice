@@ -1,12 +1,11 @@
 package eu.openanalytics.phaedra.calculationservice;
 
-import eu.openanalytics.phaedra.calculationservice.controller.clients.ResultDataServiceClient;
-import eu.openanalytics.phaedra.calculationservice.controller.clients.ResultDataUnresolvableException;
-import eu.openanalytics.phaedra.calculationservice.dto.external.ErrorDTO;
-import eu.openanalytics.phaedra.calculationservice.dto.external.ResultDataDTO;
-import eu.openanalytics.phaedra.calculationservice.dto.external.ResultSetDTO;
-import eu.openanalytics.phaedra.calculationservice.scriptengineclient.model.ResponseStatusCode;
-import org.springframework.stereotype.Component;
+import eu.openanalytics.phaedra.resultdataservice.client.ResultDataServiceClient;
+import eu.openanalytics.phaedra.resultdataservice.client.exception.ResultDataUnresolvableException;
+import eu.openanalytics.phaedra.resultdataservice.dto.ErrorDTO;
+import eu.openanalytics.phaedra.resultdataservice.dto.ResultDataDTO;
+import eu.openanalytics.phaedra.resultdataservice.dto.ResultSetDTO;
+import eu.openanalytics.phaedra.resultdataservice.enumeration.StatusCode;
 
 import java.time.LocalDateTime;
 import java.util.ArrayList;
@@ -37,7 +36,7 @@ public class InMemoryResultDataServiceClient implements ResultDataServiceClient 
     }
 
     @Override
-    public ResultDataDTO addResultData(long resultSetId, long featureId, float[] values, ResponseStatusCode statusCode, String statusMessage, Integer exitCode) {
+    public ResultDataDTO addResultData(long resultSetId, long featureId, float[] values, StatusCode statusCode, String statusMessage, Integer exitCode) {
         var newId = resultData.get(resultSetId).size();
         var res = new ResultDataDTO((long) newId, resultSetId, featureId, values, statusCode, statusMessage, exitCode, LocalDateTime.now());
         resultData.get(resultSetId).add(res);
