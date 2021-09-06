@@ -14,7 +14,6 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
-@Component
 public class InMemoryResultDataServiceClient implements ResultDataServiceClient {
 
     private final List<ResultSetDTO> resultSets = new ArrayList<>();

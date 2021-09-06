@@ -9,7 +9,6 @@ import eu.openanalytics.phaedra.model.v2.validation.OnCreate;
 import eu.openanalytics.phaedra.model.v2.validation.OnUpdate;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpStatus;
-import org.springframework.http.ResponseEntity;
 import org.springframework.http.converter.HttpMessageNotReadableException;
 import org.springframework.validation.FieldError;
 import org.springframework.validation.annotation.Validated;
@@ -44,20 +43,20 @@ public class FormulaController {
     }
 
     @PostMapping
+    @ResponseStatus(HttpStatus.CREATED)
     public FormulaDTO createFormula(@Validated(OnCreate.class) @RequestBody FormulaDTO formulaDTO) {
         return formulaService.createFormula(formulaDTO);
     }
 
-    // TODO use id in URL
-    @PutMapping
-    public FormulaDTO updateFormula(@Validated(OnUpdate.class) @RequestBody FormulaDTO formulaDTO) throws FormulaNotFoundException {
-        return formulaService.updateFormula(formulaDTO);
+    @PutMapping("/{formulaId}")
+    public FormulaDTO updateFormula(@Validated(OnUpdate.class) @RequestBody FormulaDTO formulaDTO, @PathVariable long formulaId) throws FormulaNotFoundException {
+        return formulaService.updateFormula(formulaId, formulaDTO);
     }
 
     @DeleteMapping("/{formulaId}")
-    public ResponseEntity<Void> deleteFormula(@PathVariable long formulaId) throws FormulaNotFoundException {
+    @ResponseStatus(HttpStatus.NO_CONTENT)
+    public void deleteFormula(@PathVariable long formulaId) throws FormulaNotFoundException {
         formulaService.deleteFormula(formulaId);
-        return ResponseEntity.ok().build();
     }
 
     @GetMapping("/{formulaId}")
@@ -71,7 +70,7 @@ public class FormulaController {
     }
 
     @GetMapping(params = {"category"})
-    public List<FormulaDTO> getFormulasByCategory(@RequestParam(value = "category", required = false) Category category) {
+    public List<FormulaDTO> getFormulasByCategory(@RequestParam(value = "category") Category category) {
         return formulaService.getFormulasByCategory(category);
     }
 
