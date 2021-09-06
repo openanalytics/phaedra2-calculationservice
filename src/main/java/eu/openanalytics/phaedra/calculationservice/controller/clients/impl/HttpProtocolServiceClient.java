@@ -53,7 +53,7 @@ public class HttpProtocolServiceClient implements ProtocolServiceClient {
         // -> convert it to a map for easier lookup
         var calculationInputValuesMap = calculationInputValues
                 .stream()
-                .map((civ) -> modelMapper.map(civ).build())
+                .map(modelMapper::map)
                 .collect(Collectors.groupingBy(
                         CalculationInputValue::getFeatureId,
                         Collectors.toList()

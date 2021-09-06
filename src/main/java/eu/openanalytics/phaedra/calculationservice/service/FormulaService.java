@@ -62,20 +62,20 @@ public class FormulaService {
             throw new FormulaNotFoundException(formulaId);
         }
 
-        return modelMapper.map(formula.get()).build();
+        return modelMapper.map(formula.get());
     }
 
     public List<FormulaDTO> getAllFormulas() {
         return ((List<Formula>) formulaRepository.findAll())
                 .stream()
-                .map((f) -> modelMapper.map(f).build())
+                .map(modelMapper::map)
                 .collect(Collectors.toList());
     }
 
     public List<FormulaDTO> getFormulasByCategory(Category category) {
         return formulaRepository.findFormulasByCategory(category)
                 .stream()
-                .map((f) -> modelMapper.map(f).build())
+                .map(modelMapper::map)
                 .collect(Collectors.toList());
     }
 
@@ -90,7 +90,7 @@ public class FormulaService {
 
     private FormulaDTO save(Formula formula) {
         Formula newFormula = formulaRepository.save(formula);
-        return modelMapper.map(newFormula).build();
+        return modelMapper.map(newFormula);
     }
 
 }
