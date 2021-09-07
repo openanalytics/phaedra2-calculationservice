@@ -172,4 +172,29 @@
         </repository>
     </distributionManagement>
 
+    <!-- We cannot specify this in the parent POM, as the repositories are needed to fetch the parent pom.    -->
+    <repositories>
+        <!-- Maven queries repositories in the order that they are defined here.
+         Usually, the Maven Central repository is the last one in this order, because it's defined in the super POM.
+         This means that for all dependencies which are downloaded from Maven Central, the custom repositories are
+         queried first, which slows down the build a lot.
+         Therefore we add central as the first repository in this list.
+         This reduces the time to download dependencies on a fresh machine from ~20-30min to 1min
+         See: https://maven.apache.org/ref/3.6.3/maven-model-builder/super-pom.html for the origin of this configuration
+         -->
+        <repository>
+            <id>central</id>
+            <name>Central Repository</name>
+            <url>https://repo.maven.apache.org/maven2</url>
+            <layout>default</layout>
+            <snapshots>
+                <enabled>false</enabled>
+            </snapshots>
+        </repository>
+        <repository>
+            <id>oa-nexus-snapshots</id>
+            <url>https://nexus.openanalytics.eu/repository/snapshots/</url>
+        </repository>
+    </repositories
+
 </project>
