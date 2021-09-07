@@ -2,12 +2,12 @@ package eu.openanalytics.phaedra.calculationservice.service;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import eu.openanalytics.phaedra.calculationservice.controller.clients.MeasServiceClient;
-import eu.openanalytics.phaedra.calculationservice.controller.clients.MeasUnresolvableException;
 import eu.openanalytics.phaedra.calculationservice.enumeration.CalculationScope;
 import eu.openanalytics.phaedra.calculationservice.enumeration.Category;
 import eu.openanalytics.phaedra.calculationservice.enumeration.ScriptLanguage;
 import eu.openanalytics.phaedra.calculationservice.model.Feature;
+import eu.openanalytics.phaedra.measurementservice.client.MeasurementServiceClient;
+import eu.openanalytics.phaedra.measurementservice.client.exception.MeasUnresolvableException;
 import eu.openanalytics.phaedra.resultdataservice.client.ResultDataServiceClient;
 import eu.openanalytics.phaedra.resultdataservice.client.exception.ResultDataUnresolvableException;
 import eu.openanalytics.phaedra.scriptengine.client.ScriptEngineClient;
@@ -23,13 +23,13 @@ import static eu.openanalytics.phaedra.calculationservice.CalculationService.R_F
 public class FeatureExecutorService {
 
     private final ScriptEngineClient scriptEngineClient;
-    private final MeasServiceClient measServiceClient;
+    private final MeasurementServiceClient measurementServiceClient;
     private final ResultDataServiceClient resultDataServiceClient;
     private final ObjectMapper objectMapper = new ObjectMapper(); // TODO thread-safe?
 
-    public FeatureExecutorService(ScriptEngineClient scriptEngineClient, MeasServiceClient measServiceClient, ResultDataServiceClient resultDataServiceClient) {
+    public FeatureExecutorService(ScriptEngineClient scriptEngineClient, MeasurementServiceClient measurementServiceClient, ResultDataServiceClient resultDataServiceClient) {
         this.scriptEngineClient = scriptEngineClient;
-        this.measServiceClient = measServiceClient;
+        this.measurementServiceClient = measurementServiceClient;
         this.resultDataServiceClient = resultDataServiceClient;
     }
 
@@ -83,7 +83,7 @@ public class FeatureExecutorService {
                     }
                     inputVariables.put(civ.getVariableName(), resultDataServiceClient.getResultData(resultId, civ.getSourceFeatureId()).getValues());
                 } else if (civ.getSourceMeasColName() != null) {
-                    inputVariables.put(civ.getVariableName(), measServiceClient.getWellData(measId, civ.getSourceMeasColName()));
+                    inputVariables.put(civ.getVariableName(), measurementServiceClient.getWellData(measId, civ.getSourceMeasColName()));
                 } else {
                     // the ProtocolService makes sure this cannot happen, but extra check to make sure
                     errorCollector.handleError("executing sequence => executing feature => collecting variables for feature => retrieving measurement => civ has no valid source", feature, civ);

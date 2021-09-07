@@ -2,8 +2,6 @@ package eu.openanalytics.phaedra.calculationservice;
 
 
 import com.fasterxml.jackson.core.JsonProcessingException;
-import eu.openanalytics.phaedra.calculationservice.controller.clients.MeasServiceClient;
-import eu.openanalytics.phaedra.calculationservice.controller.clients.MeasUnresolvableException;
 import eu.openanalytics.phaedra.calculationservice.enumeration.CalculationScope;
 import eu.openanalytics.phaedra.calculationservice.enumeration.Category;
 import eu.openanalytics.phaedra.calculationservice.enumeration.FeatureType;
@@ -18,7 +16,10 @@ import eu.openanalytics.phaedra.calculationservice.service.ModelMapper;
 import eu.openanalytics.phaedra.calculationservice.service.ProtocolExecutorService;
 import eu.openanalytics.phaedra.calculationservice.service.ProtocolInfoCollector;
 import eu.openanalytics.phaedra.calculationservice.service.SequenceExecutorService;
+import eu.openanalytics.phaedra.measurementservice.client.MeasurementServiceClient;
+import eu.openanalytics.phaedra.measurementservice.client.exception.MeasUnresolvableException;
 import eu.openanalytics.phaedra.platservice.client.PlateServiceClient;
+import eu.openanalytics.phaedra.platservice.client.exception.PlateUnresolvableException;
 import eu.openanalytics.phaedra.protocolservice.client.exception.ProtocolUnresolvableException;
 import eu.openanalytics.phaedra.resultdataservice.client.ResultDataServiceClient;
 import eu.openanalytics.phaedra.resultdataservice.client.exception.ResultDataUnresolvableException;
@@ -45,6 +46,7 @@ import java.util.Timer;
 import java.util.TimerTask;
 
 import static eu.openanalytics.phaedra.calculationservice.CalculationService.R_FAST_LANE;
+import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.Mockito.doAnswer;
 import static org.mockito.Mockito.doNothing;
 import static org.mockito.Mockito.doReturn;
@@ -63,7 +65,7 @@ public class ProtocolExecutorTest {
     }
 
     private ResultDataServiceClient resultDataServiceClient;
-    private MeasServiceClient measServiceClient;
+    private MeasurementServiceClient measurementServiceClient;
     private ScriptEngineClient scriptEngineClient;
     private PlateServiceClient plateServiceClient;
 
@@ -74,15 +76,16 @@ public class ProtocolExecutorTest {
     private final ModelMapper modelMapper = new ModelMapper();
 
     @BeforeEach
-    public void before() {
+    public void before() throws PlateUnresolvableException {
         resultDataServiceClient = new InMemoryResultDataServiceClient();
-        measServiceClient = mockUnimplemented(MeasServiceClient.class);
+        measurementServiceClient = mockUnimplemented(MeasurementServiceClient.class);
         protocolInfoCollector = mockUnimplemented(ProtocolInfoCollector.class);
         scriptEngineClient = mockUnimplemented(ScriptEngineClient.class);
         plateServiceClient = mockUnimplemented(PlateServiceClient.class);
-        featureExecutorService = new FeatureExecutorService(scriptEngineClient, measServiceClient, resultDataServiceClient);
+        featureExecutorService = new FeatureExecutorService(scriptEngineClient, measurementServiceClient, resultDataServiceClient);
         sequenceExecutorService = new SequenceExecutorService(resultDataServiceClient, featureExecutorService, modelMapper);
         protocolExecutorService = new ProtocolExecutorService(resultDataServiceClient, sequenceExecutorService, protocolInfoCollector, plateServiceClient);
+        doReturn(null).when(plateServiceClient).getPlate(anyLong());
     }
 
     @Test
@@ -118,7 +121,7 @@ public class ProtocolExecutorTest {
         Assertions.assertArrayEquals(new float[]{2.0f, 4.0f, 6.0f, 10.0f, 16.0f}, result1.getValues());
         Assertions.assertEquals(StatusCode.SUCCESS, result1.getStatusCode());
 
-        verifyNoMoreInteractions(protocolInfoCollector, measServiceClient, scriptEngineClient);
+        verifyNoMoreInteractions(protocolInfoCollector, measurementServiceClient, scriptEngineClient);
     }
 
     @Test
@@ -132,7 +135,7 @@ public class ProtocolExecutorTest {
                             List.of(new CalculationInputValue(1L, 1L, "abc", null, "abc"))))));
                 }}));
 
-        doThrow(new MeasUnresolvableException("WellData not found")).when(measServiceClient).getWellData(4L, "abc");
+        doThrow(new MeasUnresolvableException("WellData not found")).when(measurementServiceClient).getWellData(4L, "abc");
 
         var resultSet = protocolExecutorService.execute(1, 1, 4).get();
         Assertions.assertEquals("Error", resultSet.getOutcome());
@@ -160,13 +163,13 @@ public class ProtocolExecutorTest {
 
         Assertions.assertThrows(ResultDataUnresolvableException.class, () -> resultDataServiceClient.getResultData(0, 1));
 
-        verifyNoMoreInteractions(protocolInfoCollector, measServiceClient, scriptEngineClient);
+        verifyNoMoreInteractions(protocolInfoCollector, measurementServiceClient, scriptEngineClient);
     }
 
     @Test
     public void getResultDataGivesError() throws Exception {
         var mockResultDataServiceClient = mockUnimplemented(ResultDataServiceClient.class);
-        featureExecutorService = new FeatureExecutorService(scriptEngineClient, measServiceClient, mockResultDataServiceClient);
+        featureExecutorService = new FeatureExecutorService(scriptEngineClient, measurementServiceClient, mockResultDataServiceClient);
         sequenceExecutorService = new SequenceExecutorService(resultDataServiceClient, featureExecutorService, modelMapper);
         protocolExecutorService = new ProtocolExecutorService(resultDataServiceClient, sequenceExecutorService, protocolInfoCollector, plateServiceClient);
         var formula1 = "output <- input$abc * 2";
@@ -223,7 +226,7 @@ public class ProtocolExecutorTest {
 
         Assertions.assertThrows(ResultDataUnresolvableException.class, () -> resultDataServiceClient.getResultData(0, 2));
 
-        verifyNoMoreInteractions(protocolInfoCollector, measServiceClient, scriptEngineClient);
+        verifyNoMoreInteractions(protocolInfoCollector, measurementServiceClient, scriptEngineClient);
     }
 
     @Test
@@ -266,7 +269,7 @@ public class ProtocolExecutorTest {
 
         Assertions.assertThrows(ResultDataUnresolvableException.class, () -> resultDataServiceClient.getResultData(0, 1));
 
-        verifyNoMoreInteractions(protocolInfoCollector, measServiceClient, scriptEngineClient);
+        verifyNoMoreInteractions(protocolInfoCollector, measurementServiceClient, scriptEngineClient);
     }
 
     @Test
@@ -306,7 +309,7 @@ public class ProtocolExecutorTest {
 
         Assertions.assertThrows(ResultDataUnresolvableException.class, () -> resultDataServiceClient.getResultData(0, 1));
 
-        verifyNoMoreInteractions(protocolInfoCollector, measServiceClient, scriptEngineClient);
+        verifyNoMoreInteractions(protocolInfoCollector, measurementServiceClient, scriptEngineClient);
     }
 
     @Test
@@ -346,7 +349,7 @@ public class ProtocolExecutorTest {
 
         Assertions.assertThrows(ResultDataUnresolvableException.class, () -> resultDataServiceClient.getResultData(0, 1));
 
-        verifyNoMoreInteractions(protocolInfoCollector, measServiceClient, scriptEngineClient);
+        verifyNoMoreInteractions(protocolInfoCollector, measurementServiceClient, scriptEngineClient);
     }
 
     @Test
@@ -384,7 +387,7 @@ public class ProtocolExecutorTest {
 
         Assertions.assertThrows(ResultDataUnresolvableException.class, () -> resultDataServiceClient.getResultData(0, 1));
 
-        verifyNoMoreInteractions(protocolInfoCollector, measServiceClient, scriptEngineClient);
+        verifyNoMoreInteractions(protocolInfoCollector, measurementServiceClient, scriptEngineClient);
     }
 
     @Test
@@ -435,7 +438,7 @@ public class ProtocolExecutorTest {
         Assertions.assertArrayEquals(new float[]{}, result1.getValues());
         Assertions.assertEquals(StatusCode.SCRIPT_ERROR, result1.getStatusCode());
 
-        verifyNoMoreInteractions(protocolInfoCollector, measServiceClient, scriptEngineClient);
+        verifyNoMoreInteractions(protocolInfoCollector, measurementServiceClient, scriptEngineClient);
     }
 
     @Test
@@ -484,7 +487,7 @@ public class ProtocolExecutorTest {
 
         Assertions.assertThrows(ResultDataUnresolvableException.class, () -> resultDataServiceClient.getResultData(0, 1));
 
-        verifyNoMoreInteractions(protocolInfoCollector, measServiceClient, scriptEngineClient);
+        verifyNoMoreInteractions(protocolInfoCollector, measurementServiceClient, scriptEngineClient);
     }
 
     @Test
@@ -532,7 +535,7 @@ public class ProtocolExecutorTest {
 
         Assertions.assertThrows(ResultDataUnresolvableException.class, () -> resultDataServiceClient.getResultData(0, 1));
 
-        verifyNoMoreInteractions(protocolInfoCollector, measServiceClient, scriptEngineClient);
+        verifyNoMoreInteractions(protocolInfoCollector, measurementServiceClient, scriptEngineClient);
     }
 
     @Test
@@ -625,7 +628,7 @@ public class ProtocolExecutorTest {
         Assertions.assertArrayEquals(new float[]{4.0f, 8.0f, 12.0f, 20.0f, 32.0f}, result3.getValues());
         Assertions.assertEquals(StatusCode.SUCCESS, result3.getStatusCode());
 
-        verifyNoMoreInteractions(protocolInfoCollector, measServiceClient, scriptEngineClient);
+        verifyNoMoreInteractions(protocolInfoCollector, measurementServiceClient, scriptEngineClient);
     }
 
     @Test
@@ -717,7 +720,7 @@ public class ProtocolExecutorTest {
         Assertions.assertArrayEquals(new float[]{4.0f, 8.0f, 12.0f, 20.0f, 32.0f}, result3.getValues());
         Assertions.assertEquals(StatusCode.SUCCESS, result3.getStatusCode());
 
-        verifyNoMoreInteractions(protocolInfoCollector, measServiceClient, scriptEngineClient);
+        verifyNoMoreInteractions(protocolInfoCollector, measurementServiceClient, scriptEngineClient);
     }
 
     private void stubGetProtocol(Protocol protocol) throws ProtocolUnresolvableException {
@@ -738,7 +741,7 @@ public class ProtocolExecutorTest {
     }
 
     private void stubGetWellData(Long measId, String columnName, float[] values) throws MeasUnresolvableException {
-        doReturn(values).when(measServiceClient).getWellData(measId, columnName);
+        doReturn(values).when(measurementServiceClient).getWellData(measId, columnName);
     }
 
     private void stubNewScriptExecution(String targetName, ScriptExecution scriptExecution) {

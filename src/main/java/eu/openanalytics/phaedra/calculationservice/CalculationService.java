@@ -1,5 +1,6 @@
 package eu.openanalytics.phaedra.calculationservice;
 
+import eu.openanalytics.phaedra.measurementservice.client.config.MeasurementServiceClientAutoConfiguration;
 import eu.openanalytics.phaedra.platservice.client.config.PlateServiceClientAutoConfiguration;
 import eu.openanalytics.phaedra.protocolservice.client.config.ProtocolServiceClientAutoConfiguration;
 import eu.openanalytics.phaedra.resultdataservice.client.config.ResultDataServiceClientAutoConfiguration;
@@ -32,7 +33,8 @@ import java.time.Clock;
 @Import({ScriptEngineClientAutoConfiguration.class,
         ProtocolServiceClientAutoConfiguration.class,
         ResultDataServiceClientAutoConfiguration.class,
-        PlateServiceClientAutoConfiguration.class})
+        PlateServiceClientAutoConfiguration.class,
+        MeasurementServiceClientAutoConfiguration.class})
 public class CalculationService {
     private final ServletContext servletContext;
     private final Environment environment;
