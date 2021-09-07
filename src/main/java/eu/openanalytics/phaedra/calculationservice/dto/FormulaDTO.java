@@ -5,46 +5,53 @@ import eu.openanalytics.phaedra.calculationservice.dto.validation.OnUpdate;
 import eu.openanalytics.phaedra.calculationservice.enumeration.CalculationScope;
 import eu.openanalytics.phaedra.calculationservice.enumeration.Category;
 import eu.openanalytics.phaedra.calculationservice.enumeration.ScriptLanguage;
-import lombok.Data;
+import lombok.AccessLevel;
+import lombok.AllArgsConstructor;
+import lombok.Builder;
+import lombok.NoArgsConstructor;
+import lombok.Value;
 
 import javax.validation.constraints.NotBlank;
 import javax.validation.constraints.NotNull;
 import javax.validation.constraints.Null;
 import java.time.LocalDateTime;
 
-@Data
+@Value
+@Builder
+@AllArgsConstructor
+@NoArgsConstructor(force = true, access = AccessLevel.PRIVATE) // Jackson deserialize compatibility
 public class FormulaDTO {
 
     @Null(groups = OnCreate.class, message = "Id must be null when creating a formula")
-    @NotNull(groups = OnUpdate.class, message = "Id is mandatory when updating a formula")
-    private Long id;
+    @Null(groups = OnUpdate.class, message = "Id is mandatory when updating a formula")
+    Long id;
 
     @NotBlank(message = "Name is mandatory", groups = {OnCreate.class})
-    private String name;
+    String name;
 
-    private String description;
+    String description;
 
     @NotNull(message = "Category is mandatory", groups = {OnCreate.class})
-    private Category category;
+    Category category;
 
     @NotBlank(message = "Formula is mandatory", groups = {OnCreate.class})
-    private String formula;
+    String formula;
 
     @NotNull(message = "Language is mandatory", groups = {OnCreate.class})
-    private ScriptLanguage language;
+    ScriptLanguage language;
 
     @NotNull(message = "Scope is mandatory", groups = {OnCreate.class})
-    private CalculationScope scope;
+    CalculationScope scope;
 
     @Null(groups = {OnCreate.class, OnUpdate.class}, message = "CreatedBy must be null when creating a formula")
-    private String createdBy;
+    String createdBy;
 
     @Null(groups = {OnCreate.class, OnUpdate.class}, message = "CreatedOn must be null when creating a formula")
-    private LocalDateTime createdOn;
+    LocalDateTime createdOn;
 
     @Null(groups = {OnCreate.class, OnUpdate.class}, message = "UpdatedBy must be null when creating a formula")
-    private String updatedBy;
+    String updatedBy;
 
     @Null(groups = {OnCreate.class, OnUpdate.class}, message = "UpdatedOn must be null when creating a formula")
-    private LocalDateTime updatedOn;
+    LocalDateTime updatedOn;
 }

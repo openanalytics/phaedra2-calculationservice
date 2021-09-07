@@ -22,14 +22,14 @@ public class ModelMapper {
     private final org.modelmapper.ModelMapper modelMapper = new org.modelmapper.ModelMapper();
 
     public ModelMapper() {
-        modelMapper.typeMap(FormulaDTO.class, Formula.class);
-        modelMapper.typeMap(Formula.class, FormulaDTO.class);
-
         Configuration builderConfiguration = modelMapper.getConfiguration().copy()
                 .setDestinationNameTransformer(NameTransformers.builder())
                 .setDestinationNamingConvention(NamingConventions.builder());
 
         modelMapper.createTypeMap(FormulaDTO.class, Formula.FormulaBuilder.class, builderConfiguration)
+                .setPropertyCondition(Conditions.isNotNull());
+
+        modelMapper.createTypeMap(Formula.class, FormulaDTO.FormulaDTOBuilder.class, builderConfiguration)
                 .setPropertyCondition(Conditions.isNotNull());
 
         modelMapper.createTypeMap(CalculationInputValueDTO.class, CalculationInputValue.CalculationInputValueBuilder.class, builderConfiguration)
@@ -43,22 +43,36 @@ public class ModelMapper {
         modelMapper.validate(); // ensure that objects can be mapped
     }
 
+    /**
+     * Returns a Builder that contains the properties of {@link Formula}, which are updated with the
+     * values of a {@link FormulaDTO} while ignore properties in the {@link FormulaDTO} that are null.
+     * The return value can be further customized by calling the builder methods.
+     * This function should be used for PUT requests.
+     */
     public Formula.FormulaBuilder map(FormulaDTO formulaDTO, Formula formula) {
-        var builder = formula.toBuilder();
+        Formula.FormulaBuilder builder = formula.toBuilder();
         modelMapper.map(formulaDTO, builder);
         return builder;
     }
 
+    /**
+     * Maps a {@link FormulaDTO} to a {@link Formula.FormulaBuilder}.
+     * The return value can be further customized by calling the builder methods.
+     */
     public Formula.FormulaBuilder map(FormulaDTO formulaDTO) {
-        var builder = Formula.builder();
+        Formula.FormulaBuilder builder = Formula.builder();
         modelMapper.map(formulaDTO, builder);
         return builder;
     }
 
-    public FormulaDTO map(Formula formula) {
-        var res = new FormulaDTO();
-        modelMapper.map(formula, res);
-        return res;
+    /**
+     * Maps a {@link Formula} to a {@link FormulaDTO.FormulaDTOBuilder}.
+     * The return value can be further customized by calling the builder methods.
+     */
+    public FormulaDTO.FormulaDTOBuilder map(Formula formula) {
+        FormulaDTO.FormulaDTOBuilder builder = FormulaDTO.builder();
+        modelMapper.map(formula, builder);
+        return builder;
     }
 
     public CalculationInputValue map(CalculationInputValueDTO calculationInputValueDTO, CalculationInputValue calculationInputValue) {

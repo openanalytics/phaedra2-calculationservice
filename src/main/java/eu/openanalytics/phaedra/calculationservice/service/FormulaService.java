@@ -1,5 +1,6 @@
 package eu.openanalytics.phaedra.calculationservice.service;
 
+
 import eu.openanalytics.phaedra.calculationservice.dto.FormulaDTO;
 import eu.openanalytics.phaedra.calculationservice.enumeration.Category;
 import eu.openanalytics.phaedra.calculationservice.model.Formula;
@@ -62,20 +63,20 @@ public class FormulaService {
             throw new FormulaNotFoundException(formulaId);
         }
 
-        return modelMapper.map(formula.get());
+        return modelMapper.map(formula.get()).build();
     }
 
     public List<FormulaDTO> getAllFormulas() {
         return ((List<Formula>) formulaRepository.findAll())
                 .stream()
-                .map(modelMapper::map)
+                .map((f) -> modelMapper.map(f).build())
                 .collect(Collectors.toList());
     }
 
     public List<FormulaDTO> getFormulasByCategory(Category category) {
         return formulaRepository.findFormulasByCategory(category)
                 .stream()
-                .map(modelMapper::map)
+                .map((f) -> modelMapper.map(f).build())
                 .collect(Collectors.toList());
     }
 
@@ -90,7 +91,7 @@ public class FormulaService {
 
     private FormulaDTO save(Formula formula) {
         Formula newFormula = formulaRepository.save(formula);
-        return modelMapper.map(newFormula);
+        return modelMapper.map(newFormula).build();
     }
 
 }
