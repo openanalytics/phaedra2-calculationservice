@@ -15,17 +15,18 @@ import eu.openanalytics.phaedra.calculationservice.model.Feature;
 import eu.openanalytics.phaedra.calculationservice.model.Formula;
 import eu.openanalytics.phaedra.calculationservice.model.Protocol;
 import eu.openanalytics.phaedra.calculationservice.model.Sequence;
-import eu.openanalytics.phaedra.calculationservice.scriptengineclient.client.ScriptEngineClient;
-import eu.openanalytics.phaedra.calculationservice.scriptengineclient.model.ResponseStatusCode;
-import eu.openanalytics.phaedra.calculationservice.scriptengineclient.model.ScriptExecutionInput;
-import eu.openanalytics.phaedra.calculationservice.scriptengineclient.model.ScriptExecutionOutput;
-import eu.openanalytics.phaedra.calculationservice.scriptengineclient.model.TargetRuntime;
 import eu.openanalytics.phaedra.calculationservice.service.FeatureExecutorService;
 import eu.openanalytics.phaedra.calculationservice.service.ModelMapper;
 import eu.openanalytics.phaedra.calculationservice.service.ProtocolExecutorService;
 import eu.openanalytics.phaedra.calculationservice.service.SequenceExecutorService;
 import eu.openanalytics.phaedra.resultdataservice.client.ResultDataServiceClient;
 import eu.openanalytics.phaedra.resultdataservice.client.exception.ResultDataUnresolvableException;
+import eu.openanalytics.phaedra.resultdataservice.enumeration.StatusCode;
+import eu.openanalytics.phaedra.scriptengine.client.ScriptEngineClient;
+import eu.openanalytics.phaedra.scriptengine.client.model.ScriptExecution;
+import eu.openanalytics.phaedra.scriptengine.client.model.TargetRuntime;
+import eu.openanalytics.phaedra.scriptengine.dto.ResponseStatusCode;
+import eu.openanalytics.phaedra.scriptengine.dto.ScriptExecutionOutputDTO;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -84,9 +85,9 @@ public class ProtocolExecutorTest {
     @Test
     public void singleFeatureTest() throws Exception {
         var formula = "output <- input$abc * 2";
-        var input = new ScriptExecutionInput(new TargetRuntime("R", "fast-lane", "v1"), formula,
+        var input = new ScriptExecution(new TargetRuntime("R", "fast-lane", "v1"), formula,
                 "{\"abc\":[1.0,2.0,3.0,5.0,8.0]}",
-                "libraryTest" // TODO
+                "CalculationService"
         );
 
         stubGetProtocol(new Protocol(1L, "TestProtocol", null, true, true, "lc", "hc",
@@ -112,7 +113,7 @@ public class ProtocolExecutorTest {
 
         var result1 = resultDataServiceClient.getResultData(0, 1);
         Assertions.assertArrayEquals(new float[]{2.0f, 4.0f, 6.0f, 10.0f, 16.0f}, result1.getValues());
-        Assertions.assertEquals(ResponseStatusCode.SUCCESS, result1.getStatusCode());
+        Assertions.assertEquals(StatusCode.SUCCESS, result1.getStatusCode());
 
         verifyNoMoreInteractions(protocolServiceClient, measServiceClient, scriptEngineClient);
     }
@@ -166,9 +167,9 @@ public class ProtocolExecutorTest {
         sequenceExecutorService = new SequenceExecutorService(resultDataServiceClient, featureExecutorService, modelMapper);
         protocolExecutorService = new ProtocolExecutorService(protocolServiceClient, resultDataServiceClient, sequenceExecutorService);
         var formula1 = "output <- input$abc * 2";
-        var input = new ScriptExecutionInput(new TargetRuntime("R", "fast-lane", "v1"), formula1,
+        var input = new ScriptExecution(new TargetRuntime("R", "fast-lane", "v1"), formula1,
                 "{\"abc\":[1.0,2.0,3.0,5.0,8.0]}",
-                "libraryTest" // TODO
+                "CalculationService"
         );
         var formula2 = "output <- input$result * 2";
 
@@ -215,7 +216,7 @@ public class ProtocolExecutorTest {
 
         var result1 = resultDataServiceClient.getResultData(0, 1);
         Assertions.assertArrayEquals(new float[]{2.0f, 4.0f, 6.0f, 10.0f, 16.0f}, result1.getValues());
-        Assertions.assertEquals(ResponseStatusCode.SUCCESS, result1.getStatusCode());
+        Assertions.assertEquals(StatusCode.SUCCESS, result1.getStatusCode());
 
         Assertions.assertThrows(ResultDataUnresolvableException.class, () -> resultDataServiceClient.getResultData(0, 2));
 
@@ -386,9 +387,9 @@ public class ProtocolExecutorTest {
     @Test
     public void scriptErrorTest() throws Exception {
         var formula = "output <- input$abc * "; // invalid script
-        var input = new ScriptExecutionInput(new TargetRuntime("R", "fast-lane", "v1"), formula,
+        var input = new ScriptExecution(new TargetRuntime("R", "fast-lane", "v1"), formula,
                 "{\"abc\":[1.0,2.0,3.0,5.0,8.0]}",
-                "libraryTest" // TODO
+                "CalculationService"
         );
 
         stubGetProtocol(new Protocol(1L, "TestProtocol", null, true, true, "lc", "hc",
@@ -429,7 +430,7 @@ public class ProtocolExecutorTest {
 
         var result1 = resultDataServiceClient.getResultData(0, 1);
         Assertions.assertArrayEquals(new float[]{}, result1.getValues());
-        Assertions.assertEquals(ResponseStatusCode.SCRIPT_ERROR, result1.getStatusCode());
+        Assertions.assertEquals(StatusCode.SCRIPT_ERROR, result1.getStatusCode());
 
         verifyNoMoreInteractions(protocolServiceClient, measServiceClient, scriptEngineClient);
     }
@@ -437,9 +438,9 @@ public class ProtocolExecutorTest {
     @Test
     public void scriptReturnsInvalidOutputTest() throws Exception {
         var formula = "output <- input$abc * 2";
-        var input = new ScriptExecutionInput(new TargetRuntime("R", "fast-lane", "v1"), formula,
+        var input = new ScriptExecution(new TargetRuntime("R", "fast-lane", "v1"), formula,
                 "{\"abc\":[1.0,2.0,3.0,5.0,8.0]}",
-                "libraryTest" // TODO
+                "CalculationService"
         );
 
         stubGetProtocol(new Protocol(1L, "TestProtocol", null, true, true, "lc", "hc",
@@ -486,9 +487,9 @@ public class ProtocolExecutorTest {
     @Test
     public void exceptionDuringExecution() throws Exception {
         var formula = "output <- input$abc * 2";
-        var input = new ScriptExecutionInput(new TargetRuntime("R", "fast-lane", "v1"), formula,
+        var input = new ScriptExecution(new TargetRuntime("R", "fast-lane", "v1"), formula,
                 "{\"abc\":[1.0,2.0,3.0,5.0,8.0]}",
-                "libraryTest" // TODO
+                "CalculationService"
         );
 
         stubGetProtocol(new Protocol(1L, "TestProtocol", null, true, true, "lc", "hc",
@@ -536,17 +537,17 @@ public class ProtocolExecutorTest {
         var formula1 = "output <- input$abc * 2";
         var formula2 = "output <- input$abc * 3";
         var formula3 = "output <- input$abc * 4";
-        var input1 = new ScriptExecutionInput(new TargetRuntime("R", "fast-lane", "v1"), formula1,
+        var input1 = new ScriptExecution(new TargetRuntime("R", "fast-lane", "v1"), formula1,
                 "{\"abc\":[1.0,2.0,3.0,5.0,8.0]}",
-                "libraryTest" // TODO
+                "CalculationService"
         );
-        var input2 = new ScriptExecutionInput(new TargetRuntime("R", "fast-lane", "v1"), formula2,
+        var input2 = new ScriptExecution(new TargetRuntime("R", "fast-lane", "v1"), formula2,
                 "{\"abc\":[1.0,2.0,3.0,5.0,8.0]}",
-                "libraryTest" // TODO
+                "CalculationService"
         );
-        var input3 = new ScriptExecutionInput(new TargetRuntime("R", "fast-lane", "v1"), formula3,
+        var input3 = new ScriptExecution(new TargetRuntime("R", "fast-lane", "v1"), formula3,
                 "{\"abc\":[1.0,2.0,3.0,5.0,8.0]}",
-                "libraryTest" // TODO
+                "CalculationService"
         );
 
         stubGetProtocol(new Protocol(1L, "TestProtocol", null, true, true, "lc", "hc",
@@ -613,13 +614,13 @@ public class ProtocolExecutorTest {
         // check resultData
         var result1 = resultDataServiceClient.getResultData(0, 1);
         Assertions.assertArrayEquals(new float[]{2.0f, 4.0f, 6.0f, 10.0f, 16.0f}, result1.getValues());
-        Assertions.assertEquals(ResponseStatusCode.SUCCESS, result1.getStatusCode());
+        Assertions.assertEquals(StatusCode.SUCCESS, result1.getStatusCode());
 
         Assertions.assertThrows(ResultDataUnresolvableException.class, () -> resultDataServiceClient.getResultData(0, 2));
 
         var result3 = resultDataServiceClient.getResultData(0, 3);
         Assertions.assertArrayEquals(new float[]{4.0f, 8.0f, 12.0f, 20.0f, 32.0f}, result3.getValues());
-        Assertions.assertEquals(ResponseStatusCode.SUCCESS, result3.getStatusCode());
+        Assertions.assertEquals(StatusCode.SUCCESS, result3.getStatusCode());
 
         verifyNoMoreInteractions(protocolServiceClient, measServiceClient, scriptEngineClient);
     }
@@ -629,17 +630,17 @@ public class ProtocolExecutorTest {
         var formula1 = "output <- input$abc * 2";
         var formula2 = "output <- input$abc * 3";
         var formula3 = "output <- input$abc * 4";
-        var input1 = new ScriptExecutionInput(new TargetRuntime("R", "fast-lane", "v1"), formula1,
+        var input1 = new ScriptExecution(new TargetRuntime("R", "fast-lane", "v1"), formula1,
                 "{\"abc\":[1.0,2.0,3.0,5.0,8.0]}",
-                "libraryTest" // TODO
+                "CalculationService"
         );
-        var input2 = new ScriptExecutionInput(new TargetRuntime("R", "fast-lane", "v1"), formula2,
+        var input2 = new ScriptExecution(new TargetRuntime("R", "fast-lane", "v1"), formula2,
                 "{\"abc\":[1.0,2.0,3.0,5.0,8.0]}",
-                "libraryTest" // TODO
+                "CalculationService"
         );
-        var input3 = new ScriptExecutionInput(new TargetRuntime("R", "fast-lane", "v1"), formula3,
+        var input3 = new ScriptExecution(new TargetRuntime("R", "fast-lane", "v1"), formula3,
                 "{\"abc\":[1.0,2.0,3.0,5.0,8.0]}",
-                "libraryTest" // TODO
+                "CalculationService"
         );
 
         stubGetProtocol(new Protocol(1L, "TestProtocol", null, true, true, "lc", "hc",
@@ -705,13 +706,13 @@ public class ProtocolExecutorTest {
         // check resultData
         var result1 = resultDataServiceClient.getResultData(0, 1);
         Assertions.assertArrayEquals(new float[]{2.0f, 4.0f, 6.0f, 10.0f, 16.0f}, result1.getValues());
-        Assertions.assertEquals(ResponseStatusCode.SUCCESS, result1.getStatusCode());
+        Assertions.assertEquals(StatusCode.SUCCESS, result1.getStatusCode());
 
         Assertions.assertThrows(ResultDataUnresolvableException.class, () -> resultDataServiceClient.getResultData(0, 2));
 
         var result3 = resultDataServiceClient.getResultData(0, 3);
         Assertions.assertArrayEquals(new float[]{4.0f, 8.0f, 12.0f, 20.0f, 32.0f}, result3.getValues());
-        Assertions.assertEquals(ResponseStatusCode.SUCCESS, result3.getStatusCode());
+        Assertions.assertEquals(StatusCode.SUCCESS, result3.getStatusCode());
 
         verifyNoMoreInteractions(protocolServiceClient, measServiceClient, scriptEngineClient);
     }
@@ -722,11 +723,11 @@ public class ProtocolExecutorTest {
                 .getProtocol(protocol.getId());
     }
 
-    private void stubExecute(ScriptExecutionInput input) throws JsonProcessingException {
+    private void stubExecute(ScriptExecution input) throws JsonProcessingException {
         doNothing().when(scriptEngineClient).execute(input);
     }
 
-    private void stubExecuteWithExceptionAndDelay(ScriptExecutionInput input, Throwable ex, long delay) throws JsonProcessingException {
+    private void stubExecuteWithExceptionAndDelay(ScriptExecution input, Throwable ex, long delay) throws JsonProcessingException {
         doAnswer(invocation -> {
             Thread.sleep(delay);
             throw ex;
@@ -737,34 +738,34 @@ public class ProtocolExecutorTest {
         doReturn(values).when(measServiceClient).getWellData(measId, columnName);
     }
 
-    private void stubNewScriptExecution(String targetName, ScriptExecutionInput input) {
-        doReturn(input).when(scriptEngineClient).newScriptExecution(targetName, input.getScript(), input.getInput());
+    private void stubNewScriptExecution(String targetName, ScriptExecution scriptExecution) {
+        doReturn(scriptExecution).when(scriptEngineClient).newScriptExecution(targetName, scriptExecution.getScriptExecutionInput().getScript(), scriptExecution.getScriptExecutionInput().getInput());
     }
 
-    private void completeInputSuccessfully(ScriptExecutionInput input, String output) {
-        input.getOutput().complete(new ScriptExecutionOutput(input.getId().toString(), output, ResponseStatusCode.SUCCESS, "Ok", 0));
+    private void completeInputSuccessfully(ScriptExecution input, String output) {
+        input.getOutput().complete(new ScriptExecutionOutputDTO(input.getScriptExecutionInput().getId(), output, ResponseStatusCode.SUCCESS, "Ok", 0));
     }
 
-    private void completeInputSuccessfullyWithDelay(ScriptExecutionInput input, String output, long delay) {
+    private void completeInputSuccessfullyWithDelay(ScriptExecution scriptExecution, String output, long delay) {
         new Timer().schedule(new TimerTask() {
             @Override
             public void run() {
-                input.getOutput().complete(new ScriptExecutionOutput(input.getId().toString(), output, ResponseStatusCode.SUCCESS, "Ok", 0));
+                scriptExecution.getOutput().complete(new ScriptExecutionOutputDTO(scriptExecution.getScriptExecutionInput().getId(), output, ResponseStatusCode.SUCCESS, "Ok", 0));
             }
         }, delay);
     }
 
-    private void completeInputWithExceptionAndDelay(ScriptExecutionInput input, Throwable ex, long delay) {
+    private void completeInputWithExceptionAndDelay(ScriptExecution scriptExecution, Throwable ex, long delay) {
         new Timer().schedule(new TimerTask() {
             @Override
             public void run() {
-                input.getOutput().completeExceptionally(ex);
+                scriptExecution.getOutput().completeExceptionally(ex);
             }
         }, delay);
     }
 
-    private void completeInputScriptError(ScriptExecutionInput input) {
-        input.getOutput().complete(new ScriptExecutionOutput(input.getId().toString(), "bogus!", ResponseStatusCode.SCRIPT_ERROR, "Script did not create output file!", 42));
+    private void completeInputScriptError(ScriptExecution scriptExecution) {
+        scriptExecution.getOutput().complete(new ScriptExecutionOutputDTO(scriptExecution.getScriptExecutionInput().getId(), "bogus!", ResponseStatusCode.SCRIPT_ERROR, "Script did not create output file!", 42));
     }
 
 }

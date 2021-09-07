@@ -6,11 +6,11 @@ import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import eu.openanalytics.phaedra.calculationservice.model.Feature;
 import eu.openanalytics.phaedra.calculationservice.model.Sequence;
-import eu.openanalytics.phaedra.calculationservice.scriptengineclient.model.ResponseStatusCode;
-import eu.openanalytics.phaedra.calculationservice.scriptengineclient.model.ScriptExecutionInput;
-import eu.openanalytics.phaedra.calculationservice.scriptengineclient.model.ScriptExecutionOutput;
 import eu.openanalytics.phaedra.resultdataservice.client.ResultDataServiceClient;
 import eu.openanalytics.phaedra.resultdataservice.dto.ResultSetDTO;
+import eu.openanalytics.phaedra.scriptengine.client.model.ScriptExecution;
+import eu.openanalytics.phaedra.scriptengine.dto.ResponseStatusCode;
+import eu.openanalytics.phaedra.scriptengine.dto.ScriptExecutionOutputDTO;
 import org.apache.commons.lang3.tuple.Pair;
 import org.springframework.stereotype.Service;
 
@@ -37,7 +37,7 @@ public class SequenceExecutorService {
 
     public boolean executeSequence(ExecutorService executorService, ErrorCollector errorCollector, Sequence currentSequence, long measId, ResultSetDTO resultSet) {
         // A. asynchronously create inputs and submit them to the ScriptEngine
-        var calculations = new ArrayList<Pair<Feature, Future<Optional<ScriptExecutionInput>>>>();
+        var calculations = new ArrayList<Pair<Feature, Future<Optional<ScriptExecution>>>>();
 
         for (var feature : currentSequence.getFeatures()) {
             calculations.add(Pair.of(feature, executorService.submit(() ->
@@ -45,7 +45,7 @@ public class SequenceExecutorService {
         }
 
         // B. wait (block !) for execution to be sent to the ScriptEngine
-        var outputFutures = new ArrayList<Pair<Feature, Future<ScriptExecutionOutput>>>();
+        var outputFutures = new ArrayList<Pair<Feature, Future<ScriptExecutionOutputDTO>>>();
         for (var calculation : calculations) {
             try {
                 if (calculation.getRight().get().isPresent()) {
@@ -61,7 +61,7 @@ public class SequenceExecutorService {
         }
 
         // C. wait (block !) for output to be received from the ScriptEngine
-        var outputs = new ArrayList<Pair<Feature, ScriptExecutionOutput>>();
+        var outputs = new ArrayList<Pair<Feature, ScriptExecutionOutputDTO>>();
         for (var outputFuture : outputFutures) {
             try {
                 outputs.add(Pair.of(outputFuture.getLeft(), outputFuture.getRight().get()));
@@ -82,7 +82,7 @@ public class SequenceExecutorService {
         return !errorCollector.hasError();
     }
 
-    public void saveOutput(ErrorCollector errorCollector, ResultSetDTO resultSet, Feature feature, ScriptExecutionOutput output) {
+    public void saveOutput(ErrorCollector errorCollector, ResultSetDTO resultSet, Feature feature, ScriptExecutionOutputDTO output) {
         try {
             if (output.getStatusCode() == ResponseStatusCode.SUCCESS) {
                 try {

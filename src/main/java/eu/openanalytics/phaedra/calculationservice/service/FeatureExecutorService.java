@@ -8,10 +8,10 @@ import eu.openanalytics.phaedra.calculationservice.enumeration.CalculationScope;
 import eu.openanalytics.phaedra.calculationservice.enumeration.Category;
 import eu.openanalytics.phaedra.calculationservice.enumeration.ScriptLanguage;
 import eu.openanalytics.phaedra.calculationservice.model.Feature;
-import eu.openanalytics.phaedra.calculationservice.scriptengineclient.client.ScriptEngineClient;
-import eu.openanalytics.phaedra.calculationservice.scriptengineclient.model.ScriptExecutionInput;
 import eu.openanalytics.phaedra.resultdataservice.client.ResultDataServiceClient;
 import eu.openanalytics.phaedra.resultdataservice.client.exception.ResultDataUnresolvableException;
+import eu.openanalytics.phaedra.scriptengine.client.ScriptEngineClient;
+import eu.openanalytics.phaedra.scriptengine.client.model.ScriptExecution;
 import org.springframework.stereotype.Service;
 
 import java.util.HashMap;
@@ -34,7 +34,7 @@ public class FeatureExecutorService {
     }
 
 
-    public Optional<ScriptExecutionInput> executeFeature(ErrorCollector errorCollector, Feature feature, long measId, long currentSequence, long resultId) {
+    public Optional<ScriptExecution> executeFeature(ErrorCollector errorCollector, Feature feature, long measId, long currentSequence, long resultId) {
         try {
             var inputVariables = collectVariablesForFeature(errorCollector, feature, measId, currentSequence, resultId);
             if (inputVariables.isEmpty()) {

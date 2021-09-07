@@ -2,8 +2,8 @@ package eu.openanalytics.phaedra.calculationservice.service;
 
 import eu.openanalytics.phaedra.calculationservice.model.CalculationInputValue;
 import eu.openanalytics.phaedra.calculationservice.model.Feature;
-import eu.openanalytics.phaedra.calculationservice.scriptengineclient.model.ScriptExecutionOutput;
 import eu.openanalytics.phaedra.resultdataservice.dto.ErrorDTO;
+import eu.openanalytics.phaedra.scriptengine.dto.ScriptExecutionOutputDTO;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -53,7 +53,7 @@ public class ErrorCollector {
     }
 
 
-    public void handleError(Exception e, String description, Feature feature, ScriptExecutionOutput output) {
+    public void handleError(Exception e, String description, Feature feature, ScriptExecutionOutputDTO output) {
         // TODO store output here ?
         var error = ErrorDTO.builder()
                 .exceptionClassName(e.getClass().getSimpleName())
@@ -149,7 +149,7 @@ public class ErrorCollector {
     }
 
 
-    public void handleScriptError(ScriptExecutionOutput output, Feature feature) {
+    public void handleScriptError(ScriptExecutionOutputDTO output, Feature feature) {
         var error = ErrorDTO.builder()
                 .timestamp(LocalDateTime.now())
                 .description("executing sequence => processing output => output indicates script error")

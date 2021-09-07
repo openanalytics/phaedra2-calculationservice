@@ -32,10 +32,6 @@
             <groupId>org.springframework.cloud</groupId>
             <artifactId>spring-cloud-starter-kubernetes-fabric8</artifactId>
         </dependency>
-        <dependency>
-            <groupId>org.springframework.boot</groupId>
-            <artifactId>spring-boot-starter-amqp</artifactId>
-        </dependency>
 
         <!-- Development and Test tools -->
         <dependency>
@@ -53,6 +49,11 @@
         <dependency>
             <groupId>eu.openanalytics.phaedra</groupId>
             <artifactId>phaedra2-resultdataservice-client</artifactId>
+            <version>0.0.1-SNAPSHOT</version>
+        </dependency>
+        <dependency>
+            <groupId>eu.openanalytics.phaedra</groupId>
+            <artifactId>phaedra2-scriptengine-client</artifactId>
             <version>0.0.1-SNAPSHOT</version>
         </dependency>
 
@@ -138,4 +139,18 @@
             </plugin>
         </plugins>
     </build>
+
+    <distributionManagement>
+        <snapshotRepository>
+            <id>oa-nexus-snapshots</id>
+            <name>OpenAnalytics Snapshots Repository</name>
+            <url>https://nexus.openanalytics.eu/repository/snapshots</url>
+        </snapshotRepository>
+        <repository>
+            <id>oa-nexus-releases</id>
+            <name>OpenAnalytics Release Repository</name>
+            <url>https://nexus.openanalytics.eu/repository/releases</url>
+        </repository>
+    </distributionManagement>
+
 </project>

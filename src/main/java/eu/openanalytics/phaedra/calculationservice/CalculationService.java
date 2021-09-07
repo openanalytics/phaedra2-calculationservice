@@ -1,9 +1,10 @@
 package eu.openanalytics.phaedra.calculationservice;
 
-import eu.openanalytics.phaedra.calculationservice.scriptengineclient.config.ScriptEngineClientConfiguration;
-import eu.openanalytics.phaedra.calculationservice.scriptengineclient.model.TargetRuntime;
 import eu.openanalytics.phaedra.resultdataservice.client.ResultDataServiceClient;
 import eu.openanalytics.phaedra.resultdataservice.client.impl.HttpResultDataServiceClient;
+import eu.openanalytics.phaedra.scriptengine.client.config.ScriptEngineClientAutoConfiguration;
+import eu.openanalytics.phaedra.scriptengine.client.config.ScriptEngineClientConfiguration;
+import eu.openanalytics.phaedra.scriptengine.client.model.TargetRuntime;
 import eu.openanalytics.phaedra.util.PhaedraRestTemplate;
 import eu.openanalytics.phaedra.util.jdbc.JDBCUtils;
 import io.swagger.v3.oas.models.OpenAPI;
@@ -15,6 +16,7 @@ import org.springframework.boot.autoconfigure.SpringBootApplication;
 import org.springframework.cloud.client.discovery.EnableDiscoveryClient;
 import org.springframework.cloud.client.loadbalancer.LoadBalanced;
 import org.springframework.context.annotation.Bean;
+import org.springframework.context.annotation.Import;
 import org.springframework.core.env.Environment;
 import org.springframework.jdbc.datasource.DriverManagerDataSource;
 import org.springframework.scheduling.annotation.EnableScheduling;
@@ -26,6 +28,7 @@ import java.time.Clock;
 @SpringBootApplication
 @EnableDiscoveryClient
 @EnableScheduling
+@Import(ScriptEngineClientAutoConfiguration.class)
 public class CalculationService {
     private final ServletContext servletContext;
     private final Environment environment;
@@ -96,7 +99,7 @@ public class CalculationService {
     @Bean
     public ScriptEngineClientConfiguration scriptEngineConfiguration() {
         var config = new ScriptEngineClientConfiguration();
-        config.setClientName("libraryTest");
+        config.setClientName("CalculationService");
         config.addTargetRuntime(R_FAST_LANE, new TargetRuntime("R", "fast-lane", "v1"));
         return config;
     }
