@@ -1,13 +1,13 @@
 package eu.openanalytics.phaedra.calculationservice.service;
 
 import eu.openanalytics.phaedra.calculationservice.dto.FormulaDTO;
-import eu.openanalytics.phaedra.calculationservice.dto.external.CalculationInputValueDTO;
-import eu.openanalytics.phaedra.calculationservice.dto.external.FeatureDTO;
-import eu.openanalytics.phaedra.calculationservice.dto.external.ProtocolDTO;
 import eu.openanalytics.phaedra.calculationservice.model.CalculationInputValue;
 import eu.openanalytics.phaedra.calculationservice.model.Feature;
 import eu.openanalytics.phaedra.calculationservice.model.Formula;
 import eu.openanalytics.phaedra.calculationservice.model.Protocol;
+import eu.openanalytics.phaedra.protocolservice.dto.CalculationInputValueDTO;
+import eu.openanalytics.phaedra.protocolservice.dto.FeatureDTO;
+import eu.openanalytics.phaedra.protocolservice.dto.ProtocolDTO;
 import eu.openanalytics.phaedra.resultdataservice.enumeration.StatusCode;
 import eu.openanalytics.phaedra.scriptengine.dto.ResponseStatusCode;
 import org.modelmapper.Conditions;
@@ -75,28 +75,33 @@ public class ModelMapper {
         return builder;
     }
 
-    public CalculationInputValue map(CalculationInputValueDTO calculationInputValueDTO, CalculationInputValue calculationInputValue) {
-        var builder = calculationInputValue.toBuilder();
-        modelMapper.map(calculationInputValueDTO, builder);
-        return builder.build();
+    /**
+     * Maps a {@link CalculationInputValueDTO} to a {@link CalculationInputValue.CalculationInputValueBuilder}.
+     * The return value can be further customized by calling the builder methods.
+     */
+    public CalculationInputValue.CalculationInputValueBuilder map(CalculationInputValueDTO calculationInputValueDTO) {
+        return modelMapper.map(calculationInputValueDTO, CalculationInputValue.CalculationInputValueBuilder.class);
     }
 
-    public CalculationInputValue map(CalculationInputValueDTO calculationInputValueDTO) {
-        return modelMapper.map(calculationInputValueDTO, CalculationInputValue.CalculationInputValueBuilder.class).build();
-    }
-
+    /**
+     * Maps a {@link ProtocolDTO} to a {@link Protocol.ProtocolBuilder}.
+     * The return value can be further customized by calling the builder methods.
+     */
     public Protocol.ProtocolBuilder map(ProtocolDTO protocolDTO) {
-        var builder = Protocol.builder();
-        modelMapper.map(protocolDTO, builder);
-        return builder;
+        return modelMapper.map(protocolDTO, Protocol.ProtocolBuilder.class);
     }
 
+    /**
+     * Maps a {@link FeatureDTO} to a {@link Feature.FeatureBuilder}.
+     * The return value can be further customized by calling the builder methods.
+     */
     public Feature.FeatureBuilder map(FeatureDTO featureDTO) {
-        var builder = Feature.builder();
-        modelMapper.map(featureDTO, builder);
-        return builder;
+        return modelMapper.map(featureDTO, Feature.FeatureBuilder.class);
     }
 
+    /**
+     * Maps a {@link ResponseStatusCode} to a {@link StatusCode}.
+     */
     public StatusCode map(ResponseStatusCode responseStatusCode) {
         return modelMapper.map(responseStatusCode, StatusCode.class);
     }

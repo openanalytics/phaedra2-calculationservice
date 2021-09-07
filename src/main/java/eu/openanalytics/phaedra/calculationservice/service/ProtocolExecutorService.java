@@ -1,9 +1,8 @@
 package eu.openanalytics.phaedra.calculationservice.service;
 
-import eu.openanalytics.phaedra.calculationservice.controller.clients.ProtocolServiceClient;
-import eu.openanalytics.phaedra.calculationservice.controller.clients.ProtocolUnresolvableException;
 import eu.openanalytics.phaedra.calculationservice.model.Protocol;
 import eu.openanalytics.phaedra.calculationservice.model.Sequence;
+import eu.openanalytics.phaedra.protocolservice.client.exception.ProtocolUnresolvableException;
 import eu.openanalytics.phaedra.resultdataservice.client.ResultDataServiceClient;
 import eu.openanalytics.phaedra.resultdataservice.client.exception.ResultSetUnresolvableException;
 import eu.openanalytics.phaedra.resultdataservice.dto.ResultSetDTO;
@@ -20,17 +19,17 @@ import java.util.concurrent.TimeUnit;
 @Service
 public class ProtocolExecutorService {
 
-    private final ProtocolServiceClient protocolServiceClient;
     private final ThreadPoolExecutor executorService;
     private final ResultDataServiceClient resultDataServiceClient;
     private final SequenceExecutorService sequenceExecutorService;
+    private final ProtocolInfoCollector protocolInfoCollector;
 
     private final Logger logger = LoggerFactory.getLogger(getClass());
 
-    public ProtocolExecutorService(ProtocolServiceClient protocolServiceClient, ResultDataServiceClient resultDataServiceClient, SequenceExecutorService sequenceExecutorService) {
-        this.protocolServiceClient = protocolServiceClient;
+    public ProtocolExecutorService(ResultDataServiceClient resultDataServiceClient, SequenceExecutorService sequenceExecutorService, ProtocolInfoCollector protocolInfoCollector) {
         this.resultDataServiceClient = resultDataServiceClient;
         this.sequenceExecutorService = sequenceExecutorService;
+        this.protocolInfoCollector = protocolInfoCollector;
 
         executorService = new ThreadPoolExecutor(8, 1024, 60L, TimeUnit.SECONDS, new SynchronousQueue<>());
     }
@@ -45,7 +44,7 @@ public class ProtocolExecutorService {
     private ResultSetDTO executeProtocol(long protocolId, long plateId, long measId) throws ProtocolUnresolvableException, ResultSetUnresolvableException {
         // 1. get protocol
         // TODO handle these errors
-        Protocol protocol = protocolServiceClient.getProtocol(protocolId);
+        Protocol protocol = protocolInfoCollector.getProtocol(protocolId);
 
         // 2. create ResultSet
         var resultSet = resultDataServiceClient.createResultDataSet(protocolId, plateId, measId);

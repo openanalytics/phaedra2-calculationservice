@@ -1,5 +1,6 @@
 package eu.openanalytics.phaedra.calculationservice;
 
+import eu.openanalytics.phaedra.protocolservice.client.config.ProtocolServiceClientAutoConfiguration;
 import eu.openanalytics.phaedra.resultdataservice.client.ResultDataServiceClient;
 import eu.openanalytics.phaedra.resultdataservice.client.impl.HttpResultDataServiceClient;
 import eu.openanalytics.phaedra.scriptengine.client.config.ScriptEngineClientAutoConfiguration;
@@ -28,7 +29,7 @@ import java.time.Clock;
 @SpringBootApplication
 @EnableDiscoveryClient
 @EnableScheduling
-@Import(ScriptEngineClientAutoConfiguration.class)
+@Import({ScriptEngineClientAutoConfiguration.class, ProtocolServiceClientAutoConfiguration.class})
 public class CalculationService {
     private final ServletContext servletContext;
     private final Environment environment;
