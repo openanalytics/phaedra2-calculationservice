@@ -2,6 +2,7 @@ package eu.openanalytics.phaedra.calculationservice.service;
 
 import eu.openanalytics.phaedra.calculationservice.model.Protocol;
 import eu.openanalytics.phaedra.calculationservice.model.Sequence;
+import eu.openanalytics.phaedra.platservice.client.PlateServiceClient;
 import eu.openanalytics.phaedra.protocolservice.client.exception.ProtocolUnresolvableException;
 import eu.openanalytics.phaedra.resultdataservice.client.ResultDataServiceClient;
 import eu.openanalytics.phaedra.resultdataservice.client.exception.ResultSetUnresolvableException;
@@ -23,13 +24,15 @@ public class ProtocolExecutorService {
     private final ResultDataServiceClient resultDataServiceClient;
     private final SequenceExecutorService sequenceExecutorService;
     private final ProtocolInfoCollector protocolInfoCollector;
+    private final PlateServiceClient plateServiceClient;
 
     private final Logger logger = LoggerFactory.getLogger(getClass());
 
-    public ProtocolExecutorService(ResultDataServiceClient resultDataServiceClient, SequenceExecutorService sequenceExecutorService, ProtocolInfoCollector protocolInfoCollector) {
+    public ProtocolExecutorService(ResultDataServiceClient resultDataServiceClient, SequenceExecutorService sequenceExecutorService, ProtocolInfoCollector protocolInfoCollector, PlateServiceClient plateServiceClient) {
         this.resultDataServiceClient = resultDataServiceClient;
         this.sequenceExecutorService = sequenceExecutorService;
         this.protocolInfoCollector = protocolInfoCollector;
+        this.plateServiceClient = plateServiceClient;
 
         executorService = new ThreadPoolExecutor(8, 1024, 60L, TimeUnit.SECONDS, new SynchronousQueue<>());
     }
@@ -37,6 +40,7 @@ public class ProtocolExecutorService {
     public Future<ResultSetDTO> execute(long protocolId, long plateId, long measId) {
         // submit execution to the ThreadPool/ExecutorService and return a future
         return executorService.submit(() -> {
+            var plate = plateServiceClient.getPlate(plateId);
             return executeProtocol(protocolId, plateId, measId);
         });
     }

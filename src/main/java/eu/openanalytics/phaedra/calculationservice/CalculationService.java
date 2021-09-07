@@ -1,8 +1,8 @@
 package eu.openanalytics.phaedra.calculationservice;
 
+import eu.openanalytics.phaedra.platservice.client.config.PlateServiceClientAutoConfiguration;
 import eu.openanalytics.phaedra.protocolservice.client.config.ProtocolServiceClientAutoConfiguration;
-import eu.openanalytics.phaedra.resultdataservice.client.ResultDataServiceClient;
-import eu.openanalytics.phaedra.resultdataservice.client.impl.HttpResultDataServiceClient;
+import eu.openanalytics.phaedra.resultdataservice.client.config.ResultDataServiceClientAutoConfiguration;
 import eu.openanalytics.phaedra.scriptengine.client.config.ScriptEngineClientAutoConfiguration;
 import eu.openanalytics.phaedra.scriptengine.client.config.ScriptEngineClientConfiguration;
 import eu.openanalytics.phaedra.scriptengine.client.model.TargetRuntime;
@@ -29,7 +29,10 @@ import java.time.Clock;
 @SpringBootApplication
 @EnableDiscoveryClient
 @EnableScheduling
-@Import({ScriptEngineClientAutoConfiguration.class, ProtocolServiceClientAutoConfiguration.class})
+@Import({ScriptEngineClientAutoConfiguration.class,
+        ProtocolServiceClientAutoConfiguration.class,
+        ResultDataServiceClientAutoConfiguration.class,
+        PlateServiceClientAutoConfiguration.class})
 public class CalculationService {
     private final ServletContext servletContext;
     private final Environment environment;
@@ -110,8 +113,4 @@ public class CalculationService {
         return Clock.systemDefaultZone();
     }
 
-    @Bean
-    public ResultDataServiceClient resultDataServiceClient() {
-        return new HttpResultDataServiceClient(restTemplate());
-    }
 }

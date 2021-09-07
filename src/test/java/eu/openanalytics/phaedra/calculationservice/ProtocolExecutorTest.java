@@ -18,6 +18,7 @@ import eu.openanalytics.phaedra.calculationservice.service.ModelMapper;
 import eu.openanalytics.phaedra.calculationservice.service.ProtocolExecutorService;
 import eu.openanalytics.phaedra.calculationservice.service.ProtocolInfoCollector;
 import eu.openanalytics.phaedra.calculationservice.service.SequenceExecutorService;
+import eu.openanalytics.phaedra.platservice.client.PlateServiceClient;
 import eu.openanalytics.phaedra.protocolservice.client.exception.ProtocolUnresolvableException;
 import eu.openanalytics.phaedra.resultdataservice.client.ResultDataServiceClient;
 import eu.openanalytics.phaedra.resultdataservice.client.exception.ResultDataUnresolvableException;
@@ -64,6 +65,7 @@ public class ProtocolExecutorTest {
     private ResultDataServiceClient resultDataServiceClient;
     private MeasServiceClient measServiceClient;
     private ScriptEngineClient scriptEngineClient;
+    private PlateServiceClient plateServiceClient;
 
     private FeatureExecutorService featureExecutorService;
     private SequenceExecutorService sequenceExecutorService;
@@ -77,9 +79,10 @@ public class ProtocolExecutorTest {
         measServiceClient = mockUnimplemented(MeasServiceClient.class);
         protocolInfoCollector = mockUnimplemented(ProtocolInfoCollector.class);
         scriptEngineClient = mockUnimplemented(ScriptEngineClient.class);
+        plateServiceClient = mockUnimplemented(PlateServiceClient.class);
         featureExecutorService = new FeatureExecutorService(scriptEngineClient, measServiceClient, resultDataServiceClient);
         sequenceExecutorService = new SequenceExecutorService(resultDataServiceClient, featureExecutorService, modelMapper);
-        protocolExecutorService = new ProtocolExecutorService(resultDataServiceClient, sequenceExecutorService, protocolInfoCollector);
+        protocolExecutorService = new ProtocolExecutorService(resultDataServiceClient, sequenceExecutorService, protocolInfoCollector, plateServiceClient);
     }
 
     @Test
@@ -165,7 +168,7 @@ public class ProtocolExecutorTest {
         var mockResultDataServiceClient = mockUnimplemented(ResultDataServiceClient.class);
         featureExecutorService = new FeatureExecutorService(scriptEngineClient, measServiceClient, mockResultDataServiceClient);
         sequenceExecutorService = new SequenceExecutorService(resultDataServiceClient, featureExecutorService, modelMapper);
-        protocolExecutorService = new ProtocolExecutorService(resultDataServiceClient, sequenceExecutorService, protocolInfoCollector);
+        protocolExecutorService = new ProtocolExecutorService(resultDataServiceClient, sequenceExecutorService, protocolInfoCollector, plateServiceClient);
         var formula1 = "output <- input$abc * 2";
         var input = new ScriptExecution(new TargetRuntime("R", "fast-lane", "v1"), formula1,
                 "{\"abc\":[1.0,2.0,3.0,5.0,8.0]}",
