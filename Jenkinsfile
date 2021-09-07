@@ -33,7 +33,8 @@ pipeline {
                     env.GROUP_ID = sh(returnStdout: true, script: "mvn org.apache.maven.plugins:maven-help-plugin:3.2.0:evaluate -Dexpression=project.groupId -q -DforceStdout").trim()
                     env.ARTIFACT_ID = sh(returnStdout: true, script: "mvn org.apache.maven.plugins:maven-help-plugin:3.2.0:evaluate -Dexpression=project.artifactId -q -DforceStdout").trim()
                     env.VERSION = sh(returnStdout: true, script: "mvn org.apache.maven.plugins:maven-help-plugin:3.2.0:evaluate -Dexpression=project.version -q -DforceStdout").trim()
-                    env.REPO = "openanalytics/${env.ARTIFACT_ID}-server"
+                    env.REPO = "openanalytics/${env.ARTIFACT_ID}"
+                    /*env.REPO = "openanalytics/${env.ARTIFACT_ID}-server"*/
                     env.MVN_ARGS = "-Dmaven.repo.local=/home/jenkins/maven-repository --batch-mode"
                     env.MVN_EXLCUDE_PARENT = ""
 //                    env.MVN_EXLCUDE_PARENT = "--projects '!${env.GROUP_ID}:${env.ARTIFACT_ID}'"
@@ -86,7 +87,7 @@ pipeline {
 
         stage('Build Docker image') {
             steps {
-                dir('server') {
+                /*dir('server') {*/
                     container('builder') {
 
                         configFileProvider([configFile(fileId: 'maven-settings-rsb', variable: 'MAVEN_SETTINGS_RSB')]) {
@@ -96,13 +97,13 @@ pipeline {
                         }
 
                     }
-                }
+                /*}*/
             }
         }
 
         stage('Push to OA registry') {
             steps {
-                dir('server') {
+                /*dir('server') {*/
                     container('builder') {
                         sh "aws --region eu-west-1 ecr describe-repositories --repository-names ${env.REPO} || aws --region eu-west-1 ecr create-repository --repository-name ${env.REPO}"
                         sh "\$(aws ecr get-login --registry-ids '${env.ACCOUNTID}' --region 'eu-west-1' --no-include-email)"
@@ -112,7 +113,7 @@ pipeline {
                             sh "mvn -s \$MAVEN_SETTINGS_RSB dockerfile:push -Ddocker.repoPrefix=${env.REPO_PREFIX} ${env.MVN_ARGS}"
                         }
                     }
-                }
+                /*}*/
             }
         }
 
