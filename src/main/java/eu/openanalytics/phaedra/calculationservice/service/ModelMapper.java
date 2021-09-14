@@ -3,10 +3,12 @@ package eu.openanalytics.phaedra.calculationservice.service;
 import eu.openanalytics.phaedra.calculationservice.dto.FormulaDTO;
 import eu.openanalytics.phaedra.calculationservice.model.CalculationInputValue;
 import eu.openanalytics.phaedra.calculationservice.model.Feature;
+import eu.openanalytics.phaedra.calculationservice.model.FeatureStat;
 import eu.openanalytics.phaedra.calculationservice.model.Formula;
 import eu.openanalytics.phaedra.calculationservice.model.Protocol;
 import eu.openanalytics.phaedra.protocolservice.dto.CalculationInputValueDTO;
 import eu.openanalytics.phaedra.protocolservice.dto.FeatureDTO;
+import eu.openanalytics.phaedra.protocolservice.dto.FeatureStatDTO;
 import eu.openanalytics.phaedra.protocolservice.dto.ProtocolDTO;
 import eu.openanalytics.phaedra.resultdataservice.enumeration.StatusCode;
 import eu.openanalytics.phaedra.scriptengine.dto.ResponseStatusCode;
@@ -38,7 +40,11 @@ public class ModelMapper {
         modelMapper.createTypeMap(FeatureDTO.class, Feature.FeatureBuilder.class, builderConfiguration)
                 .setPropertyCondition(Conditions.isNotNull())
                 .addMappings(mapper -> mapper.skip(Feature.FeatureBuilder::formula))
-                .addMappings(mapper -> mapper.skip(Feature.FeatureBuilder::calculationInputValues));
+                .addMappings(mapper -> mapper.skip(Feature.FeatureBuilder::calculationInputValues))
+                .addMappings(mapper -> mapper.skip(Feature.FeatureBuilder::featureStats));
+
+        modelMapper.createTypeMap(FeatureStatDTO.class, FeatureStat.FeatureStatBuilder.class, builderConfiguration)
+                .addMappings(mapper -> mapper.skip(FeatureStat.FeatureStatBuilder::formula));
 
         modelMapper.validate(); // ensure that objects can be mapped
     }
@@ -106,4 +112,11 @@ public class ModelMapper {
         return modelMapper.map(responseStatusCode, StatusCode.class);
     }
 
+    /**
+     * Maps a {@link FeatureStatDTO} to a {@link FeatureStat.FeatureStatBuilder}.
+     * The return value can be further customized by calling the builder methods.
+     */
+    public FeatureStat.FeatureStatBuilder map(FeatureStatDTO featureStatDTO) {
+        return modelMapper.map(featureStatDTO, FeatureStat.FeatureStatBuilder.class);
+    }
 }

@@ -4,6 +4,7 @@ import eu.openanalytics.phaedra.resultdataservice.client.ResultDataServiceClient
 import eu.openanalytics.phaedra.resultdataservice.client.exception.ResultDataUnresolvableException;
 import eu.openanalytics.phaedra.resultdataservice.dto.ErrorDTO;
 import eu.openanalytics.phaedra.resultdataservice.dto.ResultDataDTO;
+import eu.openanalytics.phaedra.resultdataservice.dto.ResultFeatureStatDTO;
 import eu.openanalytics.phaedra.resultdataservice.dto.ResultSetDTO;
 import eu.openanalytics.phaedra.resultdataservice.enumeration.StatusCode;
 
@@ -50,6 +51,11 @@ public class InMemoryResultDataServiceClient implements ResultDataServiceClient 
             throw new ResultDataUnresolvableException("ResultData not found");
         }
         return res.get();
+    }
+
+    @Override
+    public ResultFeatureStatDTO createResultFeatureStat(long resultSetId, long featureId, long featureStatId, float value, String statisticName, String welltype, StatusCode statusCode, String statusMessage, Integer exitCode) {
+        throw new IllegalStateException("Not implemented");
     }
 
 }

@@ -11,11 +11,12 @@ import eu.openanalytics.phaedra.calculationservice.model.Feature;
 import eu.openanalytics.phaedra.calculationservice.model.Formula;
 import eu.openanalytics.phaedra.calculationservice.model.Protocol;
 import eu.openanalytics.phaedra.calculationservice.model.Sequence;
-import eu.openanalytics.phaedra.calculationservice.service.FeatureExecutorService;
 import eu.openanalytics.phaedra.calculationservice.service.ModelMapper;
-import eu.openanalytics.phaedra.calculationservice.service.ProtocolExecutorService;
-import eu.openanalytics.phaedra.calculationservice.service.ProtocolInfoCollector;
-import eu.openanalytics.phaedra.calculationservice.service.SequenceExecutorService;
+import eu.openanalytics.phaedra.calculationservice.service.featurestat.FeatureStatExecutor;
+import eu.openanalytics.phaedra.calculationservice.service.protocol.ProtocolExecutorService;
+import eu.openanalytics.phaedra.calculationservice.service.protocol.ProtocolInfoCollector;
+import eu.openanalytics.phaedra.calculationservice.service.protocol.SequenceExecutorService;
+import eu.openanalytics.phaedra.calculationservice.service.protocol.FeatureExecutorService;
 import eu.openanalytics.phaedra.measurementservice.client.MeasurementServiceClient;
 import eu.openanalytics.phaedra.measurementservice.client.exception.MeasUnresolvableException;
 import eu.openanalytics.phaedra.platservice.client.PlateServiceClient;
@@ -23,6 +24,7 @@ import eu.openanalytics.phaedra.platservice.client.exception.PlateUnresolvableEx
 import eu.openanalytics.phaedra.protocolservice.client.exception.ProtocolUnresolvableException;
 import eu.openanalytics.phaedra.resultdataservice.client.ResultDataServiceClient;
 import eu.openanalytics.phaedra.resultdataservice.client.exception.ResultDataUnresolvableException;
+import eu.openanalytics.phaedra.resultdataservice.client.exception.ResultFeatureStatUnresolvableException;
 import eu.openanalytics.phaedra.resultdataservice.enumeration.StatusCode;
 import eu.openanalytics.phaedra.scriptengine.client.ScriptEngineClient;
 import eu.openanalytics.phaedra.scriptengine.client.model.ScriptExecution;
@@ -46,6 +48,7 @@ import java.util.Timer;
 import java.util.TimerTask;
 
 import static eu.openanalytics.phaedra.calculationservice.CalculationService.R_FAST_LANE;
+import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.Mockito.doAnswer;
 import static org.mockito.Mockito.doNothing;
@@ -58,6 +61,7 @@ import static org.mockito.Mockito.verifyNoMoreInteractions;
 @ExtendWith(MockitoExtension.class)
 public class ProtocolExecutorTest {
 
+
     private <T> T mockUnimplemented(Class<T> clazz) {
         return mock(clazz, invocation -> {
             throw new IllegalStateException(String.format("[%s:%s] must be stubbed with arguments [%s]!", invocation.getMock().getClass().getSimpleName(), invocation.getMethod().getName(), Arrays.toString(invocation.getArguments())));
@@ -68,6 +72,7 @@ public class ProtocolExecutorTest {
     private MeasurementServiceClient measurementServiceClient;
     private ScriptEngineClient scriptEngineClient;
     private PlateServiceClient plateServiceClient;
+    private FeatureStatExecutor featureStatExecutorService;
 
     private FeatureExecutorService featureExecutorService;
     private SequenceExecutorService sequenceExecutorService;
@@ -82,8 +87,9 @@ public class ProtocolExecutorTest {
         protocolInfoCollector = mockUnimplemented(ProtocolInfoCollector.class);
         scriptEngineClient = mockUnimplemented(ScriptEngineClient.class);
         plateServiceClient = mockUnimplemented(PlateServiceClient.class);
+        featureStatExecutorService = mockUnimplemented(FeatureStatExecutor.class);
         featureExecutorService = new FeatureExecutorService(scriptEngineClient, measurementServiceClient, resultDataServiceClient);
-        sequenceExecutorService = new SequenceExecutorService(resultDataServiceClient, featureExecutorService, modelMapper);
+        sequenceExecutorService = new SequenceExecutorService(resultDataServiceClient, featureExecutorService, modelMapper, featureStatExecutorService);
         protocolExecutorService = new ProtocolExecutorService(resultDataServiceClient, sequenceExecutorService, protocolInfoCollector, plateServiceClient);
         doReturn(null).when(plateServiceClient).getPlate(anyLong());
     }
@@ -100,12 +106,13 @@ public class ProtocolExecutorTest {
                 new HashMap<>() {{
                     put(0, new Sequence(0, List.of(new Feature(1L, "Feature1", null, null, "AFormat", FeatureType.CALCULATION, 0,
                             new Formula(1L, "abc_duplicator", null, Category.CALCULATION, formula, ScriptLanguage.R, CalculationScope.WELL, "me", LocalDateTime.now(), "me", LocalDateTime.now()),
-                            List.of(new CalculationInputValue(1L, 1L, "abc", null, "abc"))))));
+                            List.of(new CalculationInputValue(1L, 1L, "abc", null, "abc")), Collections.emptyList()))));
                 }}));
 
         stubGetWellData(4L, "abc", new float[]{1.0f, 2.0f, 3.0f, 5.0f, 8.0f});
         stubNewScriptExecution(R_FAST_LANE, input);
         stubExecute(input);
+        stubExecuteFeatureStat();
         completeInputSuccessfully(input, "{\"output\": [2.0,4.0,6.0,10.0,16.0]}");
 
         var resultSet = protocolExecutorService.execute(1, 1, 4).get();
@@ -132,7 +139,7 @@ public class ProtocolExecutorTest {
                 new HashMap<>() {{
                     put(0, new Sequence(0, List.of(new Feature(1L, "Feature1", null, null, "AFormat", FeatureType.CALCULATION, 0,
                             new Formula(1L, "abc_duplicator", null, Category.CALCULATION, formula, ScriptLanguage.R, CalculationScope.WELL, "me", LocalDateTime.now(), "me", LocalDateTime.now()),
-                            List.of(new CalculationInputValue(1L, 1L, "abc", null, "abc"))))));
+                            List.of(new CalculationInputValue(1L, 1L, "abc", null, "abc")), Collections.emptyList()))));
                 }}));
 
         doThrow(new MeasUnresolvableException("WellData not found")).when(measurementServiceClient).getWellData(4L, "abc");
@@ -170,7 +177,7 @@ public class ProtocolExecutorTest {
     public void getResultDataGivesError() throws Exception {
         var mockResultDataServiceClient = mockUnimplemented(ResultDataServiceClient.class);
         featureExecutorService = new FeatureExecutorService(scriptEngineClient, measurementServiceClient, mockResultDataServiceClient);
-        sequenceExecutorService = new SequenceExecutorService(resultDataServiceClient, featureExecutorService, modelMapper);
+        sequenceExecutorService = new SequenceExecutorService(resultDataServiceClient, featureExecutorService, modelMapper, featureStatExecutorService);
         protocolExecutorService = new ProtocolExecutorService(resultDataServiceClient, sequenceExecutorService, protocolInfoCollector, plateServiceClient);
         var formula1 = "output <- input$abc * 2";
         var input = new ScriptExecution(new TargetRuntime("R", "fast-lane", "v1"), formula1,
@@ -183,15 +190,16 @@ public class ProtocolExecutorTest {
                 new HashMap<>() {{
                     put(0, new Sequence(0, List.of(new Feature(1L, "Feature1", null, null, "AFormat", FeatureType.CALCULATION, 0,
                             new Formula(1L, "abc_duplicator", null, Category.CALCULATION, formula1, ScriptLanguage.R, CalculationScope.WELL, "me", LocalDateTime.now(), "me", LocalDateTime.now()),
-                            List.of(new CalculationInputValue(1L, 1L, "abc", null, "abc"))))));
+                            List.of(new CalculationInputValue(1L, 1L, "abc", null, "abc")), Collections.emptyList()))));
                     put(1, new Sequence(1, List.of(new Feature(2L, "Feature2", null, null, "AFormat", FeatureType.CALCULATION, 1,
                             new Formula(2L, "result_duplicator", null, Category.CALCULATION, formula2, ScriptLanguage.R, CalculationScope.WELL, "me", LocalDateTime.now(), "me", LocalDateTime.now()),
-                            List.of(new CalculationInputValue(2L, 2L, null, 1L, "result"))))));
+                            List.of(new CalculationInputValue(2L, 2L, null, 1L, "result")), Collections.emptyList()))));
                 }}));
 
         stubGetWellData(4L, "abc", new float[]{1.0f, 2.0f, 3.0f, 5.0f, 8.0f});
         stubNewScriptExecution(R_FAST_LANE, input);
         stubExecute(input);
+        stubExecuteFeatureStat();
         completeInputSuccessfully(input, "{\"output\": [2.0,4.0,6.0,10.0,16.0]}");
 
         doThrow(new ResultDataUnresolvableException("ResultData not found")).when(mockResultDataServiceClient).getResultData(0, 1);
@@ -238,7 +246,7 @@ public class ProtocolExecutorTest {
                     put(0, new Sequence(0, List.of(new Feature(1L, "Feature1", null, null, "AFormat", FeatureType.CALCULATION, 0,
                             new Formula(1L, "abc_duplicator", null, Category.CALCULATION, formula1, ScriptLanguage.R, CalculationScope.WELL, "me", LocalDateTime.now(), "me", LocalDateTime.now()),
                             List.of(new CalculationInputValue(1L, 1L, "abc", null, "abc"),
-                                    new CalculationInputValue(1L, 1L, "xyz", null, "abc"))))));
+                                    new CalculationInputValue(1L, 1L, "xyz", null, "abc")), Collections.emptyList()))));
                 }}));
 
         stubGetWellData(4L, "abc", new float[]{1.0f, 2.0f, 3.0f, 5.0f, 8.0f});
@@ -280,7 +288,7 @@ public class ProtocolExecutorTest {
                 new HashMap<>() {{
                     put(0, new Sequence(0, List.of(new Feature(1L, "Feature1", null, null, "AFormat", FeatureType.CALCULATION, 0,
                             new Formula(1L, "abc_duplicator", null, Category.CALCULATION, formula1, ScriptLanguage.R, CalculationScope.WELL, "me", LocalDateTime.now(), "me", LocalDateTime.now()),
-                            List.of(new CalculationInputValue(1L, 1L, null, null, "abc"))))));
+                            List.of(new CalculationInputValue(1L, 1L, null, null, "abc")), Collections.emptyList()))));
                 }}));
 
         var resultSet = protocolExecutorService.execute(1, 1, 4).get();
@@ -320,7 +328,7 @@ public class ProtocolExecutorTest {
                 new HashMap<>() {{
                     put(0, new Sequence(0, List.of(new Feature(1L, "Feature1", null, null, "AFormat", FeatureType.CALCULATION, 0,
                             new Formula(1L, "abc_duplicator", null, Category.CALCULATION, formula1, ScriptLanguage.R, CalculationScope.WELL, "me", LocalDateTime.now(), "me", LocalDateTime.now()),
-                            List.of(new CalculationInputValue(1L, 1L, null, 1L, "abc"))))));
+                            List.of(new CalculationInputValue(1L, 1L, null, 1L, "abc")), Collections.emptyList()))));
                 }}));
 
         var resultSet = protocolExecutorService.execute(1, 1, 4).get();
@@ -358,7 +366,7 @@ public class ProtocolExecutorTest {
                 new HashMap<>() {{
                     put(1, new Sequence(1, List.of(new Feature(1L, "Feature1", null, null, "AFormat", FeatureType.CALCULATION, 1,
                             new Formula(1L, "abc_duplicator", null, Category.CALCULATION, "bogus", ScriptLanguage.R, CalculationScope.WELL, "me", LocalDateTime.now(), "me", LocalDateTime.now()),
-                            List.of(new CalculationInputValue(1L, 1L, "abc", null, "abc"))))));
+                            List.of(new CalculationInputValue(1L, 1L, "abc", null, "abc")), Collections.emptyList()))));
                 }}));
 
         var resultSet = protocolExecutorService.execute(1, 1, 4).get();
@@ -402,7 +410,7 @@ public class ProtocolExecutorTest {
                 new HashMap<>() {{
                     put(0, new Sequence(0, List.of(new Feature(1L, "Feature1", null, null, "AFormat", FeatureType.CALCULATION, 0,
                             new Formula(1L, "abc_duplicator", null, Category.CALCULATION, formula, ScriptLanguage.R, CalculationScope.WELL, "me", LocalDateTime.now(), "me", LocalDateTime.now()),
-                            List.of(new CalculationInputValue(1L, 1L, "abc", null, "abc"))))));
+                            List.of(new CalculationInputValue(1L, 1L, "abc", null, "abc")), Collections.emptyList()))));
                 }}));
 
         stubGetWellData(4L, "abc", new float[]{1.0f, 2.0f, 3.0f, 5.0f, 8.0f});
@@ -453,7 +461,7 @@ public class ProtocolExecutorTest {
                 new HashMap<>() {{
                     put(0, new Sequence(0, List.of(new Feature(1L, "Feature1", null, null, "AFormat", FeatureType.CALCULATION, 0,
                             new Formula(1L, "abc_duplicator", null, Category.CALCULATION, formula, ScriptLanguage.R, CalculationScope.WELL, "me", LocalDateTime.now(), "me", LocalDateTime.now()),
-                            List.of(new CalculationInputValue(1L, 1L, "abc", null, "abc"))))));
+                            List.of(new CalculationInputValue(1L, 1L, "abc", null, "abc")), Collections.emptyList()))));
                 }}));
 
         stubGetWellData(4L, "abc", new float[]{1.0f, 2.0f, 3.0f, 5.0f, 8.0f});
@@ -502,7 +510,7 @@ public class ProtocolExecutorTest {
                 new HashMap<>() {{
                     put(0, new Sequence(0, List.of(new Feature(1L, "Feature1", null, null, "AFormat", FeatureType.CALCULATION, 0,
                             new Formula(1L, "abc_duplicator", null, Category.CALCULATION, formula, ScriptLanguage.R, CalculationScope.WELL, "me", LocalDateTime.now(), "me", LocalDateTime.now()),
-                            List.of(new CalculationInputValue(1L, 1L, "abc", null, "abc"))))));
+                            List.of(new CalculationInputValue(1L, 1L, "abc", null, "abc")), Collections.emptyList()))));
                 }}));
 
         stubGetWellData(4L, "abc", new float[]{1.0f, 2.0f, 3.0f, 5.0f, 8.0f});
@@ -561,13 +569,13 @@ public class ProtocolExecutorTest {
                     put(0, new Sequence(0, List.of(
                             new Feature(1L, "Feature1", null, null, "AFormat", FeatureType.CALCULATION, 0,
                                     new Formula(1L, "abc_duplicator", null, Category.CALCULATION, formula1, ScriptLanguage.R, CalculationScope.WELL, "me", LocalDateTime.now(), "me", LocalDateTime.now()),
-                                    List.of(new CalculationInputValue(1L, 1L, "abc", null, "abc"))),
+                                    List.of(new CalculationInputValue(1L, 1L, "abc", null, "abc")), Collections.emptyList()),
                             new Feature(2L, "Feature2", null, null, "AFormat", FeatureType.CALCULATION, 0,
                                     new Formula(2L, "abc_times_three", null, Category.CALCULATION, formula2, ScriptLanguage.R, CalculationScope.WELL, "me", LocalDateTime.now(), "me", LocalDateTime.now()),
-                                    List.of(new CalculationInputValue(2L, 2L, "abc", null, "abc"))),
+                                    List.of(new CalculationInputValue(2L, 2L, "abc", null, "abc")), Collections.emptyList()),
                             new Feature(3L, "Feature2", null, null, "AFormat", FeatureType.CALCULATION, 0,
                                     new Formula(3L, "abc_times_four", null, Category.CALCULATION, formula3, ScriptLanguage.R, CalculationScope.WELL, "me", LocalDateTime.now(), "me", LocalDateTime.now()),
-                                    List.of(new CalculationInputValue(3L, 3L, "abc", null, "abc"))))
+                                    List.of(new CalculationInputValue(3L, 3L, "abc", null, "abc")), Collections.emptyList()))
                     ));
                 }}));
 
@@ -579,6 +587,7 @@ public class ProtocolExecutorTest {
         stubExecute(input1);
         stubExecute(input2);
         stubExecute(input3);
+        stubExecuteFeatureStat();
 
         // input 1: return value after 100 ms
         completeInputSuccessfullyWithDelay(input1, "{\"output\": [2.0,4.0,6.0,10.0,16.0]}", 100);
@@ -654,13 +663,13 @@ public class ProtocolExecutorTest {
                     put(0, new Sequence(0, List.of(
                             new Feature(1L, "Feature1", null, null, "AFormat", FeatureType.CALCULATION, 0,
                                     new Formula(1L, "abc_duplicator", null, Category.CALCULATION, formula1, ScriptLanguage.R, CalculationScope.WELL, "me", LocalDateTime.now(), "me", LocalDateTime.now()),
-                                    List.of(new CalculationInputValue(1L, 1L, "abc", null, "abc"))),
+                                    List.of(new CalculationInputValue(1L, 1L, "abc", null, "abc")), Collections.emptyList()),
                             new Feature(2L, "Feature2", null, null, "AFormat", FeatureType.CALCULATION, 0,
                                     new Formula(2L, "abc_times_three", null, Category.CALCULATION, formula2, ScriptLanguage.R, CalculationScope.WELL, "me", LocalDateTime.now(), "me", LocalDateTime.now()),
-                                    List.of(new CalculationInputValue(2L, 2L, "abc", null, "abc"))),
+                                    List.of(new CalculationInputValue(2L, 2L, "abc", null, "abc")), Collections.emptyList()),
                             new Feature(3L, "Feature2", null, null, "AFormat", FeatureType.CALCULATION, 0,
                                     new Formula(3L, "abc_times_four", null, Category.CALCULATION, formula3, ScriptLanguage.R, CalculationScope.WELL, "me", LocalDateTime.now(), "me", LocalDateTime.now()),
-                                    List.of(new CalculationInputValue(3L, 3L, "abc", null, "abc"))))
+                                    List.of(new CalculationInputValue(3L, 3L, "abc", null, "abc")), Collections.emptyList()))
                     ));
                 }}));
 
@@ -672,6 +681,7 @@ public class ProtocolExecutorTest {
         stubExecute(input1);
         stubExecuteWithExceptionAndDelay(input2, new RuntimeException("Error during sending of execution!"), 1000);
         stubExecute(input3);
+        stubExecuteFeatureStat();
 
         // input 1: return value after 100 ms
         completeInputSuccessfullyWithDelay(input1, "{\"output\": [2.0,4.0,6.0,10.0,16.0]}", 100);
@@ -731,6 +741,10 @@ public class ProtocolExecutorTest {
 
     private void stubExecute(ScriptExecution input) throws JsonProcessingException {
         doNothing().when(scriptEngineClient).execute(input);
+    }
+
+    private void stubExecuteFeatureStat() throws JsonProcessingException, PlateUnresolvableException, ResultFeatureStatUnresolvableException {
+        doNothing().when(featureStatExecutorService).executeFeatureStat(any(), any(), any());
     }
 
     private void stubExecuteWithExceptionAndDelay(ScriptExecution input, Throwable ex, long delay) throws JsonProcessingException {

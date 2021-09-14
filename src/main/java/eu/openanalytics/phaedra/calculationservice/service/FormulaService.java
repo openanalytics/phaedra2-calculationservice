@@ -3,6 +3,7 @@ package eu.openanalytics.phaedra.calculationservice.service;
 
 import eu.openanalytics.phaedra.calculationservice.dto.FormulaDTO;
 import eu.openanalytics.phaedra.calculationservice.enumeration.Category;
+import eu.openanalytics.phaedra.calculationservice.exception.FormulaNotFoundException;
 import eu.openanalytics.phaedra.calculationservice.model.Formula;
 import eu.openanalytics.phaedra.calculationservice.repository.FormulaRepository;
 import org.springframework.stereotype.Service;

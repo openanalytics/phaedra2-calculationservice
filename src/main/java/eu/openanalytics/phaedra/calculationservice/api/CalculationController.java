@@ -1,7 +1,7 @@
 package eu.openanalytics.phaedra.calculationservice.api;
 
 import eu.openanalytics.phaedra.calculationservice.dto.CalculationRequestDTO;
-import eu.openanalytics.phaedra.calculationservice.service.ProtocolExecutorService;
+import eu.openanalytics.phaedra.calculationservice.service.protocol.ProtocolExecutorService;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RestController;

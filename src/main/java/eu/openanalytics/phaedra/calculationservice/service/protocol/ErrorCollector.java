@@ -1,4 +1,4 @@
-package eu.openanalytics.phaedra.calculationservice.service;
+package eu.openanalytics.phaedra.calculationservice.service.protocol;
 
 import eu.openanalytics.phaedra.calculationservice.model.CalculationInputValue;
 import eu.openanalytics.phaedra.calculationservice.model.Feature;

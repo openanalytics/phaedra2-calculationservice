@@ -101,12 +101,14 @@ public class CalculationService {
     }
 
     public static final String R_FAST_LANE = "R_FAST_LANE";
+    public static final String JAVASTAT_FAST_LANE = "JAVASTAT_FAST_LANE";
 
     @Bean
     public ScriptEngineClientConfiguration scriptEngineConfiguration() {
         var config = new ScriptEngineClientConfiguration();
         config.setClientName("CalculationService");
         config.addTargetRuntime(R_FAST_LANE, new TargetRuntime("R", "fast-lane", "v1"));
+        config.addTargetRuntime(JAVASTAT_FAST_LANE, new TargetRuntime("JavaStat", "fast-lane", "v1"));
         return config;
     }
 

@@ -1,10 +1,11 @@
-package eu.openanalytics.phaedra.calculationservice.service;
+package eu.openanalytics.phaedra.calculationservice.service.protocol;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import eu.openanalytics.phaedra.calculationservice.enumeration.CalculationScope;
 import eu.openanalytics.phaedra.calculationservice.enumeration.Category;
 import eu.openanalytics.phaedra.calculationservice.enumeration.ScriptLanguage;
+import eu.openanalytics.phaedra.calculationservice.model.CalculationContext;
 import eu.openanalytics.phaedra.calculationservice.model.Feature;
 import eu.openanalytics.phaedra.measurementservice.client.MeasurementServiceClient;
 import eu.openanalytics.phaedra.measurementservice.client.exception.MeasUnresolvableException;
@@ -34,16 +35,16 @@ public class FeatureExecutorService {
     }
 
 
-    public Optional<ScriptExecution> executeFeature(ErrorCollector errorCollector, Feature feature, long measId, long currentSequence, long resultId) {
+    public Optional<ScriptExecution> executeFeature(CalculationContext cctx, Feature feature, long currentSequence) {
         try {
-            var inputVariables = collectVariablesForFeature(errorCollector, feature, measId, currentSequence, resultId);
+            var inputVariables = collectVariablesForFeature(cctx, feature, currentSequence);
             if (inputVariables.isEmpty()) {
                 return Optional.empty();
             }
             if (feature.getFormula().getCategory() != Category.CALCULATION
                     || feature.getFormula().getLanguage() != ScriptLanguage.R
                     || feature.getFormula().getScope() != CalculationScope.WELL) {
-                errorCollector.handleError("executing feature => unsupported formula found", feature);
+                cctx.errorCollector().handleError("executing feature => unsupported formula found", feature);
                 return Optional.empty();
             }
 
@@ -60,38 +61,38 @@ public class FeatureExecutorService {
             return Optional.of(execution);
         } catch (JsonProcessingException e) {
             // this error will probably never occur, see: https://stackoverflow.com/q/26716020/1393103 for examples where it does
-            errorCollector.handleError(e, "executing feature => writing input variables and request", feature);
+            cctx.errorCollector().handleError(e, "executing feature => writing input variables and request", feature);
         }
         return Optional.empty();
     }
 
-    private Optional<HashMap<String, float[]>> collectVariablesForFeature(ErrorCollector errorCollector, Feature feature, long measId, long currentSequence, long resultId) {
+    private Optional<HashMap<String, float[]>> collectVariablesForFeature(CalculationContext cctx, Feature feature, long currentSequence) {
         var inputVariables = new HashMap<String, float[]>();
 
         for (var civ : feature.getCalculationInputValues()) {
             try {
                 if (inputVariables.containsKey(civ.getVariableName())) {
                     // the ProtocolService makes sure this cannot happen, but extra check to make sure
-                    errorCollector.handleError("executing sequence => executing feature => collecting variables for feature => duplicate variable name detected", feature, civ);
+                    cctx.errorCollector().handleError("executing sequence => executing feature => collecting variables for feature => duplicate variable name detected", feature, civ);
                     return Optional.empty();
                 }
 
                 if (civ.getSourceFeatureId() != null) {
                     if (currentSequence == 0) {
-                        errorCollector.handleError("executing sequence => executing feature => collecting variables for feature => retrieving measurement => trying to get feature in sequence 0", feature, civ);
+                        cctx.errorCollector().handleError("executing sequence => executing feature => collecting variables for feature => retrieving measurement => trying to get feature in sequence 0", feature, civ);
                         return Optional.empty();
                     }
-                    inputVariables.put(civ.getVariableName(), resultDataServiceClient.getResultData(resultId, civ.getSourceFeatureId()).getValues());
+                    inputVariables.put(civ.getVariableName(), resultDataServiceClient.getResultData(cctx.resultSetId(), civ.getSourceFeatureId()).getValues());
                 } else if (civ.getSourceMeasColName() != null) {
-                    inputVariables.put(civ.getVariableName(), measurementServiceClient.getWellData(measId, civ.getSourceMeasColName()));
+                    inputVariables.put(civ.getVariableName(), measurementServiceClient.getWellData(cctx.measId(), civ.getSourceMeasColName()));
                 } else {
                     // the ProtocolService makes sure this cannot happen, but extra check to make sure
-                    errorCollector.handleError("executing sequence => executing feature => collecting variables for feature => retrieving measurement => civ has no valid source", feature, civ);
+                    cctx.errorCollector().handleError("executing sequence => executing feature => collecting variables for feature => retrieving measurement => civ has no valid source", feature, civ);
                     return Optional.empty();
                 }
 
             } catch (MeasUnresolvableException | ResultDataUnresolvableException e) {
-                errorCollector.handleError(e, "executing sequence => executing feature => collecting variables for feature => retrieving measurement", feature, civ);
+                cctx.errorCollector().handleError(e, "executing sequence => executing feature => collecting variables for feature => retrieving measurement", feature, civ);
                 return Optional.empty();
             }
         }

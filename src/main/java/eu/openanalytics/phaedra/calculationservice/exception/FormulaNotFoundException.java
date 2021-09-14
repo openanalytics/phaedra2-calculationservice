@@ -1,10 +1,10 @@
-package eu.openanalytics.phaedra.calculationservice.service;
+package eu.openanalytics.phaedra.calculationservice.exception;
 
 public class FormulaNotFoundException extends Exception {
 
     private final long requestedId;
 
-    FormulaNotFoundException(long requestedId) {
+    public FormulaNotFoundException(long requestedId) {
         this.requestedId = requestedId;
     }
 

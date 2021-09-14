@@ -30,4 +30,6 @@ public class Feature {
 
     List<CalculationInputValue> calculationInputValues;
 
+    List<FeatureStat> featureStats;
+
 }

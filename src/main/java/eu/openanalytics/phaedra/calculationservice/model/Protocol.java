@@ -26,4 +26,5 @@ public class Protocol {
     String highWelltype;
 
     Map<Integer, Sequence> sequences;
+
 }
