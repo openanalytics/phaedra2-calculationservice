@@ -1,12 +1,12 @@
 package eu.openanalytics.phaedra.calculationservice;
 
-import eu.openanalytics.phaedra.calculationservice.controller.clients.ResultDataServiceClient;
-import eu.openanalytics.phaedra.calculationservice.controller.clients.ResultDataUnresolvableException;
-import eu.openanalytics.phaedra.model.v2.dto.ErrorDTO;
-import eu.openanalytics.phaedra.model.v2.dto.ResultDataDTO;
-import eu.openanalytics.phaedra.model.v2.dto.ResultSetDTO;
-import eu.openanalytics.phaedra.model.v2.enumeration.ResponseStatusCode;
-import org.springframework.stereotype.Component;
+import eu.openanalytics.phaedra.resultdataservice.client.ResultDataServiceClient;
+import eu.openanalytics.phaedra.resultdataservice.client.exception.ResultDataUnresolvableException;
+import eu.openanalytics.phaedra.resultdataservice.dto.ErrorDTO;
+import eu.openanalytics.phaedra.resultdataservice.dto.ResultDataDTO;
+import eu.openanalytics.phaedra.resultdataservice.dto.ResultFeatureStatDTO;
+import eu.openanalytics.phaedra.resultdataservice.dto.ResultSetDTO;
+import eu.openanalytics.phaedra.resultdataservice.enumeration.StatusCode;
 
 import java.time.LocalDateTime;
 import java.util.ArrayList;
@@ -37,7 +37,7 @@ public class InMemoryResultDataServiceClient implements ResultDataServiceClient 
     }
 
     @Override
-    public ResultDataDTO addResultData(long resultSetId, long featureId, float[] values, ResponseStatusCode statusCode, String statusMessage, Integer exitCode) {
+    public ResultDataDTO addResultData(long resultSetId, long featureId, float[] values, StatusCode statusCode, String statusMessage, Integer exitCode) {
         var newId = resultData.get(resultSetId).size();
         var res = new ResultDataDTO((long) newId, resultSetId, featureId, values, statusCode, statusMessage, exitCode, LocalDateTime.now());
         resultData.get(resultSetId).add(res);
@@ -51,6 +51,11 @@ public class InMemoryResultDataServiceClient implements ResultDataServiceClient 
             throw new ResultDataUnresolvableException("ResultData not found");
         }
         return res.get();
+    }
+
+    @Override
+    public ResultFeatureStatDTO createResultFeatureStat(long resultSetId, long featureId, long featureStatId, float value, String statisticName, String welltype, StatusCode statusCode, String statusMessage, Integer exitCode) {
+        throw new IllegalStateException("Not implemented");
     }
 
 }

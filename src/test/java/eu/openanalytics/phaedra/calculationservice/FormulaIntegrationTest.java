@@ -1,11 +1,11 @@
 package eu.openanalytics.phaedra.calculationservice;
 
 import com.fasterxml.jackson.core.type.TypeReference;
+import eu.openanalytics.phaedra.calculationservice.dto.FormulaDTO;
+import eu.openanalytics.phaedra.calculationservice.enumeration.CalculationScope;
+import eu.openanalytics.phaedra.calculationservice.enumeration.Category;
+import eu.openanalytics.phaedra.calculationservice.enumeration.ScriptLanguage;
 import eu.openanalytics.phaedra.calculationservice.service.FormulaService;
-import eu.openanalytics.phaedra.model.v2.dto.FormulaDTO;
-import eu.openanalytics.phaedra.model.v2.enumeration.CalculationScope;
-import eu.openanalytics.phaedra.model.v2.enumeration.Category;
-import eu.openanalytics.phaedra.model.v2.enumeration.ScriptLanguage;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
