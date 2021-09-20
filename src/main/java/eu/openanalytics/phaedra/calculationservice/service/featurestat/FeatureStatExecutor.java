@@ -20,18 +20,16 @@ import eu.openanalytics.phaedra.resultdataservice.enumeration.StatusCode;
 import eu.openanalytics.phaedra.scriptengine.client.ScriptEngineClient;
 import eu.openanalytics.phaedra.scriptengine.client.model.ScriptExecution;
 import eu.openanalytics.phaedra.scriptengine.dto.ScriptExecutionOutputDTO;
-import org.apache.commons.lang3.tuple.Pair;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
 
 import java.util.ArrayList;
 import java.util.HashMap;
-import java.util.List;
+import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.concurrent.ExecutionException;
-import java.util.stream.Collectors;
 
 import static eu.openanalytics.phaedra.calculationservice.CalculationService.JAVASTAT_FAST_LANE;
 
@@ -131,13 +129,13 @@ public class FeatureStatExecutor {
             var featureStat = calculation.getFeatureStat();
             var outputValues = objectMapper.readValue(output.getOutput(), OutputWrapper.class);
 
-            var plateOutput = outputValues.getPlateOutput();
-            if (plateOutput.isPresent()) {
+            var plateValue = outputValues.getPlateValue();
+            if (plateValue.isPresent()) {
                 resultDataServiceClient.createResultFeatureStat(
                         cctx.resultSetId(),
                         feature.getId(),
                         featureStat.getId(),
-                        plateOutput.get(),
+                        plateValue.get(),
                         featureStat.getName(),
                         null,
                         modelMapper.map(output.getStatusCode()),
@@ -145,50 +143,43 @@ public class FeatureStatExecutor {
                         output.getExitCode());
             }
 
-            var welltypesOutput = outputValues.getWelltypeOutputs();
-            if (welltypesOutput.isPresent()) {
-                for (var welltypeOutput : welltypesOutput.get()) {
-                    resultDataServiceClient.createResultFeatureStat(
-                            cctx.resultSetId(),
-                            feature.getId(),
-                            featureStat.getId(),
-                            welltypeOutput.getRight(),
-                            featureStat.getName(),
-                            welltypeOutput.getLeft(),
-                            modelMapper.map(output.getStatusCode()),
-                            output.getStatusMessage(),
-                            output.getExitCode());
-                }
+            var wellTypeValues = outputValues.getWelltypeOutputs();
+            for (var wellTypeValue : wellTypeValues.entrySet()) {
+                resultDataServiceClient.createResultFeatureStat(
+                        cctx.resultSetId(),
+                        feature.getId(),
+                        featureStat.getId(),
+                        wellTypeValue.getValue(),
+                        featureStat.getName(),
+                        wellTypeValue.getKey(),
+                        modelMapper.map(output.getStatusCode()),
+                        output.getStatusMessage(),
+                        output.getExitCode());
             }
         }
 
     }
 
     private static class OutputWrapper {
-        private final static String PLATE_OUTPUT_KEY = "__PLATE_OUTPUT_KEY";
+        private final Float plateValue;
 
-        private final HashMap<String, Float> output;
+        private final Map<String, Float> welltypeValues;
 
         @JsonCreator
-        private OutputWrapper(@JsonProperty(value = "output", required = true) HashMap<String, Float> output) {
-            this.output = output;
+        private OutputWrapper(
+                @JsonProperty(value = "plateValue", required = true) Float plateValue,
+                @JsonProperty(value = "welltypeValues", required = true) Map<String, Float> welltypeValues) {
+            this.plateValue = plateValue;
+            this.welltypeValues = welltypeValues;
         }
 
-        public Optional<Float> getPlateOutput() {
-            return Optional.ofNullable(output.get(PLATE_OUTPUT_KEY));
+        public Optional<Float> getPlateValue() {
+            return Optional.ofNullable(plateValue);
         }
 
 
-        public Optional<List<Pair<String, Float>>> getWelltypeOutputs() {
-            var res = output.entrySet()
-                    .stream()
-                    .filter((k) -> !k.getKey().equals(PLATE_OUTPUT_KEY))
-                    .map(f -> Pair.of(f.getKey(), f.getValue()))
-                    .collect(Collectors.toList());
-            if (res.size() > 0) {
-                return Optional.of(res);
-            }
-            return Optional.empty();
+        public Map<String, Float> getWelltypeOutputs() {
+            return welltypeValues;
         }
 
     }
