@@ -85,7 +85,7 @@ public class FeatureStatExecutor {
             var input = new HashMap<String, Object>() {{
                 put("lowWelltype", cctx.protocol().getLowWelltype());
                 put("highWelltype", cctx.protocol().getHighWelltype());
-                put("wellTypes", welltypesSorted);
+                put("welltypes", welltypesSorted);
                 put("featureValues", resultData.getValues());
             }};
 
