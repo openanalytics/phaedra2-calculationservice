@@ -9,9 +9,7 @@ import eu.openanalytics.phaedra.calculationservice.model.Feature;
 import eu.openanalytics.phaedra.calculationservice.model.Sequence;
 import eu.openanalytics.phaedra.calculationservice.service.ModelMapper;
 import eu.openanalytics.phaedra.calculationservice.service.featurestat.FeatureStatExecutor;
-import eu.openanalytics.phaedra.platservice.client.exception.PlateUnresolvableException;
 import eu.openanalytics.phaedra.resultdataservice.client.ResultDataServiceClient;
-import eu.openanalytics.phaedra.resultdataservice.client.exception.ResultFeatureStatUnresolvableException;
 import eu.openanalytics.phaedra.resultdataservice.dto.ResultDataDTO;
 import eu.openanalytics.phaedra.resultdataservice.enumeration.StatusCode;
 import eu.openanalytics.phaedra.scriptengine.client.model.ScriptExecution;
@@ -84,15 +82,7 @@ public class SequenceExecutorService {
             var resultData = saveOutput(cctx, calculation);
             if (resultData.isPresent() && resultData.get().getStatusCode() == StatusCode.SUCCESS) {
                 // E. trigger calculation of FeatureStats for the features in this Sequence
-                try {
-                    featureStatExecutor.executeFeatureStat(cctx, calculation.getFeature(), resultData.get());
-                } catch (PlateUnresolvableException e) {
-                    e.printStackTrace(); // TODO
-                } catch (JsonProcessingException e) {
-                    e.printStackTrace(); // TODO
-                } catch (ResultFeatureStatUnresolvableException e) {
-                    e.printStackTrace(); // TODO
-                }
+                cctx.computedStatsForFeature().put(calculation.getFeature(), executorService.submit(() -> featureStatExecutor.executeFeatureStat(cctx, calculation.getFeature(), resultData.get())));
             }
         }
 

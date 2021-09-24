@@ -13,6 +13,8 @@ import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
 
 import java.util.ArrayList;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Future;
 import java.util.concurrent.SynchronousQueue;
 import java.util.concurrent.ThreadPoolExecutor;
@@ -55,7 +57,7 @@ public class ProtocolExecutorService {
         var resultSet = resultDataServiceClient.createResultDataSet(protocolId, plateId, measId);
         var errorCollector = new ErrorCollector();
 
-        var calculationContext = new CalculationContext(plate, protocol, resultSet.getId(), measId, errorCollector);
+        var calculationContext = new CalculationContext(plate, protocol, resultSet.getId(), measId, errorCollector, new ConcurrentHashMap<>());
 
         // 3. sequentially execute every sequence
         for (var seq = 0; seq < protocol.getSequences().size(); seq++) {
@@ -74,8 +76,18 @@ public class ProtocolExecutorService {
             // 5. no errors -> continue processing sequences
         }
 
-        // TODO wait for stats to be calculated?
-        // 6. set ResultData status
+        // 6. wait for FeatureStats to be calculated
+        // we can wait for all featurestats here since nothing in the protocol depends on them
+        for (var featureStat : calculationContext.computedStatsForFeature().entrySet()) {
+            try {
+                featureStat.getValue().get();
+            } catch (InterruptedException | ExecutionException e) {
+                // TODO error handling
+                e.printStackTrace();
+            }
+        }
+
+        // 7. set ResultData status
         return resultDataServiceClient.completeResultDataSet(resultSet.getId(), "Completed", new ArrayList<>(), "");
     }
 

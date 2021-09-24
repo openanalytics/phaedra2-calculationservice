@@ -52,14 +52,15 @@ public class FeatureStatExecutor {
         this.modelMapper = modelMapper;
     }
 
-    public void executeFeatureStat(CalculationContext cctx, Feature feature, ResultDataDTO resultData) throws PlateUnresolvableException, JsonProcessingException, ResultFeatureStatUnresolvableException {
+    public Boolean executeFeatureStat(CalculationContext cctx, Feature feature, ResultDataDTO resultData) throws PlateUnresolvableException, JsonProcessingException, ResultFeatureStatUnresolvableException {
         if (!Objects.equals(resultData.getFeatureId(), feature.getId())) {
-            throw new IllegalArgumentException("FeatureId must match the FeatureId of the provided Resultdata");
+            logger.warn("FeatureId must match the FeatureId of the provided Resultdata");
+            return false;
         }
 
         if (resultData.getStatusCode() != StatusCode.SUCCESS) {
             logger.info("Skipping calculating all FeatureStats for Feature because the resultData indicates an error");
-            return;
+            return false;
         }
 
         // 1. get wells of plate
@@ -68,12 +69,12 @@ public class FeatureStatExecutor {
 
         var calculations = new ArrayList<FeatureStatCalculation>();
 
-        // 2. send Calculations to ScriptEngine (we do this synchronuous, because no API/DB queries are needed)
+        // 2. send Calculations to ScriptEngine (we do this synchronous, because no API/DB queries are needed)
         for (var featureStat : feature.getFeatureStats()) {
-            // 2. get formula
+            // A. get formula
             var formula = featureStat.getFormula();
 
-            // 3. validate it
+            // B. validate it
             if (formula.getCategory() != Category.CALCULATION
                     || formula.getLanguage() != ScriptLanguage.JAVASTAT) {
 //                errorCollector.handleError("executing feature => unsupported formula found", feature);
@@ -81,7 +82,7 @@ public class FeatureStatExecutor {
                 continue;
             }
 
-            // 4. prepare input
+            // C. prepare input
             var input = new HashMap<String, Object>() {{
                 put("lowWelltype", cctx.protocol().getLowWelltype());
                 put("highWelltype", cctx.protocol().getHighWelltype());
@@ -91,7 +92,7 @@ public class FeatureStatExecutor {
                 put("isWelltypeStat", featureStat.getWelltypeStat());
             }};
 
-            // 4. send it to the ScriptEngine
+            // D. send it to the ScriptEngine
             var script = formula.getFormula();
 
             var execution = scriptEngineClient.newScriptExecution(
@@ -160,6 +161,7 @@ public class FeatureStatExecutor {
             }
         }
 
+        return true;
     }
 
     private static class OutputWrapper {
