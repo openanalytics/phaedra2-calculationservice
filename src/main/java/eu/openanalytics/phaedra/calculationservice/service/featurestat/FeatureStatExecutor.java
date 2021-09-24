@@ -87,6 +87,8 @@ public class FeatureStatExecutor {
                 put("highWelltype", cctx.protocol().getHighWelltype());
                 put("welltypes", welltypesSorted);
                 put("featureValues", resultData.getValues());
+                put("isPlateStat", featureStat.getPlateStat());
+                put("isWelltypeStat", featureStat.getWelltypeStat());
             }};
 
             // 4. send it to the ScriptEngine
