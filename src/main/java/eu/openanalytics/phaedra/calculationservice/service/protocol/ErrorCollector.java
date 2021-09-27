@@ -2,6 +2,8 @@ package eu.openanalytics.phaedra.calculationservice.service.protocol;
 
 import eu.openanalytics.phaedra.calculationservice.model.CalculationInputValue;
 import eu.openanalytics.phaedra.calculationservice.model.Feature;
+import eu.openanalytics.phaedra.calculationservice.model.FeatureStat;
+import eu.openanalytics.phaedra.calculationservice.model.Formula;
 import eu.openanalytics.phaedra.resultdataservice.dto.ErrorDTO;
 import eu.openanalytics.phaedra.scriptengine.dto.ScriptExecutionOutputDTO;
 import org.slf4j.Logger;
@@ -11,8 +13,8 @@ import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
+import java.util.Optional;
 
-// TODO store in DB
 // TODO keep track of state
 public class ErrorCollector {
 
@@ -36,93 +38,54 @@ public class ErrorCollector {
         return errors.size() > 0;
     }
 
-    public void handleError(Throwable e, String description, Feature feature) {
-        var error = ErrorDTO.builder()
+    public void handleError(String description, Object... ctxObjects) {
+        var errorBuilder = ErrorDTO.builder()
                 .timestamp(LocalDateTime.now())
-                .exceptionClassName(e.getClass().getSimpleName())
-                .exceptionMessage(e.getMessage())
-                .description(description)
-                .sequenceNumber(feature.getSequence())
-                .featureId(feature.getId())
-                .featureName(feature.getName())
-                .formulaId(feature.getFormula().getId())
-                .formulaName(feature.getFormula().getName())
-                .build();
+                .description(description);
+
+        Optional<Throwable> exception = Optional.empty();
+
+        for (Object ctx : ctxObjects) {
+            if (ctx instanceof Feature feature) {
+                errorBuilder
+                        .sequenceNumber(feature.getSequence())
+                        .featureId(feature.getId())
+                        .featureName(feature.getName());
+            } else if (ctx instanceof ScriptExecutionOutputDTO output) {
+                errorBuilder
+                        .exitCode(output.getExitCode())
+                        .statusMessage(output.getStatusMessage());
+            } else if (ctx instanceof CalculationInputValue civ) {
+                errorBuilder
+                        .civType(civ.getType())
+                        .civVariableName(civ.getVariableName())
+                        .civSource(civ.getSource());
+            } else if (ctx instanceof FeatureStat featureStat) {
+                errorBuilder
+                        .featureStatId(featureStat.getId())
+                        .featureStatName(featureStat.getName());
+            } else if (ctx instanceof Formula formula) {
+                errorBuilder
+                        .formulaId(formula.getId())
+                        .formulaName(formula.getName());
+            } else if (ctx instanceof Throwable e) {
+                errorBuilder
+                        .exceptionClassName(e.getClass().getSimpleName())
+                        .exceptionMessage(e.getMessage());
+                if (exception.isPresent()) {
+                    logger.warn("Multiple exception provided to errorCollector:handleError");
+                }
+                exception = Optional.of(e);
+            }
+        }
+
+        var error = errorBuilder.build();
         errors.add(error);
-        logger.info(error.toString(), e);
-    }
-
-
-    public void handleError(Exception e, String description, Feature feature, ScriptExecutionOutputDTO output) {
-        // TODO store output here ?
-        var error = ErrorDTO.builder()
-                .exceptionClassName(e.getClass().getSimpleName())
-                .exceptionMessage(e.getMessage())
-                .timestamp(LocalDateTime.now())
-                .description(description)
-                .featureId(feature.getId())
-                .featureName(feature.getName())
-                .sequenceNumber(feature.getSequence())
-                .formulaId(feature.getFormula().getId())
-                .formulaName(feature.getFormula().getName())
-                .exitCode(output.getExitCode())
-                .statusMessage(output.getStatusMessage())
-                .build();
-        errors.add(error);
-        logger.info(error.toString(), e);
-
-    }
-
-    public void handleError(Exception e, String description, Feature feature, CalculationInputValue civ) {
-        var error = ErrorDTO.builder()
-                .timestamp(LocalDateTime.now())
-                .exceptionClassName(e.getClass().getSimpleName())
-                .exceptionMessage(e.getMessage())
-                .description(description)
-                .sequenceNumber(feature.getSequence())
-                .featureId(feature.getId())
-                .featureName(feature.getName())
-                .formulaId(feature.getFormula().getId())
-                .formulaName(feature.getFormula().getName())
-                .civType(civ.getType())
-                .civVariableName(civ.getVariableName())
-                .civSource(civ.getSource())
-                .build();
-        errors.add(error);
-        logger.info(error.toString(), e);
-    }
-
-    public void handleError(String description, Feature feature, CalculationInputValue civ) {
-        var error = ErrorDTO.builder()
-                .timestamp(LocalDateTime.now())
-                .description(description)
-                .featureId(feature.getId())
-                .featureName(feature.getName())
-                .sequenceNumber(feature.getSequence())
-                .formulaId(feature.getFormula().getId())
-                .formulaName(feature.getFormula().getName())
-                .civType(civ.getType())
-                .civVariableName(civ.getVariableName())
-                .civSource(civ.getSource())
-                .build();
-        errors.add(error);
-        logger.info(error.toString());
-    }
-
-    public void handleError(Exception e, String description, Feature feature) {
-        var error = ErrorDTO.builder()
-                .exceptionClassName(e.getClass().getSimpleName())
-                .exceptionMessage(e.getMessage())
-                .timestamp(LocalDateTime.now())
-                .description(description)
-                .featureId(feature.getId())
-                .featureName(feature.getName())
-                .sequenceNumber(feature.getSequence())
-                .formulaId(feature.getFormula().getId())
-                .formulaName(feature.getFormula().getName())
-                .build();
-        errors.add(error);
-        logger.info(error.toString(), e);
+        if (exception.isPresent()) {
+            logger.info(error.toString(), exception);
+        } else {
+            logger.info(error.toString());
+        }
     }
 
     public void handleError(String description, int sequenceNumber) {
@@ -134,34 +97,4 @@ public class ErrorCollector {
         errors.add(error);
     }
 
-    public void handleError(String description, Feature feature) {
-        var error = ErrorDTO.builder()
-                .timestamp(LocalDateTime.now())
-                .description(description)
-                .featureId(feature.getId())
-                .featureName(feature.getName())
-                .sequenceNumber(feature.getSequence())
-                .formulaId(feature.getFormula().getId())
-                .formulaName(feature.getFormula().getName())
-                .build();
-        errors.add(error);
-        logger.info(error.toString());
-    }
-
-
-    public void handleScriptError(ScriptExecutionOutputDTO output, Feature feature) {
-        var error = ErrorDTO.builder()
-                .timestamp(LocalDateTime.now())
-                .description("executing sequence => processing output => output indicates script error")
-                .sequenceNumber(feature.getSequence())
-                .featureId(feature.getId())
-                .featureName(feature.getName())
-                .formulaId(feature.getFormula().getId())
-                .formulaName(feature.getFormula().getName())
-                .exitCode(output.getExitCode())
-                .statusMessage(output.getStatusMessage())
-                .build();
-        errors.add(error);
-        logger.info(error.toString());
-    }
 }

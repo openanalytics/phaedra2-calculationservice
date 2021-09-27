@@ -56,11 +56,11 @@ public class SequenceExecutorService {
             try {
                 calculation.waitForExecution();
             } catch (InterruptedException e) {
-                cctx.errorCollector().handleError(e, "executing sequence => waiting for feature to be sent => interrupted", calculation.getFeature());
+                cctx.errorCollector().handleError("executing sequence => waiting for feature to be sent => interrupted", e, calculation.getFeature(), calculation.getFeature().getFormula());
             } catch (ExecutionException e) {
-                cctx.errorCollector().handleError(e.getCause(), "executing sequence => waiting for feature to be sent => exception during execution", calculation.getFeature());
+                cctx.errorCollector().handleError("executing sequence => waiting for feature to be sent => exception during execution", e.getCause(), calculation.getFeature(), calculation.getFeature().getFormula());
             } catch (Throwable e) {
-                cctx.errorCollector().handleError(e, "executing sequence => waiting for feature to be sent => exception during execution", calculation.getFeature());
+                cctx.errorCollector().handleError("executing sequence => waiting for feature to be sent => exception during execution", e, calculation.getFeature(), calculation.getFeature().getFormula());
             }
         }
 
@@ -69,11 +69,11 @@ public class SequenceExecutorService {
             try {
                 calculation.waitForOutput();
             } catch (InterruptedException e) {
-                cctx.errorCollector().handleError(e, "executing sequence => waiting for output to be received => interrupted", calculation.getFeature());
+                cctx.errorCollector().handleError("executing sequence => waiting for output to be received => interrupted", e, calculation.getFeature(), calculation.getFeature().getFormula());
             } catch (ExecutionException e) {
-                cctx.errorCollector().handleError(e.getCause(), "executing sequence => waiting for output to be received => exception during execution", calculation.getFeature());
+                cctx.errorCollector().handleError("executing sequence => waiting for output to be received => exception during execution", e.getCause(), calculation.getFeature(), calculation.getFeature().getFormula());
             } catch (Throwable e) {
-                cctx.errorCollector().handleError(e, "executing sequence => waiting for output to be received => exception during execution", calculation.getFeature());
+                cctx.errorCollector().handleError("executing sequence => waiting for output to be received => exception during execution", e, calculation.getFeature(), calculation.getFeature().getFormula());
             }
         }
 
@@ -109,7 +109,7 @@ public class SequenceExecutorService {
 
                     return Optional.of(resultData);
                 } catch (JsonProcessingException e) {
-                    cctx.errorCollector().handleError(e, "executing sequence => processing output => parsing output", feature, output);
+                    cctx.errorCollector().handleError( "executing sequence => processing output => parsing output", e, feature, output, feature.getFormula());
                 }
             } else if (output.getStatusCode() == ResponseStatusCode.SCRIPT_ERROR) {
                 var resultData = resultDataServiceClient.addResultData(
@@ -120,13 +120,13 @@ public class SequenceExecutorService {
                         output.getStatusMessage(),
                         output.getExitCode());
 
-                cctx.errorCollector().handleScriptError(output, feature);
+                cctx.errorCollector().handleError("executing sequence => processing output => output indicates script error", output, feature, feature.getFormula());
                 return Optional.of(resultData);
             } else if (output.getStatusCode() == ResponseStatusCode.WORKER_INTERNAL_ERROR) {
                 // TODO re-schedule script?
             }
         } catch (Exception e) {
-            cctx.errorCollector().handleError(e, "executing sequence => processing output => saving resultdata", feature);
+            cctx.errorCollector().handleError("executing sequence => processing output => saving resultdata", e, feature, feature.getFormula());
         }
         return Optional.empty();
     }
