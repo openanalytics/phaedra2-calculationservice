@@ -950,7 +950,7 @@ public class ProtocolExecutorTest {
                 // this will interrupt the protocolExecutorService while waiting for output on the featureStatFuture
                 protocolExecutorService.getExecutorService().shutdownNow();
             }
-        }, 2000);
+        }, 5000);
 
         completeInputSuccessfully(input, "{\"output\": [2.0,4.0,6.0,10.0,16.0]}");
 
