@@ -940,17 +940,11 @@ public class ProtocolExecutorTest {
 
         // mock the featureStatExecutorService
         doAnswer((it) -> {
-            Thread.sleep(10000);
+            Thread.sleep(1000);
+            protocolExecutorService.getExecutorService().shutdownNow();
+            Thread.sleep(1000);
             return true;
         }).when(featureStatExecutorService).executeFeatureStat(any(), any(), any());
-
-        new Timer().schedule(new TimerTask() {
-            @Override
-            public void run() {
-                // this will interrupt the protocolExecutorService while waiting for output on the featureStatFuture
-                protocolExecutorService.getExecutorService().shutdownNow();
-            }
-        }, 8000);
 
         completeInputSuccessfully(input, "{\"output\": [2.0,4.0,6.0,10.0,16.0]}");
 
