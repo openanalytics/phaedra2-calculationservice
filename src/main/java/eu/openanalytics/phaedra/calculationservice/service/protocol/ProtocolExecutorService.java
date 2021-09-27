@@ -70,24 +70,35 @@ public class ProtocolExecutorService {
 
             // 4. check for errors
             if (!success) {
-                return saveError(resultSet, errorCollector);
+                // if error -> stop executing sequences
+                break;
             }
 
             // 5. no errors -> continue processing sequences
         }
 
         // 6. wait for FeatureStats to be calculated
-        // we can wait for all featurestats here since nothing in the protocol depends on them
+        // we can wait for all featureStats (of all sequences) here since nothing in the protocol depends on them
         for (var featureStat : calculationContext.computedStatsForFeature().entrySet()) {
             try {
                 featureStat.getValue().get();
-            } catch (InterruptedException | ExecutionException e) {
-                // TODO error handling
-                e.printStackTrace();
+            } catch (InterruptedException e) {
+                // ideally these exceptions should be caught and handled in the FeatureStatExecutor service, however
+                // we still need to catch them here, because of the API design of Future.
+                errorCollector.handleError("executing protocol => waiting for calculations of featureStats of a feature to complete => interrupted", e, featureStat.getKey());
+            } catch (ExecutionException e) {
+                errorCollector.handleError("executing protocol => waiting for calculations of featureStats of a feature to complete => exception during execution", e.getCause(), featureStat.getKey());
+            } catch (Throwable e) {
+                errorCollector.handleError("executing protocol => waiting for calculations of featureStats of a feature to complete => exception during execution", e, featureStat.getKey());
             }
         }
 
-        // 7. set ResultData status
+        // 7. check for errors
+        if (errorCollector.hasError()) {
+            return saveError(resultSet, errorCollector);
+        }
+
+        // 8. set ResultData status
         return resultDataServiceClient.completeResultDataSet(resultSet.getId(), "Completed", new ArrayList<>(), "");
     }
 

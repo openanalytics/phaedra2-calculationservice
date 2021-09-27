@@ -76,6 +76,8 @@ public class ErrorCollector {
                     logger.warn("Multiple exception provided to errorCollector:handleError");
                 }
                 exception = Optional.of(e);
+            } else {
+                logger.warn("Unrecognized contextObject passed to errorCollector:handleError");
             }
         }
 

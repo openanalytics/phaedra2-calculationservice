@@ -89,6 +89,7 @@ public class SequenceExecutorService {
         return !cctx.errorCollector().hasError();
     }
 
+    // TODO maybe move this to FeatureExecutorService?
     public Optional<ResultDataDTO> saveOutput(CalculationContext cctx, FeatureCalculation calculation) {
         if (calculation.getOutput().isEmpty()) {
             return Optional.empty();
