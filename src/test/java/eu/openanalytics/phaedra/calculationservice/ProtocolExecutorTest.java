@@ -942,7 +942,6 @@ public class ProtocolExecutorTest {
         doAnswer((it) -> {
             Thread.sleep(1000);
             protocolExecutorService.getExecutorService().shutdownNow();
-            Thread.sleep(1000);
             return true;
         }).when(featureStatExecutorService).executeFeatureStat(any(), any(), any());
 
