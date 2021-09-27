@@ -1,4 +1,4 @@
-package eu.openanalytics.phaedra.calculationservice;
+package eu.openanalytics.phaedra.calculationservice.support;
 
 import eu.openanalytics.phaedra.resultdataservice.client.ResultDataServiceClient;
 import eu.openanalytics.phaedra.resultdataservice.client.exception.ResultDataUnresolvableException;

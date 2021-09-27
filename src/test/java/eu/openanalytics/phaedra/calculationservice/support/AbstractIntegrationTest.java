@@ -1,4 +1,4 @@
-package eu.openanalytics.phaedra.calculationservice;
+package eu.openanalytics.phaedra.calculationservice.support;
 
 import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.core.JsonProcessingException;
@@ -7,6 +7,7 @@ import com.fasterxml.jackson.databind.MapperFeature;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.SerializationFeature;
 import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
+import eu.openanalytics.phaedra.calculationservice.CalculationService;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -117,14 +118,14 @@ abstract public class AbstractIntegrationTest {
 
     protected RequestBuilder post(String url, Object input) throws JsonProcessingException {
         return MockMvcRequestBuilders.post(url)
-            .contentType("application/json")
-            .content(om.writeValueAsString(input));
+                .contentType("application/json")
+                .content(om.writeValueAsString(input));
     }
 
     protected RequestBuilder put(String url, Object input) throws JsonProcessingException {
         return MockMvcRequestBuilders.put(url)
-            .contentType("application/json")
-            .content(om.writeValueAsString(input));
+                .contentType("application/json")
+                .content(om.writeValueAsString(input));
     }
 
 }
