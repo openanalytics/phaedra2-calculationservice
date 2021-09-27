@@ -744,7 +744,7 @@ public class ProtocolExecutorTest {
     }
 
     private void stubExecuteFeatureStat() throws JsonProcessingException, PlateUnresolvableException, ResultFeatureStatUnresolvableException {
-        doNothing().when(featureStatExecutorService).executeFeatureStat(any(), any(), any());
+        doReturn(true).when(featureStatExecutorService).executeFeatureStat(any(), any(), any());
     }
 
     private void stubExecuteWithExceptionAndDelay(ScriptExecution input, Throwable ex, long delay) throws JsonProcessingException {
