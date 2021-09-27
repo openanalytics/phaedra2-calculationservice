@@ -8,6 +8,7 @@ import eu.openanalytics.phaedra.calculationservice.enumeration.FeatureType;
 import eu.openanalytics.phaedra.calculationservice.enumeration.ScriptLanguage;
 import eu.openanalytics.phaedra.calculationservice.model.CalculationInputValue;
 import eu.openanalytics.phaedra.calculationservice.model.Feature;
+import eu.openanalytics.phaedra.calculationservice.model.FeatureStat;
 import eu.openanalytics.phaedra.calculationservice.model.Formula;
 import eu.openanalytics.phaedra.calculationservice.model.Protocol;
 import eu.openanalytics.phaedra.calculationservice.model.Sequence;
@@ -733,6 +734,320 @@ public class ProtocolExecutorTest {
         verifyNoMoreInteractions(protocolInfoCollector, measurementServiceClient, scriptEngineClient);
     }
 
+    @Test
+    public void threadInterruptedWhileWaitingSubmittingScriptTest() throws Exception {
+        var formula = "output <- input$abc * 2";
+        var input = new ScriptExecution(new TargetRuntime("R", "fast-lane", "v1"), formula,
+                "{\"abc\":[1.0,2.0,3.0,5.0,8.0]}",
+                "CalculationService"
+        );
+
+        stubGetProtocol(new Protocol(1L, "TestProtocol", null, true, true, "lc", "hc",
+                new HashMap<>() {{
+                    put(0, new Sequence(0, List.of(new Feature(1L, "Feature1", null, null, "AFormat", FeatureType.CALCULATION, 0,
+                            new Formula(1L, "abc_duplicator", null, Category.CALCULATION, formula, ScriptLanguage.R, CalculationScope.WELL, "me", LocalDateTime.now(), "me", LocalDateTime.now()),
+                            List.of(new CalculationInputValue(1L, 1L, "abc", null, "abc")), Collections.emptyList()))));
+                }}));
+
+        stubGetWellData(4L, "abc", new float[]{1.0f, 2.0f, 3.0f, 5.0f, 8.0f});
+        stubNewScriptExecution(R_FAST_LANE, input);
+
+        doAnswer((it) -> {
+            // cancel pool when waiting for input to be sent
+            protocolExecutorService.getExecutorService().shutdownNow();
+            return null;
+        }).when(scriptEngineClient).execute(input);
+
+        var resultSet = protocolExecutorService.execute(1, 1, 4).get();
+        Assertions.assertEquals("Error", resultSet.getOutcome());
+        Assertions.assertEquals(0L, resultSet.getId());
+        Assertions.assertEquals(1L, resultSet.getProtocolId());
+        Assertions.assertEquals(4L, resultSet.getMeasId());
+        Assertions.assertEquals(1L, resultSet.getPlateId());
+        Assertions.assertEquals(1, resultSet.getErrors().size());
+        Assertions.assertNotNull(resultSet.getErrorsText());
+
+        var error = resultSet.getErrors().get(0);
+        Assertions.assertEquals("executing sequence => waiting for feature to be sent => interrupted", error.getDescription());
+        Assertions.assertEquals("InterruptedException", error.getExceptionClassName());
+        Assertions.assertNull(error.getExceptionMessage());
+        Assertions.assertEquals(1, error.getFeatureId());
+        Assertions.assertEquals("Feature1", error.getFeatureName());
+        Assertions.assertEquals(0, error.getSequenceNumber());
+        Assertions.assertEquals(1, error.getFormulaId());
+        Assertions.assertEquals("abc_duplicator", error.getFormulaName());
+        Assertions.assertNull(error.getCivType());
+        Assertions.assertNull(error.getCivSource());
+        Assertions.assertNull(error.getCivVariableName());
+        Assertions.assertNull(error.getExitCode());
+
+        Assertions.assertThrows(ResultDataUnresolvableException.class, () -> resultDataServiceClient.getResultData(0, 1));
+
+        verifyNoMoreInteractions(protocolInfoCollector, measurementServiceClient, scriptEngineClient);
+    }
+
+    @Test
+    public void threadInterruptedWhileWaitingForOutputTest() throws Exception {
+        var formula = "output <- input$abc * 2";
+        var input = new ScriptExecution(new TargetRuntime("R", "fast-lane", "v1"), formula,
+                "{\"abc\":[1.0,2.0,3.0,5.0,8.0]}",
+                "CalculationService"
+        );
+
+        stubGetProtocol(new Protocol(1L, "TestProtocol", null, true, true, "lc", "hc",
+                new HashMap<>() {{
+                    put(0, new Sequence(0, List.of(new Feature(1L, "Feature1", null, null, "AFormat", FeatureType.CALCULATION, 0,
+                            new Formula(1L, "abc_duplicator", null, Category.CALCULATION, formula, ScriptLanguage.R, CalculationScope.WELL, "me", LocalDateTime.now(), "me", LocalDateTime.now()),
+                            List.of(new CalculationInputValue(1L, 1L, "abc", null, "abc")), Collections.emptyList()))));
+                }}));
+
+        stubGetWellData(4L, "abc", new float[]{1.0f, 2.0f, 3.0f, 5.0f, 8.0f});
+        stubNewScriptExecution(R_FAST_LANE, input);
+        stubExecute(input);
+
+        new Timer().schedule(new TimerTask() {
+            @Override
+            public void run() {
+                // cancel pool when waiting for output
+                protocolExecutorService.getExecutorService().shutdownNow();
+            }
+        }, 2000);
+
+        var resultSet = protocolExecutorService.execute(1, 1, 4).get();
+        Assertions.assertEquals("Error", resultSet.getOutcome());
+        Assertions.assertEquals(0L, resultSet.getId());
+        Assertions.assertEquals(1L, resultSet.getProtocolId());
+        Assertions.assertEquals(4L, resultSet.getMeasId());
+        Assertions.assertEquals(1L, resultSet.getPlateId());
+        Assertions.assertEquals(1, resultSet.getErrors().size());
+        Assertions.assertNotNull(resultSet.getErrorsText());
+
+        var error = resultSet.getErrors().get(0);
+        Assertions.assertEquals("executing sequence => waiting for output to be received => interrupted", error.getDescription());
+        Assertions.assertEquals("InterruptedException", error.getExceptionClassName());
+        Assertions.assertNull(error.getExceptionMessage());
+        Assertions.assertEquals(1, error.getFeatureId());
+        Assertions.assertEquals("Feature1", error.getFeatureName());
+        Assertions.assertEquals(0, error.getSequenceNumber());
+        Assertions.assertEquals(1, error.getFormulaId());
+        Assertions.assertEquals("abc_duplicator", error.getFormulaName());
+        Assertions.assertNull(error.getCivType());
+        Assertions.assertNull(error.getCivSource());
+        Assertions.assertNull(error.getCivVariableName());
+        Assertions.assertNull(error.getExitCode());
+
+        Assertions.assertThrows(ResultDataUnresolvableException.class, () -> resultDataServiceClient.getResultData(0, 1));
+
+        verifyNoMoreInteractions(protocolInfoCollector, measurementServiceClient, scriptEngineClient);
+    }
+
+    @Test
+    public void futureCancelledWhileWaitingForOutputTest() throws Exception {
+        var formula = "output <- input$abc * 2";
+        var input = new ScriptExecution(new TargetRuntime("R", "fast-lane", "v1"), formula,
+                "{\"abc\":[1.0,2.0,3.0,5.0,8.0]}",
+                "CalculationService"
+        );
+
+        stubGetProtocol(new Protocol(1L, "TestProtocol", null, true, true, "lc", "hc",
+                new HashMap<>() {{
+                    put(0, new Sequence(0, List.of(new Feature(1L, "Feature1", null, null, "AFormat", FeatureType.CALCULATION, 0,
+                            new Formula(1L, "abc_duplicator", null, Category.CALCULATION, formula, ScriptLanguage.R, CalculationScope.WELL, "me", LocalDateTime.now(), "me", LocalDateTime.now()),
+                            List.of(new CalculationInputValue(1L, 1L, "abc", null, "abc")), Collections.emptyList()))));
+                }}));
+
+        stubGetWellData(4L, "abc", new float[]{1.0f, 2.0f, 3.0f, 5.0f, 8.0f});
+        stubNewScriptExecution(R_FAST_LANE, input);
+        stubExecute(input);
+
+        new Timer().schedule(new TimerTask() {
+            @Override
+            public void run() {
+                // cancel output future when waiting for output
+                input.getOutput().cancel(true);
+            }
+        }, 2000);
+
+        var resultSet = protocolExecutorService.execute(1, 1, 4).get();
+        Assertions.assertEquals("Error", resultSet.getOutcome());
+        Assertions.assertEquals(0L, resultSet.getId());
+        Assertions.assertEquals(1L, resultSet.getProtocolId());
+        Assertions.assertEquals(4L, resultSet.getMeasId());
+        Assertions.assertEquals(1L, resultSet.getPlateId());
+        Assertions.assertEquals(1, resultSet.getErrors().size());
+        Assertions.assertNotNull(resultSet.getErrorsText());
+
+        var error = resultSet.getErrors().get(0);
+        Assertions.assertEquals("executing sequence => waiting for output to be received => exception during execution", error.getDescription());
+        Assertions.assertEquals("CancellationException", error.getExceptionClassName());
+        Assertions.assertNull(error.getExceptionMessage());
+        Assertions.assertEquals(1, error.getFeatureId());
+        Assertions.assertEquals("Feature1", error.getFeatureName());
+        Assertions.assertEquals(0, error.getSequenceNumber());
+        Assertions.assertEquals(1, error.getFormulaId());
+        Assertions.assertEquals("abc_duplicator", error.getFormulaName());
+        Assertions.assertNull(error.getCivType());
+        Assertions.assertNull(error.getCivSource());
+        Assertions.assertNull(error.getCivVariableName());
+        Assertions.assertNull(error.getExitCode());
+
+        Assertions.assertThrows(ResultDataUnresolvableException.class, () -> resultDataServiceClient.getResultData(0, 1));
+
+        verifyNoMoreInteractions(protocolInfoCollector, measurementServiceClient, scriptEngineClient);
+    }
+
+    @Test
+    public void singleFeatureTestWithFeatureStatInterrupted() throws Exception {
+        var formula = "output <- input$abc * 2";
+        var input = new ScriptExecution(new TargetRuntime("R", "fast-lane", "v1"), formula,
+                "{\"abc\":[1.0,2.0,3.0,5.0,8.0]}",
+                "CalculationService"
+        );
+
+        var featureStatFormula = Formula.builder()
+                .formula("JavaStat::count")
+                .category(Category.CALCULATION)
+                .name("count")
+                .id(1L)
+                .language(ScriptLanguage.JAVASTAT)
+                .scope(CalculationScope.PLATE)
+                .build();
+
+        var featureStat = FeatureStat.builder()
+                .id(featureStatFormula.getId())
+                .formula(featureStatFormula)
+                .featureId(1L)
+                .plateStat(true)
+                .welltypeStat(true)
+                .name(featureStatFormula.getName()).build();
+
+        stubGetProtocol(new Protocol(1L, "TestProtocol", null, true, true, "lc", "hc",
+                new HashMap<>() {
+                    {
+                        put(0, new Sequence(0, List.of(new Feature(1L, "Feature1", null, null, "AFormat", FeatureType.CALCULATION, 0,
+                                new Formula(1L, "abc_duplicator", null, Category.CALCULATION, formula, ScriptLanguage.R, CalculationScope.WELL, "me", LocalDateTime.now(), "me", LocalDateTime.now()),
+                                List.of(new CalculationInputValue(1L, 1L, "abc", null, "abc")), List.of(featureStat)))));
+                    }
+                }));
+
+        stubGetWellData(4L, "abc", new float[]{
+                1.0f, 2.0f, 3.0f, 5.0f, 8.0f
+        });
+
+        stubNewScriptExecution(R_FAST_LANE, input);
+
+        stubExecute(input);
+
+        // mock the featureStatExecutorService
+        doAnswer((it) -> {
+            Thread.sleep(10000);
+            return true;
+        }).when(featureStatExecutorService).executeFeatureStat(any(), any(), any());
+
+        new Timer().schedule(new TimerTask() {
+            @Override
+            public void run() {
+                // this will interrupt the protocolExecutorService while waiting for output on the featureStatFuture
+                protocolExecutorService.getExecutorService().shutdownNow();
+            }
+        }, 2000);
+
+        completeInputSuccessfully(input, "{\"output\": [2.0,4.0,6.0,10.0,16.0]}");
+
+        var resultSet = protocolExecutorService.execute(1, 1, 4).get();
+        Assertions.assertEquals("Error", resultSet.getOutcome());
+        Assertions.assertEquals(0L, resultSet.getId());
+        Assertions.assertEquals(1L, resultSet.getProtocolId());
+        Assertions.assertEquals(4L, resultSet.getMeasId());
+        Assertions.assertEquals(1L, resultSet.getPlateId());
+        Assertions.assertEquals(1, resultSet.getErrors().size());
+        Assertions.assertNotNull(resultSet.getErrorsText());
+
+        var result1 = resultDataServiceClient.getResultData(0, 1);
+        Assertions.assertArrayEquals(new float[]{2.0f, 4.0f, 6.0f, 10.0f, 16.0f}, result1.getValues());
+        Assertions.assertEquals(StatusCode.SUCCESS, result1.getStatusCode());
+
+        var error = resultSet.getErrors().get(0);
+        Assertions.assertEquals("executing protocol => waiting for calculations of featureStats of a feature to complete => interrupted", error.getDescription());
+        Assertions.assertEquals("InterruptedException", error.getExceptionClassName());
+        Assertions.assertNull(error.getExceptionMessage());
+        Assertions.assertEquals(1, error.getFeatureId());
+
+        verifyNoMoreInteractions(protocolInfoCollector, measurementServiceClient, scriptEngineClient);
+    }
+
+
+    @Test
+    public void singleFeatureTestWithFeatureStatCancelled() throws Exception {
+        var formula = "output <- input$abc * 2";
+        var input = new ScriptExecution(new TargetRuntime("R", "fast-lane", "v1"), formula,
+                "{\"abc\":[1.0,2.0,3.0,5.0,8.0]}",
+                "CalculationService"
+        );
+
+        var featureStatFormula = Formula.builder()
+                .formula("JavaStat::count")
+                .category(Category.CALCULATION)
+                .name("count")
+                .id(1L)
+                .language(ScriptLanguage.JAVASTAT)
+                .scope(CalculationScope.PLATE)
+                .build();
+
+        var featureStat = FeatureStat.builder()
+                .id(featureStatFormula.getId())
+                .formula(featureStatFormula)
+                .featureId(1L)
+                .plateStat(true)
+                .welltypeStat(true)
+                .name(featureStatFormula.getName()).build();
+
+        stubGetProtocol(new Protocol(1L, "TestProtocol", null, true, true, "lc", "hc",
+                new HashMap<>() {
+                    {
+                        put(0, new Sequence(0, List.of(new Feature(1L, "Feature1", null, null, "AFormat", FeatureType.CALCULATION, 0,
+                                new Formula(1L, "abc_duplicator", null, Category.CALCULATION, formula, ScriptLanguage.R, CalculationScope.WELL, "me", LocalDateTime.now(), "me", LocalDateTime.now()),
+                                List.of(new CalculationInputValue(1L, 1L, "abc", null, "abc")), List.of(featureStat)))));
+                    }
+                }));
+
+        stubGetWellData(4L, "abc", new float[]{
+                1.0f, 2.0f, 3.0f, 5.0f, 8.0f
+        });
+
+        stubNewScriptExecution(R_FAST_LANE, input);
+
+        stubExecute(input);
+
+        // mock the featureStatExecutorService
+        doAnswer((it) -> {
+            throw new RuntimeException("Some error during executing featureStat");
+        }).when(featureStatExecutorService).executeFeatureStat(any(), any(), any());
+
+        completeInputSuccessfully(input, "{\"output\": [2.0,4.0,6.0,10.0,16.0]}");
+
+        var resultSet = protocolExecutorService.execute(1, 1, 4).get();
+        Assertions.assertEquals("Error", resultSet.getOutcome());
+        Assertions.assertEquals(0L, resultSet.getId());
+        Assertions.assertEquals(1L, resultSet.getProtocolId());
+        Assertions.assertEquals(4L, resultSet.getMeasId());
+        Assertions.assertEquals(1L, resultSet.getPlateId());
+        Assertions.assertEquals(1, resultSet.getErrors().size());
+        Assertions.assertNotNull(resultSet.getErrorsText());
+
+        var result1 = resultDataServiceClient.getResultData(0, 1);
+        Assertions.assertArrayEquals(new float[]{2.0f, 4.0f, 6.0f, 10.0f, 16.0f}, result1.getValues());
+        Assertions.assertEquals(StatusCode.SUCCESS, result1.getStatusCode());
+
+        var error = resultSet.getErrors().get(0);
+        Assertions.assertEquals("executing protocol => waiting for calculations of featureStats of a feature to complete => exception during execution", error.getDescription());
+        Assertions.assertEquals("RuntimeException", error.getExceptionClassName());
+        Assertions.assertEquals("Some error during executing featureStat", error.getExceptionMessage());
+        Assertions.assertEquals(1, error.getFeatureId());
+
+        verifyNoMoreInteractions(protocolInfoCollector, measurementServiceClient, scriptEngineClient);
+    }
+
     private void stubGetProtocol(Protocol protocol) throws ProtocolUnresolvableException {
         doReturn(protocol)
                 .when(protocolInfoCollector)
@@ -747,7 +1062,8 @@ public class ProtocolExecutorTest {
         doReturn(true).when(featureStatExecutorService).executeFeatureStat(any(), any(), any());
     }
 
-    private void stubExecuteWithExceptionAndDelay(ScriptExecution input, Throwable ex, long delay) throws JsonProcessingException {
+    private void stubExecuteWithExceptionAndDelay(ScriptExecution input, Throwable ex, long delay) throws
+            JsonProcessingException {
         doAnswer(invocation -> {
             Thread.sleep(delay);
             throw ex;

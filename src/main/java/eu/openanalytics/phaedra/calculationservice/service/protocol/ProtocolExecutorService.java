@@ -31,6 +31,10 @@ public class ProtocolExecutorService {
 
     private final Logger logger = LoggerFactory.getLogger(getClass());
 
+    public ThreadPoolExecutor getExecutorService() {
+        return executorService;
+    }
+
     public ProtocolExecutorService(ResultDataServiceClient resultDataServiceClient, SequenceExecutorService sequenceExecutorService, ProtocolInfoCollector protocolInfoCollector, PlateServiceClient plateServiceClient) {
         this.resultDataServiceClient = resultDataServiceClient;
         this.sequenceExecutorService = sequenceExecutorService;
