@@ -53,14 +53,16 @@ public class FeatureStatExecutor {
 
     public Boolean executeFeatureStat(CalculationContext cctx, Feature feature, ResultDataDTO resultData) {
         if (!Objects.equals(resultData.getFeatureId(), feature.getId())) {
-            logger.warn("FeatureId must match the FeatureId of the provided Resultdata");
+            cctx.errorCollector().handleError("Skipping calculating FeatureStats because FeatureId does not match the FeatureId of the ResultData", feature);
             return false;
         }
 
         if (resultData.getStatusCode() != StatusCode.SUCCESS) {
-            logger.info("Skipping calculating all FeatureStats for Feature because the resultData indicates an error");
+            cctx.errorCollector().handleError("Skipping calculating FeatureStats because the ResultData indicates an error", feature);
             return false;
         }
+
+        var success = true;
 
         try {
             // 1. get wells of plate
@@ -77,8 +79,9 @@ public class FeatureStatExecutor {
                 // B. validate it
                 if (formula.getCategory() != Category.CALCULATION
                         || formula.getLanguage() != ScriptLanguage.JAVASTAT) {
-//                errorCollector.handleError("executing feature => unsupported formula found", feature);
-                    logger.info("Skipping FeatureStat because the formula is not valid.");
+                    cctx.errorCollector().handleError("Skipping calculating FeatureStat because the formula is not invalid (category must be CALCULATION, language must be JAVASTAT)",
+                            feature, featureStat, formula);
+                    success = false;
                     continue;
                 }
 
@@ -116,10 +119,13 @@ public class FeatureStatExecutor {
                     calculation.waitForOutput();
                 } catch (InterruptedException e) {
                     cctx.errorCollector().handleError("executing featureStat => waiting for output to be received => interrupted", e, feature, calculation.getFeatureStat(), calculation.getFeatureStat().getFormula());
+                    success = false;
                 } catch (ExecutionException e) {
                     cctx.errorCollector().handleError("executing featureStat => waiting for output to be received => exception during execution", e.getCause(), feature, calculation.getFeatureStat(), calculation.getFeatureStat().getFormula());
+                    success = false;
                 } catch (Throwable e) {
                     cctx.errorCollector().handleError("executing featureStat => waiting for output to be received => exception during execution", e, feature, calculation.getFeatureStat(), calculation.getFeatureStat().getFormula());
+                    success = false;
                 }
             }
 
@@ -162,22 +168,30 @@ public class FeatureStatExecutor {
                                         output.getExitCode());
                             }
                         } catch (JsonProcessingException e) {
-                            cctx.errorCollector().handleError("executing featureStat => processing output => parsing output", feature, featureStat, featureStat.getFormula(), output);
+                            cctx.errorCollector().handleError("executing featureStat => processing output => parsing output", e, feature, featureStat, featureStat.getFormula(), output);
+                            success = false;
                         } catch (Exception e) {
-                            cctx.errorCollector().handleError("executing featureStat  => processing output => saving resultdata", feature, featureStat, featureStat.getFormula());
+                            cctx.errorCollector().handleError("executing featureStat  => processing output => saving resultdata", e, feature, featureStat, featureStat.getFormula());
+                            success = false;
                         }
                     }
-                    case BAD_REQUEST -> cctx.errorCollector().handleError("executing featureStat => processing output => output indicates bad request", feature, featureStat, featureStat.getFormula());
-                    case SCRIPT_ERROR -> cctx.errorCollector().handleError("executing featureStat => processing output => output indicates script error", feature, featureStat, featureStat.getFormula());
+                    case BAD_REQUEST -> {
+                        cctx.errorCollector().handleError("executing featureStat => processing output => output indicates bad request", feature, featureStat, featureStat.getFormula());
+                        success = false;
+                    }
+                    case SCRIPT_ERROR -> {
+                        cctx.errorCollector().handleError("executing featureStat => processing output => output indicates script error", feature, featureStat, featureStat.getFormula());
+                        success = false;
+                    }
                     case WORKER_INTERNAL_ERROR -> {
                         // TODO re-schedule script?
                     }
                 }
             }
 
-            return true;
+            return success;
         } catch (PlateUnresolvableException e) {
-            cctx.errorCollector().handleError("executing featureStat => fetching wells => exception", feature);
+            cctx.errorCollector().handleError("executing featureStat => fetching wells => exception", e, feature);
             return false;
         }
     }

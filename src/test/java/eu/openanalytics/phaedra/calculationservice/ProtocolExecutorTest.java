@@ -25,7 +25,6 @@ import eu.openanalytics.phaedra.platservice.client.exception.PlateUnresolvableEx
 import eu.openanalytics.phaedra.protocolservice.client.exception.ProtocolUnresolvableException;
 import eu.openanalytics.phaedra.resultdataservice.client.ResultDataServiceClient;
 import eu.openanalytics.phaedra.resultdataservice.client.exception.ResultDataUnresolvableException;
-import eu.openanalytics.phaedra.resultdataservice.client.exception.ResultFeatureStatUnresolvableException;
 import eu.openanalytics.phaedra.resultdataservice.enumeration.StatusCode;
 import eu.openanalytics.phaedra.scriptengine.client.ScriptEngineClient;
 import eu.openanalytics.phaedra.scriptengine.client.model.ScriptExecution;
@@ -596,7 +595,7 @@ public class ProtocolExecutorTest {
         // input 2: return error after 250 ms
         completeInputWithExceptionAndDelay(input2, new RuntimeException("Some error during execution!"), 250);
 
-        // input 3:  return value after 1000ms -> should NOT get cancelled
+        // input 3: return value after 1000ms -> should NOT get cancelled
         completeInputSuccessfullyWithDelay(input3, "{\"output\": [4.0,8.0,12.0,20.0,32.0]}", 1000);
 
         var resultSet = protocolExecutorService.execute(1, 1, 4).get();
@@ -744,7 +743,7 @@ public class ProtocolExecutorTest {
         doNothing().when(scriptEngineClient).execute(input);
     }
 
-    private void stubExecuteFeatureStat() throws JsonProcessingException, PlateUnresolvableException, ResultFeatureStatUnresolvableException {
+    private void stubExecuteFeatureStat() {
         doReturn(true).when(featureStatExecutorService).executeFeatureStat(any(), any(), any());
     }
 
