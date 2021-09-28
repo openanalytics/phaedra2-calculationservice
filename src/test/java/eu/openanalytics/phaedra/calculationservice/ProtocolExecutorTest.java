@@ -39,6 +39,8 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.mockito.junit.jupiter.MockitoSettings;
 import org.mockito.quality.Strictness;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.time.LocalDateTime;
 import java.util.Arrays;
@@ -62,6 +64,7 @@ import static org.mockito.Mockito.verifyNoMoreInteractions;
 @ExtendWith(MockitoExtension.class)
 public class ProtocolExecutorTest {
 
+    private final Logger logger = LoggerFactory.getLogger(getClass());
 
     private <T> T mockUnimplemented(Class<T> clazz) {
         return mock(clazz, invocation -> {
@@ -938,14 +941,24 @@ public class ProtocolExecutorTest {
 
         // mock the featureStatExecutorService
         doAnswer((it) -> {
-            Thread.sleep(1000);
-            protocolExecutorService.getExecutorService().shutdownNow();
+            logger.info("Sleeping instead of executing featureStat");
+            Thread.sleep(10_000);
             return true;
         }).when(featureStatExecutorService).executeFeatureStat(any(), any(), any());
 
+        // kill main thread when waiting for featureStat to finish
+        var mainThread = Thread.currentThread();
+        new Timer().schedule(new TimerTask() {
+            @Override
+            public void run() {
+                logger.info("Interrupting mainthread...");
+                mainThread.interrupt();
+            }
+        }, 5000);
+
         completeInputSuccessfully(input, "{\"output\": [2.0,4.0,6.0,10.0,16.0]}");
 
-        var resultSet = protocolExecutorService.execute(1, 1, 4).get();
+        var resultSet = protocolExecutorService.executeProtocol(1, 1, 4);
         Assertions.assertEquals("Error", resultSet.getOutcome());
         Assertions.assertEquals(0L, resultSet.getId());
         Assertions.assertEquals(1L, resultSet.getProtocolId());

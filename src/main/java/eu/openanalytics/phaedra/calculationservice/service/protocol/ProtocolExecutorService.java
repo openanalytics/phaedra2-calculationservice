@@ -51,7 +51,7 @@ public class ProtocolExecutorService {
         });
     }
 
-    private ResultSetDTO executeProtocol(long protocolId, long plateId, long measId) throws ProtocolUnresolvableException, ResultSetUnresolvableException, PlateUnresolvableException {
+    public ResultSetDTO executeProtocol(long protocolId, long plateId, long measId) throws ProtocolUnresolvableException, ResultSetUnresolvableException, PlateUnresolvableException {
         // 1. get protocol
         // TODO handle these errors
         var protocol = protocolInfoCollector.getProtocol(protocolId);
