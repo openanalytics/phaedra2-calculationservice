@@ -930,9 +930,7 @@ public class ProtocolExecutorTest {
                     }
                 }));
 
-        stubGetWellData(4L, "abc", new float[]{
-                1.0f, 2.0f, 3.0f, 5.0f, 8.0f
-        });
+        stubGetWellData(4L, "abc", new float[]{1.0f, 2.0f, 3.0f, 5.0f, 8.0f});
 
         stubNewScriptExecution(R_FAST_LANE, input);
 
