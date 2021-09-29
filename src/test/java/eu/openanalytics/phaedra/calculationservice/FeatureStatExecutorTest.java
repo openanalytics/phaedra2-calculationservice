@@ -43,6 +43,7 @@ import java.time.LocalDateTime;
 import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
+import java.util.Optional;
 import java.util.Timer;
 import java.util.TimerTask;
 import java.util.concurrent.ConcurrentHashMap;
@@ -112,9 +113,9 @@ public class FeatureStatExecutorTest {
         Assertions.assertTrue(success);
 
         assertPlateFeatureStatResult(0L, "count", 42);
-        assertFeatureStatResult("HC", 1L, "count", 10);
-        assertFeatureStatResult("LC", 2L, "count", 43);
-        assertFeatureStatResult("SAMPLE", 3L, "count", 52);
+        assertFeatureStatResult("LC", 1L, "count", 43);
+        assertFeatureStatResult("SAMPLE", 2L, "count", 52);
+        assertFeatureStatResult("HC", 3L, "count", 10);
 
         verifyNoMoreInteractions(plateServiceClient, scriptEngineClient);
     }
@@ -187,19 +188,19 @@ public class FeatureStatExecutorTest {
         Assertions.assertTrue(success);
 
         assertPlateFeatureStatResult(0L, "count", 42);
-        assertFeatureStatResult("HC", 1L, "count", 10);
-        assertFeatureStatResult("LC", 2L, "count", 50);
-        assertFeatureStatResult("SAMPLE", 3L, "count", 61);
+        assertFeatureStatResult("LC", 1L, "count", 50);
+        assertFeatureStatResult("SAMPLE", 2L, "count", 61);
+        assertFeatureStatResult("HC", 3L, "count", 10);
 
         assertPlateFeatureStatResult(4L, "min", 43);
-        assertFeatureStatResult("HC", 5L, "min", 11);
-        assertFeatureStatResult("LC", 6L, "min", 51);
-        assertFeatureStatResult("SAMPLE", 7L, "min", 62);
+        assertFeatureStatResult("LC", 5L, "min", 51);
+        assertFeatureStatResult("SAMPLE", 6L, "min", 62);
+        assertFeatureStatResult("HC", 7L, "min", 11);
 
         assertPlateFeatureStatResult(8L, "max", 44);
-        assertFeatureStatResult("HC", 9L, "max", 12);
-        assertFeatureStatResult("LC", 10L, "max", 52);
-        assertFeatureStatResult("SAMPLE", 11L, "max", 63);
+        assertFeatureStatResult("LC", 9L, "max", 52);
+        assertFeatureStatResult("SAMPLE", 10L, "max", 63);
+        assertFeatureStatResult("HC",  11L, "max", 12);
 
         assertPlateFeatureStatResult(12L, "zprime", 45);
 
@@ -303,9 +304,9 @@ public class FeatureStatExecutorTest {
         Assertions.assertFalse(success);
 
         assertPlateFeatureStatResult(0L, "count", 42);
-        assertFeatureStatResult("HC", 1L, "count", 10);
-        assertFeatureStatResult("LC", 2L, "count", 50);
-        assertFeatureStatResult("SAMPLE", 3L, "count", 61);
+        assertFeatureStatResult("LC", 1L, "count", 50);
+        assertFeatureStatResult("SAMPLE", 2L, "count", 61);
+        assertFeatureStatResult("HC", 3L, "count", 10);
 
         Assertions.assertTrue(cctx.errorCollector().hasError());
         Assertions.assertEquals(1, cctx.errorCollector().getErrors().size());
@@ -362,9 +363,9 @@ public class FeatureStatExecutorTest {
         Assertions.assertFalse(success);
 
         assertPlateFeatureStatResult(0L, "count", 42);
-        assertFeatureStatResult("HC", 1L, "count", 10);
-        assertFeatureStatResult("LC", 2L, "count", 50);
-        assertFeatureStatResult("SAMPLE", 3L, "count", 61);
+        assertFeatureStatResult("LC", 1L, "count", 50);
+        assertFeatureStatResult("SAMPLE", 2L, "count", 61);
+        assertFeatureStatResult("HC", 3L, "count", 10);
 
         Assertions.assertTrue(cctx.errorCollector().hasError());
         Assertions.assertEquals(1, cctx.errorCollector().getErrors().size());
@@ -423,9 +424,9 @@ public class FeatureStatExecutorTest {
         Assertions.assertFalse(success);
 
         assertPlateFeatureStatResult(0L, "count", 42);
-        assertFeatureStatResult("HC", 1L, "count", 10);
-        assertFeatureStatResult("LC", 2L, "count", 50);
-        assertFeatureStatResult("SAMPLE", 3L, "count", 61);
+        assertFeatureStatResult("LC", 1L, "count", 50);
+        assertFeatureStatResult("SAMPLE", 2L, "count", 61);
+        assertFeatureStatResult("HC", 3L, "count", 10);
 
         Assertions.assertTrue(cctx.errorCollector().hasError());
         Assertions.assertEquals(1, cctx.errorCollector().getErrors().size());
@@ -491,9 +492,9 @@ public class FeatureStatExecutorTest {
         Assertions.assertFalse(success);
 
         assertPlateFeatureStatResult(0L, "count", 42);
-        assertFeatureStatResult("HC", 1L, "count", 10);
-        assertFeatureStatResult("LC", 2L, "count", 50);
-        assertFeatureStatResult("SAMPLE", 3L, "count", 61);
+        assertFeatureStatResult("LC", 1L, "count", 50);
+        assertFeatureStatResult("SAMPLE", 2L, "count", 61);
+        assertFeatureStatResult("HC", 3L, "count", 10);
 
         Assertions.assertTrue(cctx.errorCollector().hasError());
         Assertions.assertEquals(1, cctx.errorCollector().getErrors().size());
@@ -576,7 +577,7 @@ public class FeatureStatExecutorTest {
         stubExecute(input);
         completeInputSuccessfully(input, "{\"plateValue\": 42, \"welltypeValues\": {}}");
 
-        doThrow(new ResultFeatureStatUnresolvableException("Error while creating ResultFeatureStat")).when(mockResultDataServiceClient).createResultFeatureStat(1L, 1L, 13L, 42, "count", null, StatusCode.SUCCESS, "Ok", 0);
+        doThrow(new ResultFeatureStatUnresolvableException("Error while creating ResultFeatureStat")).when(mockResultDataServiceClient).createResultFeatureStat(1L, 1L, 13L, Optional.of(42f), "count", null, StatusCode.SUCCESS, "Ok", 0);
 
         var success = featureStatExecutor.executeFeatureStat(cctx, feature, createResultData());
 
@@ -647,9 +648,9 @@ public class FeatureStatExecutorTest {
 
         // results of first featureStat should still be saved
         assertPlateFeatureStatResult(0L, "count", 42);
-        assertFeatureStatResult("HC", 1L, "count", 10);
-        assertFeatureStatResult("LC", 2L, "count", 50);
-        assertFeatureStatResult("SAMPLE", 3L, "count", 61);
+        assertFeatureStatResult("LC", 1L, "count", 50);
+        assertFeatureStatResult("SAMPLE", 2L, "count", 61);
+        assertFeatureStatResult("HC", 3L, "count", 10);
 
         verifyNoMoreInteractions(plateServiceClient, scriptEngineClient);
     }
@@ -708,9 +709,9 @@ public class FeatureStatExecutorTest {
 
         // results of first featureStat should still be saved
         assertPlateFeatureStatResult(0L, "count", 42);
-        assertFeatureStatResult("HC", 1L, "count", 10);
-        assertFeatureStatResult("LC", 2L, "count", 50);
-        assertFeatureStatResult("SAMPLE", 3L, "count", 61);
+        assertFeatureStatResult("LC", 1L, "count", 50);
+        assertFeatureStatResult("SAMPLE", 2L, "count", 61);
+        assertFeatureStatResult("HC", 3L, "count", 10);
 
         verifyNoMoreInteractions(plateServiceClient, scriptEngineClient);
     }

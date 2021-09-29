@@ -14,6 +14,7 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 
 public class InMemoryResultDataServiceClient implements ResultDataServiceClient {
 
@@ -56,9 +57,9 @@ public class InMemoryResultDataServiceClient implements ResultDataServiceClient 
     }
 
     @Override
-    public synchronized ResultFeatureStatDTO createResultFeatureStat(long resultSetId, long featureId, long featureStatId, float value, String statisticName, String welltype, StatusCode statusCode, String statusMessage, Integer exitCode) {
+    public synchronized ResultFeatureStatDTO createResultFeatureStat(long resultSetId, long featureId, long featureStatId, Optional<Float> value, String statisticName, String welltype, StatusCode statusCode, String statusMessage, Integer exitCode) {
         var newId = (long) featureStats.size();
-        var res = new ResultFeatureStatDTO(newId, resultSetId, featureId, featureStatId, value, statisticName, welltype, statusCode, statusMessage, exitCode, LocalDateTime.now());
+        var res = new ResultFeatureStatDTO(newId, resultSetId, featureId, featureStatId, value.orElse(null), statisticName, welltype, statusCode, statusMessage, exitCode, LocalDateTime.now());
         featureStats.add(res);
         return res;
     }

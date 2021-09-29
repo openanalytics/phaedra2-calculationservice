@@ -757,11 +757,22 @@ public class ProtocolExecutorTest {
 
         doAnswer((it) -> {
             // cancel pool when waiting for input to be sent
-            protocolExecutorService.getExecutorService().shutdownNow();
-            return null;
+            logger.info("Sleeping instead of sending input");
+            Thread.sleep(10_000);
+            return true;
         }).when(scriptEngineClient).execute(input);
 
-        var resultSet = protocolExecutorService.execute(1, 1, 4).get();
+        // kill main thread when waiting for featureStat to finish
+        var mainThread = Thread.currentThread();
+        new Timer().schedule(new TimerTask() {
+            @Override
+            public void run() {
+                logger.info("Interrupting mainthread...");
+                mainThread.interrupt();
+            }
+        }, 5000);
+
+        var resultSet = protocolExecutorService.executeProtocol(1, 1, 4);
         Assertions.assertEquals("Error", resultSet.getOutcome());
         Assertions.assertEquals(0L, resultSet.getId());
         Assertions.assertEquals(1L, resultSet.getProtocolId());
