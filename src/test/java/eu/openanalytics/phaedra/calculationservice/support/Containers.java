@@ -1,4 +1,4 @@
-package eu.openanalytics.phaedra.calculationservice;
+package eu.openanalytics.phaedra.calculationservice.support;
 
 import org.testcontainers.containers.PostgreSQLContainer;
 import org.testcontainers.junit.jupiter.Container;

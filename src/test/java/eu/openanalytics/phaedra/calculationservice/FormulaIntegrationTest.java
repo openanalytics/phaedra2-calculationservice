@@ -6,6 +6,7 @@ import eu.openanalytics.phaedra.calculationservice.enumeration.CalculationScope;
 import eu.openanalytics.phaedra.calculationservice.enumeration.Category;
 import eu.openanalytics.phaedra.calculationservice.enumeration.ScriptLanguage;
 import eu.openanalytics.phaedra.calculationservice.service.FormulaService;
+import eu.openanalytics.phaedra.calculationservice.support.AbstractIntegrationTest;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -189,7 +190,8 @@ public class FormulaIntegrationTest extends AbstractIntegrationTest {
             performRequest(post("/formulas", input1), HttpStatus.CREATED, FormulaDTO.class);
         }
 
-        var t = new TypeReference<List<FormulaDTO>>() {};
+        var t = new TypeReference<List<FormulaDTO>>() {
+        };
 
         // 2. query formulas
         var res2 = performRequest(get("/formulas"), HttpStatus.OK, t);

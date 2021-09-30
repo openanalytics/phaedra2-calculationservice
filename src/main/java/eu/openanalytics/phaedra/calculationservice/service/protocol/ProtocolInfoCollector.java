@@ -113,18 +113,5 @@ public class ProtocolInfoCollector {
         return protocol.sequences(resSequences).build();
     }
 
-    // TODO
-    public Integer getNumberOfSteps(Protocol protocol) {
-        int numberOfSteps = 0;
-
-        for (var sequence : protocol.getSequences().entrySet()) {
-            for (var feature : sequence.getValue().getFeatures()) {
-                numberOfSteps++;
-                numberOfSteps += feature.getFeatureStats().size();
-            }
-        }
-
-        return numberOfSteps;
-    }
-
 }
+

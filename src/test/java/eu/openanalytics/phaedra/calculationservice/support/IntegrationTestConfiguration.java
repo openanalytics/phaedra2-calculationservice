@@ -1,8 +1,7 @@
-package eu.openanalytics.phaedra.calculationservice;
+package eu.openanalytics.phaedra.calculationservice.support;
 
 import eu.openanalytics.phaedra.scriptengine.client.ScriptEngineClient;
 import eu.openanalytics.phaedra.scriptengine.client.model.ScriptExecution;
-import liquibase.pro.packaged.T;
 import org.springframework.context.annotation.Bean;
 
 import java.time.Clock;
@@ -25,7 +24,7 @@ public class IntegrationTestConfiguration {
             }
 
             @Override
-            public  void execute(ScriptExecution scriptExecution) {
+            public void execute(ScriptExecution scriptExecution) {
             }
         };
     }

@@ -9,9 +9,7 @@ import eu.openanalytics.phaedra.calculationservice.model.Feature;
 import eu.openanalytics.phaedra.calculationservice.model.Sequence;
 import eu.openanalytics.phaedra.calculationservice.service.ModelMapper;
 import eu.openanalytics.phaedra.calculationservice.service.featurestat.FeatureStatExecutor;
-import eu.openanalytics.phaedra.platservice.client.exception.PlateUnresolvableException;
 import eu.openanalytics.phaedra.resultdataservice.client.ResultDataServiceClient;
-import eu.openanalytics.phaedra.resultdataservice.client.exception.ResultFeatureStatUnresolvableException;
 import eu.openanalytics.phaedra.resultdataservice.dto.ResultDataDTO;
 import eu.openanalytics.phaedra.resultdataservice.enumeration.StatusCode;
 import eu.openanalytics.phaedra.scriptengine.client.model.ScriptExecution;
@@ -58,11 +56,11 @@ public class SequenceExecutorService {
             try {
                 calculation.waitForExecution();
             } catch (InterruptedException e) {
-                cctx.errorCollector().handleError(e, "executing sequence => waiting for feature to be sent => interrupted", calculation.getFeature());
+                cctx.errorCollector().handleError("executing sequence => waiting for feature to be sent => interrupted", e, calculation.getFeature(), calculation.getFeature().getFormula());
             } catch (ExecutionException e) {
-                cctx.errorCollector().handleError(e.getCause(), "executing sequence => waiting for feature to be sent => exception during execution", calculation.getFeature());
+                cctx.errorCollector().handleError("executing sequence => waiting for feature to be sent => exception during execution", e.getCause(), calculation.getFeature(), calculation.getFeature().getFormula());
             } catch (Throwable e) {
-                cctx.errorCollector().handleError(e, "executing sequence => waiting for feature to be sent => exception during execution", calculation.getFeature());
+                cctx.errorCollector().handleError("executing sequence => waiting for feature to be sent => exception during execution", e, calculation.getFeature(), calculation.getFeature().getFormula());
             }
         }
 
@@ -71,11 +69,11 @@ public class SequenceExecutorService {
             try {
                 calculation.waitForOutput();
             } catch (InterruptedException e) {
-                cctx.errorCollector().handleError(e, "executing sequence => waiting for output to be received => interrupted", calculation.getFeature());
+                cctx.errorCollector().handleError("executing sequence => waiting for output to be received => interrupted", e, calculation.getFeature(), calculation.getFeature().getFormula());
             } catch (ExecutionException e) {
-                cctx.errorCollector().handleError(e.getCause(), "executing sequence => waiting for output to be received => exception during execution", calculation.getFeature());
+                cctx.errorCollector().handleError("executing sequence => waiting for output to be received => exception during execution", e.getCause(), calculation.getFeature(), calculation.getFeature().getFormula());
             } catch (Throwable e) {
-                cctx.errorCollector().handleError(e, "executing sequence => waiting for output to be received => exception during execution", calculation.getFeature());
+                cctx.errorCollector().handleError("executing sequence => waiting for output to be received => exception during execution", e, calculation.getFeature(), calculation.getFeature().getFormula());
             }
         }
 
@@ -84,21 +82,14 @@ public class SequenceExecutorService {
             var resultData = saveOutput(cctx, calculation);
             if (resultData.isPresent() && resultData.get().getStatusCode() == StatusCode.SUCCESS) {
                 // E. trigger calculation of FeatureStats for the features in this Sequence
-                try {
-                    featureStatExecutor.executeFeatureStat(cctx, calculation.getFeature(), resultData.get());
-                } catch (PlateUnresolvableException e) {
-                    e.printStackTrace(); // TODO
-                } catch (JsonProcessingException e) {
-                    e.printStackTrace(); // TODO
-                } catch (ResultFeatureStatUnresolvableException e) {
-                    e.printStackTrace(); // TODO
-                }
+                cctx.computedStatsForFeature().put(calculation.getFeature(), executorService.submit(() -> featureStatExecutor.executeFeatureStat(cctx, calculation.getFeature(), resultData.get())));
             }
         }
 
         return !cctx.errorCollector().hasError();
     }
 
+    // TODO maybe move this to FeatureExecutorService?
     public Optional<ResultDataDTO> saveOutput(CalculationContext cctx, FeatureCalculation calculation) {
         if (calculation.getOutput().isEmpty()) {
             return Optional.empty();
@@ -119,7 +110,7 @@ public class SequenceExecutorService {
 
                     return Optional.of(resultData);
                 } catch (JsonProcessingException e) {
-                    cctx.errorCollector().handleError(e, "executing sequence => processing output => parsing output", feature, output);
+                    cctx.errorCollector().handleError( "executing sequence => processing output => parsing output", e, feature, output, feature.getFormula());
                 }
             } else if (output.getStatusCode() == ResponseStatusCode.SCRIPT_ERROR) {
                 var resultData = resultDataServiceClient.addResultData(
@@ -130,13 +121,13 @@ public class SequenceExecutorService {
                         output.getStatusMessage(),
                         output.getExitCode());
 
-                cctx.errorCollector().handleScriptError(output, feature);
+                cctx.errorCollector().handleError("executing sequence => processing output => output indicates script error", output, feature, feature.getFormula());
                 return Optional.of(resultData);
             } else if (output.getStatusCode() == ResponseStatusCode.WORKER_INTERNAL_ERROR) {
                 // TODO re-schedule script?
             }
         } catch (Exception e) {
-            cctx.errorCollector().handleError(e, "executing sequence => processing output => saving resultdata", feature);
+            cctx.errorCollector().handleError("executing sequence => processing output => saving resultdata", e, feature, feature.getFormula());
         }
         return Optional.empty();
     }
