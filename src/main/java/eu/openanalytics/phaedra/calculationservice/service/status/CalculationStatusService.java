@@ -163,6 +163,8 @@ public class CalculationStatusService {
         return CalculationStatus.builder()
                 .complexity(complexity)
                 .sequences(sequencesStatus)
+                .statusCode(resultSet.getOutcome())
+                .errors(resultSet.getErrors())
                 .build();
     }
 

@@ -95,6 +95,7 @@ public class CalculationServiceTest {
         );
 
         var status = calculationStatusService.getStatus(1);
+        Assertions.assertEquals(StatusCode.SUCCESS, status.getStatusCode());
 
         // verify complexity
         Assertions.assertEquals(3, status.getComplexity().getFeatures());
@@ -141,7 +142,7 @@ public class CalculationServiceTest {
 
     @Test
     public void featureFailedTest() throws Exception {
-        mockResultSet(StatusCode.SUCCESS);
+        mockResultSet(StatusCode.FAILURE);
         mockProtocol();
         mockWells();
         mockResultData(
@@ -160,6 +161,7 @@ public class CalculationServiceTest {
         );
 
         var status = calculationStatusService.getStatus(1);
+        Assertions.assertEquals(StatusCode.FAILURE, status.getStatusCode());
 
         // verify complexity
         Assertions.assertEquals(3, status.getComplexity().getFeatures());
@@ -216,7 +218,7 @@ public class CalculationServiceTest {
 
     @Test
     public void featureStatFailed() throws Exception {
-        mockResultSet(StatusCode.SUCCESS);
+        mockResultSet(StatusCode.FAILURE);
         mockProtocol();
         mockWells();
         mockResultData(
@@ -254,6 +256,7 @@ public class CalculationServiceTest {
         );
 
         var status = calculationStatusService.getStatus(1);
+        Assertions.assertEquals(StatusCode.FAILURE, status.getStatusCode());
 
         // verify complexity
         Assertions.assertEquals(3, status.getComplexity().getFeatures());
@@ -312,7 +315,7 @@ public class CalculationServiceTest {
 
     @Test
     public void featureStillRunning() throws Exception {
-        mockResultSet(StatusCode.SUCCESS);
+        mockResultSet(StatusCode.SCHEDULED);
         mockProtocol();
         mockWells();
         mockResultData(
@@ -337,6 +340,7 @@ public class CalculationServiceTest {
         );
 
         var status = calculationStatusService.getStatus(1);
+        Assertions.assertEquals(StatusCode.SCHEDULED, status.getStatusCode());
 
         // verify complexity
         Assertions.assertEquals(3, status.getComplexity().getFeatures());
@@ -383,7 +387,7 @@ public class CalculationServiceTest {
 
     @Test
     public void featureStatStillRunning() throws Exception {
-        mockResultSet(StatusCode.SUCCESS);
+        mockResultSet(StatusCode.SCHEDULED);
         mockProtocol();
         mockWells();
         mockResultData(
@@ -420,6 +424,7 @@ public class CalculationServiceTest {
         );
 
         var status = calculationStatusService.getStatus(1);
+        Assertions.assertEquals(StatusCode.SCHEDULED, status.getStatusCode());
 
         // verify complexity
         Assertions.assertEquals(3, status.getComplexity().getFeatures());
@@ -466,14 +471,14 @@ public class CalculationServiceTest {
 
     @Test
     public void stillNeedToStart() throws Exception{
-        mockResultSet(StatusCode.SUCCESS);
+        mockResultSet(StatusCode.SCHEDULED);
         mockProtocol();
         mockWells();
         mockResultData(); // still need to start -> no data
         mockFeatureStatData(); // still need to start -> no data
 
         var status = calculationStatusService.getStatus(1);
-        System.out.println(status);
+        Assertions.assertEquals(StatusCode.SCHEDULED, status.getStatusCode());
 
         // verify complexity
         Assertions.assertEquals(3, status.getComplexity().getFeatures());
@@ -520,7 +525,7 @@ public class CalculationServiceTest {
 
     @Test
     public void notYetAllResultsForSingleFeatureStat() throws Exception {
-        mockResultSet(StatusCode.SUCCESS);
+        mockResultSet(StatusCode.SCHEDULED);
         mockProtocol();
         mockWells();
         mockResultData(
@@ -558,6 +563,7 @@ public class CalculationServiceTest {
         );
 
         var status = calculationStatusService.getStatus(1);
+        Assertions.assertEquals(StatusCode.SCHEDULED, status.getStatusCode());
 
         // verify complexity
         Assertions.assertEquals(3, status.getComplexity().getFeatures());
