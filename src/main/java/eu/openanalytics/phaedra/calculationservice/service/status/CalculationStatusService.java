@@ -92,13 +92,15 @@ public class CalculationStatusService {
         // 3. determine number of steps
         int numberOfFeatures = 0;
         int numberOfFeatureStats = 0;
+        int numberOfFeatureStatResults = 0;
         int numberOfSequences = protocol.getSequences().size();
 
         for (var sequence : protocol.getSequences().entrySet()) {
             for (var feature : sequence.getValue().getFeatures()) {
                 numberOfFeatures++;
                 for (var featureStat : feature.getFeatureStats()) {
-                    numberOfFeatures += getNumOfExpectedFeatureStats(featureStat, numWelltypes);
+                    numberOfFeatureStats++;
+                    numberOfFeatureStatResults += getNumOfExpectedFeatureStats(featureStat, numWelltypes);
                 }
             }
         }
@@ -107,6 +109,7 @@ public class CalculationStatusService {
                 numberOfFeatures + numberOfFeatureStats,
                 numberOfFeatures,
                 numberOfFeatureStats,
+                numberOfFeatureStatResults,
                 numberOfSequences
         );
     }
@@ -245,6 +248,7 @@ public class CalculationStatusService {
             } else {
                 // found a result for each featureStat
                 // note: by design of the CalculationService it's guaranteed that each result has the same StatusCode
+                // note: the status of a FeatureStat can only be SUCCESS or FAILURE
                 var statusCode = statResults.get(0).getStatusCode();
                 if (statusCode == StatusCode.SUCCESS) {
                     res.put(featureStat.getId(), new CalculationStatus.StatusDescription(CalculationStatusCode.SUCCESS));
@@ -256,10 +260,6 @@ public class CalculationStatusService {
                             .statusMessage(statusMessage)
                             .statusCode(CalculationStatusCode.FAILURE)
                                 .build());
-                } else {
-                    res.put(featureStat.getId(), CalculationStatus.StatusDescription.builder()
-                            .statusCode(modelMapper.map(statusCode))
-                            .build());
                 }
             }
         }
@@ -267,7 +267,7 @@ public class CalculationStatusService {
     }
 
     /**
-     * Calculates the StatusDescription for a sequence based on the statuses of the feature and featuestats of the sequence.
+     * Calculates the StatusDescription for a sequence based on the statuses of the feature and featueStats of the sequence.
      * @param featureStatuses the statuses of the features in this sequence
      * @param statStatuses the status of the FeatureStats in this sequence
      * @return the aggregated status of the sequence

@@ -29,6 +29,7 @@ public class CalculationStatus {
         int steps;
         int features;
         int featureStats;
+        int featureStatResults;
         int sequences;
     }
 
