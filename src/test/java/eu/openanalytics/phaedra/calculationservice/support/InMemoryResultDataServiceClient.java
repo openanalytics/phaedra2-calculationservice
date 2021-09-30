@@ -3,6 +3,7 @@ package eu.openanalytics.phaedra.calculationservice.support;
 import eu.openanalytics.phaedra.resultdataservice.client.ResultDataServiceClient;
 import eu.openanalytics.phaedra.resultdataservice.client.exception.ResultDataUnresolvableException;
 import eu.openanalytics.phaedra.resultdataservice.client.exception.ResultFeatureStatUnresolvableException;
+import eu.openanalytics.phaedra.resultdataservice.client.exception.ResultSetUnresolvableException;
 import eu.openanalytics.phaedra.resultdataservice.dto.ErrorDTO;
 import eu.openanalytics.phaedra.resultdataservice.dto.ResultDataDTO;
 import eu.openanalytics.phaedra.resultdataservice.dto.ResultFeatureStatDTO;
@@ -32,7 +33,7 @@ public class InMemoryResultDataServiceClient implements ResultDataServiceClient 
     }
 
     @Override
-    public synchronized ResultSetDTO completeResultDataSet(long resultSetId, String outcome, List<ErrorDTO> errors, String errorsText) {
+    public synchronized ResultSetDTO completeResultDataSet(long resultSetId, StatusCode outcome, List<ErrorDTO> errors, String errorsText) {
         var resultSet = resultSets.get((int) resultSetId)
                 .withOutcome(outcome).withErrors(errors).withErrorsText(errorsText);
         resultSets.set((int) resultSetId, resultSet);
@@ -71,6 +72,21 @@ public class InMemoryResultDataServiceClient implements ResultDataServiceClient 
             throw new ResultFeatureStatUnresolvableException("ResultFeatureStat not found");
         }
         return res;
+    }
+
+    @Override
+    public ResultSetDTO getResultSet(long resultSetId) throws ResultSetUnresolvableException {
+        return null;
+    }
+
+    @Override
+    public List<ResultDataDTO> getResultData(long resultSetId) throws ResultDataUnresolvableException {
+        return null;
+    }
+
+    @Override
+    public List<ResultFeatureStatDTO> getResultFeatureStat(long resultSetId) {
+        return null;
     }
 
 }

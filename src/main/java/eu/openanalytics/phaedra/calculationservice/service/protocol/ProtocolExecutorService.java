@@ -4,15 +4,18 @@ import eu.openanalytics.phaedra.calculationservice.model.CalculationContext;
 import eu.openanalytics.phaedra.calculationservice.model.Sequence;
 import eu.openanalytics.phaedra.platservice.client.PlateServiceClient;
 import eu.openanalytics.phaedra.platservice.client.exception.PlateUnresolvableException;
+import eu.openanalytics.phaedra.platservice.dto.WellDTO;
 import eu.openanalytics.phaedra.protocolservice.client.exception.ProtocolUnresolvableException;
 import eu.openanalytics.phaedra.resultdataservice.client.ResultDataServiceClient;
 import eu.openanalytics.phaedra.resultdataservice.client.exception.ResultSetUnresolvableException;
 import eu.openanalytics.phaedra.resultdataservice.dto.ResultSetDTO;
+import eu.openanalytics.phaedra.resultdataservice.enumeration.StatusCode;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
 
 import java.util.ArrayList;
+import java.util.LinkedHashSet;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Future;
@@ -54,14 +57,19 @@ public class ProtocolExecutorService {
     public ResultSetDTO executeProtocol(long protocolId, long plateId, long measId) throws ProtocolUnresolvableException, ResultSetUnresolvableException, PlateUnresolvableException {
         // 1. get protocol
         // TODO handle these errors
-        var protocol = protocolInfoCollector.getProtocol(protocolId);
-        var plate = plateServiceClient.getPlate(plateId);
+        final var protocol = protocolInfoCollector.getProtocol(protocolId);
+        final var plate = plateServiceClient.getPlate(plateId);
+        final var wellsSorted = plateServiceClient.getWellsOfPlateSorted(plateId);
+        final var welltypesSorted = wellsSorted.stream().map(WellDTO::getWelltype).toList();
+        final var uniqueWelltypes = new LinkedHashSet<>(welltypesSorted);
 
-        // 2. create ResultSet
-        var resultSet = resultDataServiceClient.createResultDataSet(protocolId, plateId, measId);
-        var errorCollector = new ErrorCollector();
+        // 2. create CalculationContext
+        final var resultSet = resultDataServiceClient.createResultDataSet(protocolId, plateId, measId);
+        final var errorCollector = new ErrorCollector();
 
-        var calculationContext = new CalculationContext(plate, protocol, resultSet.getId(), measId, errorCollector, new ConcurrentHashMap<>());
+        final var calculationContext = new CalculationContext(plate, protocol, resultSet.getId(),
+                measId, errorCollector, welltypesSorted,  uniqueWelltypes,
+                uniqueWelltypes.size(), new ConcurrentHashMap<>());
 
         // 3. sequentially execute every sequence
         for (var seq = 0; seq < protocol.getSequences().size(); seq++) {
@@ -103,12 +111,12 @@ public class ProtocolExecutorService {
         }
 
         // 8. set ResultData status
-        return resultDataServiceClient.completeResultDataSet(resultSet.getId(), "Completed", new ArrayList<>(), "");
+        return resultDataServiceClient.completeResultDataSet(resultSet.getId(), StatusCode.SUCCESS, new ArrayList<>(), "");
     }
 
     private ResultSetDTO saveError(ResultSetDTO resultSet, ErrorCollector errorCollector) throws ResultSetUnresolvableException {
         logger.warn("Protocol failed with errorDescription\n" + errorCollector.getErrorDescription());
-        return resultDataServiceClient.completeResultDataSet(resultSet.getId(), "Error", errorCollector.getErrors(), errorCollector.getErrorDescription());
+        return resultDataServiceClient.completeResultDataSet(resultSet.getId(), StatusCode.FAILURE, errorCollector.getErrors(), errorCollector.getErrorDescription());
     }
 
 }

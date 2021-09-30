@@ -1,6 +1,7 @@
 package eu.openanalytics.phaedra.calculationservice.service;
 
 import eu.openanalytics.phaedra.calculationservice.dto.FormulaDTO;
+import eu.openanalytics.phaedra.calculationservice.enumeration.CalculationStatusCode;
 import eu.openanalytics.phaedra.calculationservice.model.CalculationInputValue;
 import eu.openanalytics.phaedra.calculationservice.model.Feature;
 import eu.openanalytics.phaedra.calculationservice.model.FeatureStat;
@@ -112,7 +113,18 @@ public class ModelMapper {
      * Maps a {@link ResponseStatusCode} to a {@link StatusCode}.
      */
     public StatusCode map(ResponseStatusCode responseStatusCode) {
-        return modelMapper.map(responseStatusCode, StatusCode.class);
+        return switch (responseStatusCode) {
+            case SUCCESS -> StatusCode.SUCCESS;
+            case SCRIPT_ERROR, BAD_REQUEST, WORKER_INTERNAL_ERROR -> StatusCode.FAILURE;
+        };
+    }
+
+    public CalculationStatusCode map(StatusCode statusCode) {
+        return switch (statusCode) {
+            case SUCCESS -> CalculationStatusCode.SUCCESS;
+            case FAILURE -> CalculationStatusCode.FAILURE;
+            case SCHEDULED -> CalculationStatusCode.SCHEDULED;
+        };
     }
 
     /**
