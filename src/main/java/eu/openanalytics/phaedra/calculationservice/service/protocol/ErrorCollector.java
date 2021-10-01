@@ -91,9 +91,9 @@ public class ErrorCollector {
         var error = errorBuilder.build();
         errors.add(error);
         if (exception.isPresent()) {
-            log(logger, cctx, error.toString(), exception);
+            log(logger, cctx, "Error added to ErrorCollector" + error.toString(), exception);
         } else {
-            log(logger, cctx, error.toString());
+            log(logger, cctx, "Error added to ErrorCollector" + error.toString());
         }
     }
 

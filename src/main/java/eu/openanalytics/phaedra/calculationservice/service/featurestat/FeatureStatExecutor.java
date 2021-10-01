@@ -29,20 +29,19 @@ import java.util.Optional;
 import java.util.concurrent.ExecutionException;
 
 import static eu.openanalytics.phaedra.calculationservice.CalculationService.JAVASTAT_FAST_LANE;
+import static eu.openanalytics.phaedra.calculationservice.service.protocol.ProtocolLogger.log;
 
 @Service
 public class FeatureStatExecutor {
 
     private final Logger logger = LoggerFactory.getLogger(getClass());
 
-    private final PlateServiceClient plateServiceClient;
     private final ScriptEngineClient scriptEngineClient;
     private final ObjectMapper objectMapper;
     private final ResultDataServiceClient resultDataServiceClient;
     private final ModelMapper modelMapper;
 
     public FeatureStatExecutor(PlateServiceClient plateServiceClient, ScriptEngineClient scriptEngineClient, ObjectMapper objectMapper, ResultDataServiceClient resultDataServiceClient, ModelMapper modelMapper) {
-        this.plateServiceClient = plateServiceClient;
         this.scriptEngineClient = scriptEngineClient;
         this.objectMapper = objectMapper;
         this.resultDataServiceClient = resultDataServiceClient;
@@ -61,6 +60,8 @@ public class FeatureStatExecutor {
         }
 
         var success = true;
+
+        log(logger, cctx, "[F=%s] Calculating FeatureStats", feature.getId());
 
         // 1. send Calculations to ScriptEngine (we do this synchronous, because no API/DB queries are needed)
         final var calculations = new ArrayList<FeatureStatCalculation>();
@@ -106,6 +107,8 @@ public class FeatureStatExecutor {
             }
         }
 
+        log(logger, cctx, "[F=%s] All FeatureStat calculations send to script engine", feature.getId());
+
         // 2. collect output
         for (var calculation : calculations) {
             try {
@@ -121,6 +124,8 @@ public class FeatureStatExecutor {
                 success = false;
             }
         }
+
+        log(logger, cctx, "[F=%s] All FeatureStat output received from script engine", feature.getId());
 
         // 3. store output
         for (var calculation : calculations) {
@@ -150,6 +155,8 @@ public class FeatureStatExecutor {
                 }
             }
         }
+
+        log(logger, cctx, "[F=%s] All FeatureStat output saved", feature.getId());
 
         return success;
     }

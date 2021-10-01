@@ -57,7 +57,7 @@ public class ProtocolExecutorService {
 
     public ResultSetDTO executeProtocol(long protocolId, long plateId, long measId) throws ProtocolUnresolvableException, ResultSetUnresolvableException, PlateUnresolvableException {
         // 1. get protocol
-        // TODO handle these errors
+        logger.info("Preparing new calculation");
         final var protocol = protocolInfoCollector.getProtocol(protocolId);
         final var plate = plateServiceClient.getPlate(plateId);
         final var wellsSorted = plateServiceClient.getWellsOfPlateSorted(plateId);
@@ -88,6 +88,8 @@ public class ProtocolExecutorService {
             // 5. no errors -> continue processing sequences
         }
 
+        log(logger, cctx, "Waiting for FeatureStats to finish");
+
         // 6. wait for FeatureStats to be calculated
         // we can wait for all featureStats (of all sequences) here since nothing in the protocol depends on them
         for (var featureStat : cctx.getComputedStatsForFeature().entrySet()) {
@@ -110,6 +112,7 @@ public class ProtocolExecutorService {
         }
 
         // 8. set ResultData status
+        log(logger, cctx, "Calculation finished: SUCCESS");
         return resultDataServiceClient.completeResultDataSet(resultSet.getId(), StatusCode.SUCCESS, new ArrayList<>(), "");
     }
 
