@@ -40,11 +40,12 @@ import java.util.Arrays;
 import java.util.HashMap;
 import java.util.LinkedHashSet;
 import java.util.List;
-import java.util.Optional;
 import java.util.Timer;
 import java.util.TimerTask;
 
 import static eu.openanalytics.phaedra.calculationservice.CalculationService.JAVASTAT_FAST_LANE;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.doNothing;
 import static org.mockito.Mockito.doReturn;
 import static org.mockito.Mockito.doThrow;
@@ -568,19 +569,19 @@ public class FeatureStatExecutorTest {
         stubExecute(input);
         completeInputSuccessfully(input, "{\"plateValue\": 42, \"welltypeValues\": {}}");
 
-        doThrow(new ResultFeatureStatUnresolvableException("Error while creating ResultFeatureStat")).when(mockResultDataServiceClient).createResultFeatureStat(1L, 1L, 13L, Optional.of(42f), "count", null, StatusCode.SUCCESS, "Ok", 0);
+        doThrow(new ResultFeatureStatUnresolvableException("Error while creating ResultFeatureStat")).when(mockResultDataServiceClient).createResultFeatureStats(eq(1L), any());
 
         var success = featureStatExecutor.executeFeatureStat(cctx, feature, createResultData());
 
         Assertions.assertFalse(success);
         Assertions.assertTrue(cctx.getErrorCollector().hasError());
         Assertions.assertEquals(1, cctx.getErrorCollector().getErrors().size());
-        Assertions.assertEquals("executing featureStat  => processing output => saving resultdata", cctx.getErrorCollector().getErrors().get(0).getDescription());
+        Assertions.assertEquals("executing featureStat => processing output => saving resultdata", cctx.getErrorCollector().getErrors().get(0).getDescription());
         Assertions.assertEquals("Error while creating ResultFeatureStat", cctx.getErrorCollector().getErrors().get(0).getExceptionMessage());
         Assertions.assertEquals("ResultFeatureStatUnresolvableException", cctx.getErrorCollector().getErrors().get(0).getExceptionClassName());
-        Assertions.assertEquals(1L, cctx.getErrorCollector().getErrors().get(0).getFeatureId());
-        Assertions.assertEquals(13L, cctx.getErrorCollector().getErrors().get(0).getFormulaId());
-        Assertions.assertEquals("count", cctx.getErrorCollector().getErrors().get(0).getFormulaName());
+        Assertions.assertEquals(1,cctx.getErrorCollector().getErrors().get(0).getFeatureId());
+        Assertions.assertNull(cctx.getErrorCollector().getErrors().get(0).getFormulaId());
+        Assertions.assertNull( cctx.getErrorCollector().getErrors().get(0).getFormulaName());
 
         verifyNoMoreInteractions(plateServiceClient, scriptEngineClient);
     }

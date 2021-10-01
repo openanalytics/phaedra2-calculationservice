@@ -12,7 +12,9 @@ import eu.openanalytics.phaedra.calculationservice.model.FeatureStat;
 import eu.openanalytics.phaedra.calculationservice.service.ModelMapper;
 import eu.openanalytics.phaedra.platservice.client.PlateServiceClient;
 import eu.openanalytics.phaedra.resultdataservice.client.ResultDataServiceClient;
+import eu.openanalytics.phaedra.resultdataservice.client.exception.ResultFeatureStatUnresolvableException;
 import eu.openanalytics.phaedra.resultdataservice.dto.ResultDataDTO;
+import eu.openanalytics.phaedra.resultdataservice.dto.ResultFeatureStatDTO;
 import eu.openanalytics.phaedra.resultdataservice.enumeration.StatusCode;
 import eu.openanalytics.phaedra.scriptengine.client.ScriptEngineClient;
 import eu.openanalytics.phaedra.scriptengine.client.model.ScriptExecution;
@@ -23,6 +25,7 @@ import org.springframework.stereotype.Service;
 
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
@@ -65,6 +68,7 @@ public class FeatureStatExecutor {
 
         // 1. send Calculations to ScriptEngine (we do this synchronous, because no API/DB queries are needed)
         final var calculations = new ArrayList<FeatureStatCalculation>();
+        final var resultFeatureStats = new ArrayList<ResultFeatureStatDTO>();
         for (var featureStat : feature.getFeatureStats()) {
             // A. get formula
             var formula = featureStat.getFormula();
@@ -74,7 +78,7 @@ public class FeatureStatExecutor {
                     || formula.getLanguage() != ScriptLanguage.JAVASTAT) {
                 cctx.getErrorCollector().handleError("Skipping calculating FeatureStat because the formula is not valid (category must be CALCULATION, language must be JAVASTAT)",
                         feature, featureStat, formula);
-                saveErrorOutput(cctx, feature, featureStat, "CalculationService detected an invalid formula");
+                convertErrorOutput(resultFeatureStats, cctx, feature, featureStat, "CalculationService detected an invalid formula");
                 success = false;
                 continue;
             }
@@ -127,27 +131,32 @@ public class FeatureStatExecutor {
 
         log(logger, cctx, "[F=%s] All FeatureStat output received from script engine", feature.getId());
 
-        // 3. store output
+        // 3. collect output
         for (var calculation : calculations) {
             var featureStat = calculation.getFeatureStat();
             if (calculation.getOutput().isEmpty()) {
-                saveErrorOutput(cctx, feature, featureStat, "CalculationService was unable to process the calculation");
+                convertErrorOutput(resultFeatureStats, cctx, feature, featureStat, "CalculationService was unable to process the calculation");
                 continue;
             }
 
             var output = calculation.getOutput().get();
             switch (output.getStatusCode()) {
                 case SUCCESS -> {
-                    success &= saveOutput(cctx, feature, featureStat, output);
+                    try {
+                        convertOutput(resultFeatureStats, cctx, feature, featureStat, output);
+                    } catch (JsonProcessingException e) {
+                        cctx.getErrorCollector().handleError("executing featureStat => processing output => parsing output", e, feature, featureStat, featureStat.getFormula(), output);
+                        success = false;
+                    }
                 }
                 case BAD_REQUEST -> {
                     cctx.getErrorCollector().handleError("executing featureStat => processing output => output indicates bad request", feature, featureStat, featureStat.getFormula());
-                    saveErrorOutput(cctx, feature, featureStat, output);
+                    convertErrorOutput(resultFeatureStats, cctx, feature, featureStat, output);
                     success = false;
                 }
                 case SCRIPT_ERROR -> {
                     cctx.getErrorCollector().handleError("executing featureStat => processing output => output indicates script error", feature, featureStat, featureStat.getFormula());
-                    saveErrorOutput(cctx, feature, featureStat, output);
+                    convertErrorOutput(resultFeatureStats, cctx, feature, featureStat, output);
                     success = false;
                 }
                 case WORKER_INTERNAL_ERROR -> {
@@ -156,135 +165,131 @@ public class FeatureStatExecutor {
             }
         }
 
-        log(logger, cctx, "[F=%s] All FeatureStat output saved", feature.getId());
+        // 4. store output
+        try {
+            resultDataServiceClient.createResultFeatureStats(cctx.getResultSetId(), resultFeatureStats);
+        } catch (ResultFeatureStatUnresolvableException e) {
+            cctx.getErrorCollector().handleError("executing featureStat => processing output => saving resultdata", e, feature);
+            success = false;
+        }
 
+        log(logger, cctx, "[F=%s] All FeatureStat output saved", feature.getId());
         return success;
     }
 
     /**
      * Save output in case of a succesful calculation.
      */
-    private boolean saveOutput(CalculationContext cctx, Feature feature, FeatureStat featureStat, ScriptExecutionOutputDTO output) {
-        try {
-            var outputValues = objectMapper.readValue(output.getOutput(), OutputWrapper.class);
-            var plateValue = outputValues.getPlateValue();
+    private void convertOutput(List<ResultFeatureStatDTO> res, CalculationContext cctx, Feature feature, FeatureStat featureStat, ScriptExecutionOutputDTO output) throws JsonProcessingException {
+        var outputValues = objectMapper.readValue(output.getOutput(), OutputWrapper.class);
+        var statusCode = modelMapper.map(output.getStatusCode());
+        var plateValue = outputValues.getPlateValue();
 
-            if (featureStat.isPlateStat()) {
-                if (plateValue.isEmpty()) {
-                    cctx.getErrorCollector().handleError("executing featureStat => processing output => expected to receive a plateValue but did not receive it", feature, featureStat, featureStat.getFormula(), output);
-                }
-                resultDataServiceClient.createResultFeatureStat(
-                        cctx.getResultSetId(),
-                        feature.getId(),
-                        featureStat.getId(),
-                        plateValue,
-                        featureStat.getName(),
-                        null,
-                        modelMapper.map(output.getStatusCode()),
-                        output.getStatusMessage(),
-                        output.getExitCode());
+        if (featureStat.isPlateStat()) {
+            if (plateValue.isEmpty()) {
+                cctx.getErrorCollector().handleError("executing featureStat => processing output => expected to receive a plateValue but did not receive it", feature, featureStat, featureStat.getFormula(), output);
             }
 
-            if (featureStat.isWelltypeStat()) {
-                var wellTypeValues = outputValues.getWelltypeOutputs();
-                for (var welltype : cctx.getUniqueWelltypes()) {
-                    var value = wellTypeValues.get(welltype);
-                    if (value == null) {
-                        cctx.getErrorCollector().handleError(String.format("executing featureStat => processing output => expected to receive a result for welltype [%s] but did not receive it", welltype), feature, featureStat, featureStat.getFormula(), output);
-                    }
-                    resultDataServiceClient.createResultFeatureStat(
-                            cctx.getResultSetId(),
-                            feature.getId(),
-                            featureStat.getId(),
-                            Optional.ofNullable(value),
-                            featureStat.getName(),
-                            welltype,
-                            modelMapper.map(output.getStatusCode()),
-                            output.getStatusMessage(),
-                            output.getExitCode());
+            res.add(ResultFeatureStatDTO.builder()
+                    .resultSetId(cctx.getResultSetId())
+                    .featureId(feature.getId())
+                    .featureStatId(featureStat.getId())
+                    .value(plateValue.orElse(null))
+                    .statisticName(featureStat.getName())
+                    .welltype(null)
+                    .statusCode(statusCode)
+                    .statusMessage(output.getStatusMessage())
+                    .exitCode(output.getExitCode()).build());
+        }
+
+        if (featureStat.isWelltypeStat()) {
+            var wellTypeValues = outputValues.getWelltypeOutputs();
+            for (var welltype : cctx.getUniqueWelltypes()) {
+                var value = wellTypeValues.get(welltype);
+                if (value == null) {
+                    cctx.getErrorCollector().handleError(String.format("executing featureStat => processing output => expected to receive a result for welltype [%s] but did not receive it", welltype), feature, featureStat, featureStat.getFormula(), output);
                 }
+                res.add(ResultFeatureStatDTO.builder()
+                        .resultSetId(cctx.getResultSetId())
+                        .featureId(feature.getId())
+                        .featureStatId(featureStat.getId())
+                        .value(value)
+                        .statisticName(featureStat.getName())
+                        .welltype(welltype)
+                        .statusCode(statusCode)
+                        .statusMessage(output.getStatusMessage())
+                        .exitCode(output.getExitCode()).build());
             }
-            return true;
-        } catch (JsonProcessingException e) {
-            cctx.getErrorCollector().handleError("executing featureStat => processing output => parsing output", e, feature, featureStat, featureStat.getFormula(), output);
-            return false;
-        } catch (Exception e) {
-            cctx.getErrorCollector().handleError("executing featureStat  => processing output => saving resultdata", e, feature, featureStat, featureStat.getFormula());
-            return false;
         }
     }
 
     /**
      * Save output in case of an error. Stores `null` as value for the Plate and/or Welltype records.
      */
-    private void saveErrorOutput(CalculationContext cctx, Feature feature, FeatureStat featureStat, ScriptExecutionOutputDTO output) {
-        try {
-            if (featureStat.isPlateStat()) {
-                resultDataServiceClient.createResultFeatureStat(
-                        cctx.getResultSetId(),
-                        feature.getId(),
-                        featureStat.getId(),
-                        Optional.empty(),
-                        featureStat.getName(),
-                        null,
-                        modelMapper.map(output.getStatusCode()),
-                        output.getStatusMessage(),
-                        output.getExitCode());
-            }
+    private void convertErrorOutput(List<ResultFeatureStatDTO> res, CalculationContext cctx, Feature feature, FeatureStat featureStat, ScriptExecutionOutputDTO output) {
+        var statusCode = modelMapper.map(output.getStatusCode());
 
-            if (featureStat.isWelltypeStat()) {
-                for (var welltype : cctx.getUniqueWelltypes()) {
-                    resultDataServiceClient.createResultFeatureStat(
-                            cctx.getResultSetId(),
-                            feature.getId(),
-                            featureStat.getId(),
-                            Optional.empty(),
-                            featureStat.getName(),
-                            welltype,
-                            modelMapper.map(output.getStatusCode()),
-                            output.getStatusMessage(),
-                            output.getExitCode());
-                }
+        if (featureStat.isPlateStat()) {
+            res.add(ResultFeatureStatDTO.builder()
+                    .resultSetId(cctx.getResultSetId())
+                    .featureId(feature.getId())
+                    .featureStatId(featureStat.getId())
+                    .value(null)
+                    .statisticName(featureStat.getName())
+                    .welltype(null)
+                    .statusCode(statusCode)
+                    .statusMessage(output.getStatusMessage())
+                    .exitCode(output.getExitCode()).build());
+        }
+
+        if (featureStat.isWelltypeStat()) {
+            for (var welltype : cctx.getUniqueWelltypes()) {
+                res.add(ResultFeatureStatDTO.builder()
+                        .resultSetId(cctx.getResultSetId())
+                        .featureId(feature.getId())
+                        .featureStatId(featureStat.getId())
+                        .value(null)
+                        .statisticName(featureStat.getName())
+                        .welltype(welltype)
+                        .statusCode(statusCode)
+                        .statusMessage(output.getStatusMessage())
+                        .exitCode(output.getExitCode())
+                        .build());
             }
-        } catch (Exception e) {
-            cctx.getErrorCollector().handleError("executing featureStat  => processing output => saving resultdata", e, feature, featureStat, featureStat.getFormula());
         }
     }
 
     /**
      * Save output in case of an error in the CalculationService. Stores `null` as value for the Plate and/or Welltype records.
      */
-    private void saveErrorOutput(CalculationContext cctx, Feature feature, FeatureStat featureStat, String statusMessage) {
-        try {
-            if (featureStat.isPlateStat()) {
-                resultDataServiceClient.createResultFeatureStat(
-                        cctx.getResultSetId(),
-                        feature.getId(),
-                        featureStat.getId(),
-                        Optional.empty(),
-                        featureStat.getName(),
-                        null,
-                        StatusCode.FAILURE,
-                        statusMessage,
-                        0);
-            }
+    private void convertErrorOutput(List<ResultFeatureStatDTO> res, CalculationContext cctx, Feature feature, FeatureStat featureStat, String statusMessage) {
+        if (featureStat.isPlateStat()) {
+            res.add(ResultFeatureStatDTO.builder()
+                    .resultSetId(cctx.getResultSetId())
+                    .featureId(feature.getId())
+                    .featureStatId(featureStat.getId())
+                    .value(null)
+                    .statisticName(featureStat.getName())
+                    .welltype(null)
+                    .statusCode(StatusCode.FAILURE)
+                    .statusMessage(statusMessage)
+                    .exitCode(0).build());
+        }
 
-            if (featureStat.isWelltypeStat()) {
-                for (var welltype : cctx.getUniqueWelltypes()) {
-                    resultDataServiceClient.createResultFeatureStat(
-                            cctx.getResultSetId(),
-                            feature.getId(),
-                            featureStat.getId(),
-                            Optional.empty(),
-                            featureStat.getName(),
-                            welltype,
-                            StatusCode.FAILURE,
-                            statusMessage,
-                            0);
-                }
+        if (featureStat.isWelltypeStat()) {
+            for (var welltype : cctx.getUniqueWelltypes()) {
+                res.add(ResultFeatureStatDTO.builder()
+                        .resultSetId(cctx.getResultSetId())
+                        .featureId(feature.getId())
+                        .featureStatId(featureStat.getId())
+                        .value(null)
+                        .statisticName(featureStat.getName())
+                        .welltype(welltype)
+                        .statusCode(StatusCode.FAILURE)
+                        .statusMessage(statusMessage)
+                        .exitCode(0)
+                        .build());
             }
-        } catch (Exception e) {
-            cctx.getErrorCollector().handleError("executing featureStat  => processing output => saving resultdata", e, feature, featureStat, featureStat.getFormula());
         }
     }
 
