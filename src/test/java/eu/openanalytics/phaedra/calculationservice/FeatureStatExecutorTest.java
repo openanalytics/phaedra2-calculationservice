@@ -57,7 +57,6 @@ import static org.mockito.Mockito.verifyNoMoreInteractions;
 @ExtendWith(MockitoExtension.class)
 public class FeatureStatExecutorTest {
 
-
     private <T> T mockUnimplemented(Class<T> clazz) {
         return mock(clazz, invocation -> {
             throw new IllegalStateException(String.format("[%s:%s] must be stubbed with arguments [%s]!", invocation.getMock().getClass().getSimpleName(), invocation.getMethod().getName(), Arrays.toString(invocation.getArguments())));

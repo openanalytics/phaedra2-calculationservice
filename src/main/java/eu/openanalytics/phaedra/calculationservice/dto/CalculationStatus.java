@@ -2,6 +2,8 @@ package eu.openanalytics.phaedra.calculationservice.dto;
 
 import com.fasterxml.jackson.annotation.JsonInclude;
 import eu.openanalytics.phaedra.calculationservice.enumeration.CalculationStatusCode;
+import eu.openanalytics.phaedra.resultdataservice.dto.ErrorDTO;
+import eu.openanalytics.phaedra.resultdataservice.enumeration.StatusCode;
 import lombok.AccessLevel;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
@@ -9,6 +11,7 @@ import lombok.NoArgsConstructor;
 import lombok.NonNull;
 import lombok.Value;
 
+import java.util.List;
 import java.util.Map;
 
 @Value
@@ -18,6 +21,10 @@ import java.util.Map;
 public class CalculationStatus {
 
     CalculationComplexityDTO complexity;
+
+    StatusCode statusCode;
+
+    List<ErrorDTO> errors;
 
     Map<Integer, SequenceStatusDTO> sequences;
 
@@ -29,6 +36,7 @@ public class CalculationStatus {
         int steps;
         int features;
         int featureStats;
+        int featureStatResults;
         int sequences;
     }
 
