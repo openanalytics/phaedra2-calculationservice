@@ -44,7 +44,7 @@ public class FeatureExecutorService {
             if (feature.getFormula().getCategory() != Category.CALCULATION
                     || feature.getFormula().getLanguage() != ScriptLanguage.R
                     || feature.getFormula().getScope() != CalculationScope.WELL) {
-                cctx.errorCollector().handleError("executing feature => unsupported formula found", feature, feature.getFormula());
+                cctx.getErrorCollector().handleError("executing feature => unsupported formula found", feature, feature.getFormula());
                 return Optional.empty();
             }
 
@@ -61,7 +61,7 @@ public class FeatureExecutorService {
             return Optional.of(execution);
         } catch (JsonProcessingException e) {
             // this error will probably never occur, see: https://stackoverflow.com/q/26716020/1393103 for examples where it does
-            cctx.errorCollector().handleError("executing feature => writing input variables and request", e, feature, feature.getFormula());
+            cctx.getErrorCollector().handleError("executing feature => writing input variables and request", e, feature, feature.getFormula());
         }
         return Optional.empty();
     }
@@ -73,26 +73,26 @@ public class FeatureExecutorService {
             try {
                 if (inputVariables.containsKey(civ.getVariableName())) {
                     // the ProtocolService makes sure this cannot happen, but extra check to make sure
-                    cctx.errorCollector().handleError("executing sequence => executing feature => collecting variables for feature => duplicate variable name detected", feature, feature.getFormula(), civ);
+                    cctx.getErrorCollector().handleError("executing sequence => executing feature => collecting variables for feature => duplicate variable name detected", feature, feature.getFormula(), civ);
                     return Optional.empty();
                 }
 
                 if (civ.getSourceFeatureId() != null) {
                     if (currentSequence == 0) {
-                        cctx.errorCollector().handleError("executing sequence => executing feature => collecting variables for feature => retrieving measurement => trying to get feature in sequence 0", feature, feature.getFormula(), civ);
+                        cctx.getErrorCollector().handleError("executing sequence => executing feature => collecting variables for feature => retrieving measurement => trying to get feature in sequence 0", feature, feature.getFormula(), civ);
                         return Optional.empty();
                     }
-                    inputVariables.put(civ.getVariableName(), resultDataServiceClient.getResultData(cctx.resultSetId(), civ.getSourceFeatureId()).getValues());
+                    inputVariables.put(civ.getVariableName(), resultDataServiceClient.getResultData(cctx.getResultSetId(), civ.getSourceFeatureId()).getValues());
                 } else if (civ.getSourceMeasColName() != null) {
-                    inputVariables.put(civ.getVariableName(), measurementServiceClient.getWellData(cctx.measId(), civ.getSourceMeasColName()));
+                    inputVariables.put(civ.getVariableName(), measurementServiceClient.getWellData(cctx.getMeasId(), civ.getSourceMeasColName()));
                 } else {
                     // the ProtocolService makes sure this cannot happen, but extra check to make sure
-                    cctx.errorCollector().handleError("executing sequence => executing feature => collecting variables for feature => retrieving measurement => civ has no valid source", feature, feature.getFormula(), civ);
+                    cctx.getErrorCollector().handleError("executing sequence => executing feature => collecting variables for feature => retrieving measurement => civ has no valid source", feature, feature.getFormula(), civ);
                     return Optional.empty();
                 }
 
             } catch (MeasUnresolvableException | ResultDataUnresolvableException e) {
-                cctx.errorCollector().handleError("executing sequence => executing feature => collecting variables for feature => retrieving measurement", e, feature, feature.getFormula(), civ);
+                cctx.getErrorCollector().handleError("executing sequence => executing feature => collecting variables for feature => retrieving measurement", e, feature, feature.getFormula(), civ);
                 return Optional.empty();
             }
         }

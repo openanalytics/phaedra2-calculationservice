@@ -51,12 +51,12 @@ public class FeatureStatExecutor {
 
     public Boolean executeFeatureStat(CalculationContext cctx, Feature feature, ResultDataDTO resultData) {
         if (!Objects.equals(resultData.getFeatureId(), feature.getId())) {
-            cctx.errorCollector().handleError("Skipping calculating FeatureStats because FeatureId does not match the FeatureId of the ResultData", feature);
+            cctx.getErrorCollector().handleError("Skipping calculating FeatureStats because FeatureId does not match the FeatureId of the ResultData", feature);
             return false;
         }
 
         if (resultData.getStatusCode() != StatusCode.SUCCESS) {
-            cctx.errorCollector().handleError("Skipping calculating FeatureStats because the ResultData indicates an error", feature);
+            cctx.getErrorCollector().handleError("Skipping calculating FeatureStats because the ResultData indicates an error", feature);
             return false;
         }
 
@@ -71,7 +71,7 @@ public class FeatureStatExecutor {
             // B. validate it
             if (formula.getCategory() != Category.CALCULATION
                     || formula.getLanguage() != ScriptLanguage.JAVASTAT) {
-                cctx.errorCollector().handleError("Skipping calculating FeatureStat because the formula is not valid (category must be CALCULATION, language must be JAVASTAT)",
+                cctx.getErrorCollector().handleError("Skipping calculating FeatureStat because the formula is not valid (category must be CALCULATION, language must be JAVASTAT)",
                         feature, featureStat, formula);
                 saveErrorOutput(cctx, feature, featureStat, "CalculationService detected an invalid formula");
                 success = false;
@@ -80,9 +80,9 @@ public class FeatureStatExecutor {
 
             // C. prepare input
             var input = new HashMap<String, Object>() {{
-                put("lowWelltype", cctx.protocol().getLowWelltype());
-                put("highWelltype", cctx.protocol().getHighWelltype());
-                put("welltypes", cctx.welltypesSorted());
+                put("lowWelltype", cctx.getProtocol().getLowWelltype());
+                put("highWelltype", cctx.getProtocol().getHighWelltype());
+                put("welltypes", cctx.getWelltypesSorted());
                 put("featureValues", resultData.getValues());
                 put("isPlateStat", featureStat.isPlateStat());
                 put("isWelltypeStat", featureStat.isWelltypeStat());
@@ -102,7 +102,7 @@ public class FeatureStatExecutor {
                 calculations.add(new FeatureStatCalculation(featureStat, execution));
             } catch (JsonProcessingException e) {
                 // this error will probably never occur, see: https://stackoverflow.com/q/26716020/1393103 for examples where it does
-                cctx.errorCollector().handleError("executing featureStat => writing input variables and request", e, feature, featureStat, featureStat.getFormula());
+                cctx.getErrorCollector().handleError("executing featureStat => writing input variables and request", e, feature, featureStat, featureStat.getFormula());
             }
         }
 
@@ -111,13 +111,13 @@ public class FeatureStatExecutor {
             try {
                 calculation.waitForOutput();
             } catch (InterruptedException e) {
-                cctx.errorCollector().handleError("executing featureStat => waiting for output to be received => interrupted", e, feature, calculation.getFeatureStat(), calculation.getFeatureStat().getFormula());
+                cctx.getErrorCollector().handleError("executing featureStat => waiting for output to be received => interrupted", e, feature, calculation.getFeatureStat(), calculation.getFeatureStat().getFormula());
                 success = false;
             } catch (ExecutionException e) {
-                cctx.errorCollector().handleError("executing featureStat => waiting for output to be received => exception during execution", e.getCause(), feature, calculation.getFeatureStat(), calculation.getFeatureStat().getFormula());
+                cctx.getErrorCollector().handleError("executing featureStat => waiting for output to be received => exception during execution", e.getCause(), feature, calculation.getFeatureStat(), calculation.getFeatureStat().getFormula());
                 success = false;
             } catch (Throwable e) {
-                cctx.errorCollector().handleError("executing featureStat => waiting for output to be received => exception during execution", e, feature, calculation.getFeatureStat(), calculation.getFeatureStat().getFormula());
+                cctx.getErrorCollector().handleError("executing featureStat => waiting for output to be received => exception during execution", e, feature, calculation.getFeatureStat(), calculation.getFeatureStat().getFormula());
                 success = false;
             }
         }
@@ -136,12 +136,12 @@ public class FeatureStatExecutor {
                     success &= saveOutput(cctx, feature, featureStat, output);
                 }
                 case BAD_REQUEST -> {
-                    cctx.errorCollector().handleError("executing featureStat => processing output => output indicates bad request", feature, featureStat, featureStat.getFormula());
+                    cctx.getErrorCollector().handleError("executing featureStat => processing output => output indicates bad request", feature, featureStat, featureStat.getFormula());
                     saveErrorOutput(cctx, feature, featureStat, output);
                     success = false;
                 }
                 case SCRIPT_ERROR -> {
-                    cctx.errorCollector().handleError("executing featureStat => processing output => output indicates script error", feature, featureStat, featureStat.getFormula());
+                    cctx.getErrorCollector().handleError("executing featureStat => processing output => output indicates script error", feature, featureStat, featureStat.getFormula());
                     saveErrorOutput(cctx, feature, featureStat, output);
                     success = false;
                 }
@@ -164,10 +164,10 @@ public class FeatureStatExecutor {
 
             if (featureStat.isPlateStat()) {
                 if (plateValue.isEmpty()) {
-                    cctx.errorCollector().handleError("executing featureStat => processing output => expected to receive a plateValue but did not receive it", feature, featureStat, featureStat.getFormula(), output);
+                    cctx.getErrorCollector().handleError("executing featureStat => processing output => expected to receive a plateValue but did not receive it", feature, featureStat, featureStat.getFormula(), output);
                 }
                 resultDataServiceClient.createResultFeatureStat(
-                        cctx.resultSetId(),
+                        cctx.getResultSetId(),
                         feature.getId(),
                         featureStat.getId(),
                         plateValue,
@@ -180,13 +180,13 @@ public class FeatureStatExecutor {
 
             if (featureStat.isWelltypeStat()) {
                 var wellTypeValues = outputValues.getWelltypeOutputs();
-                for (var welltype : cctx.uniqueWelltypes()) {
+                for (var welltype : cctx.getUniqueWelltypes()) {
                     var value = wellTypeValues.get(welltype);
                     if (value == null) {
-                        cctx.errorCollector().handleError(String.format("executing featureStat => processing output => expected to receive a result for welltype [%s] but did not receive it", welltype), feature, featureStat, featureStat.getFormula(), output);
+                        cctx.getErrorCollector().handleError(String.format("executing featureStat => processing output => expected to receive a result for welltype [%s] but did not receive it", welltype), feature, featureStat, featureStat.getFormula(), output);
                     }
                     resultDataServiceClient.createResultFeatureStat(
-                            cctx.resultSetId(),
+                            cctx.getResultSetId(),
                             feature.getId(),
                             featureStat.getId(),
                             Optional.ofNullable(value),
@@ -199,10 +199,10 @@ public class FeatureStatExecutor {
             }
             return true;
         } catch (JsonProcessingException e) {
-            cctx.errorCollector().handleError("executing featureStat => processing output => parsing output", e, feature, featureStat, featureStat.getFormula(), output);
+            cctx.getErrorCollector().handleError("executing featureStat => processing output => parsing output", e, feature, featureStat, featureStat.getFormula(), output);
             return false;
         } catch (Exception e) {
-            cctx.errorCollector().handleError("executing featureStat  => processing output => saving resultdata", e, feature, featureStat, featureStat.getFormula());
+            cctx.getErrorCollector().handleError("executing featureStat  => processing output => saving resultdata", e, feature, featureStat, featureStat.getFormula());
             return false;
         }
     }
@@ -214,7 +214,7 @@ public class FeatureStatExecutor {
         try {
             if (featureStat.isPlateStat()) {
                 resultDataServiceClient.createResultFeatureStat(
-                        cctx.resultSetId(),
+                        cctx.getResultSetId(),
                         feature.getId(),
                         featureStat.getId(),
                         Optional.empty(),
@@ -226,9 +226,9 @@ public class FeatureStatExecutor {
             }
 
             if (featureStat.isWelltypeStat()) {
-                for (var welltype : cctx.uniqueWelltypes()) {
+                for (var welltype : cctx.getUniqueWelltypes()) {
                     resultDataServiceClient.createResultFeatureStat(
-                            cctx.resultSetId(),
+                            cctx.getResultSetId(),
                             feature.getId(),
                             featureStat.getId(),
                             Optional.empty(),
@@ -240,7 +240,7 @@ public class FeatureStatExecutor {
                 }
             }
         } catch (Exception e) {
-            cctx.errorCollector().handleError("executing featureStat  => processing output => saving resultdata", e, feature, featureStat, featureStat.getFormula());
+            cctx.getErrorCollector().handleError("executing featureStat  => processing output => saving resultdata", e, feature, featureStat, featureStat.getFormula());
         }
     }
 
@@ -251,7 +251,7 @@ public class FeatureStatExecutor {
         try {
             if (featureStat.isPlateStat()) {
                 resultDataServiceClient.createResultFeatureStat(
-                        cctx.resultSetId(),
+                        cctx.getResultSetId(),
                         feature.getId(),
                         featureStat.getId(),
                         Optional.empty(),
@@ -263,9 +263,9 @@ public class FeatureStatExecutor {
             }
 
             if (featureStat.isWelltypeStat()) {
-                for (var welltype : cctx.uniqueWelltypes()) {
+                for (var welltype : cctx.getUniqueWelltypes()) {
                     resultDataServiceClient.createResultFeatureStat(
-                            cctx.resultSetId(),
+                            cctx.getResultSetId(),
                             feature.getId(),
                             featureStat.getId(),
                             Optional.empty(),
@@ -277,7 +277,7 @@ public class FeatureStatExecutor {
                 }
             }
         } catch (Exception e) {
-            cctx.errorCollector().handleError("executing featureStat  => processing output => saving resultdata", e, feature, featureStat, featureStat.getFormula());
+            cctx.getErrorCollector().handleError("executing featureStat  => processing output => saving resultdata", e, feature, featureStat, featureStat.getFormula());
         }
     }
 
