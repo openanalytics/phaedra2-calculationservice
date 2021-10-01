@@ -202,7 +202,7 @@ public class FeatureStatExecutorTest {
 
     @Test
     public void testInvalidFeatureId() {
-        var cctx = CalculationContext.newInstance(null, null, 1L, 2L, getWells(), getUniqueWellTypes());
+        var cctx = CalculationContext.newInstance(PlateDTO.builder().id(1L).build(), Protocol.builder().id(1L).build(), 1L, 2L, getWells(), getUniqueWellTypes());
 
         var feature = new Feature(1L, "Feature1", null, null, "AFormat", FeatureType.CALCULATION, 0,
                 new Formula(1L, "abc_duplicator", null, Category.CALCULATION, "output <- input$abc * 2", ScriptLanguage.R, CalculationScope.WELL, "me", LocalDateTime.now(), "me", LocalDateTime.now()),
@@ -230,7 +230,7 @@ public class FeatureStatExecutorTest {
 
     @Test
     public void testInvalidStatusCode() {
-        var cctx = CalculationContext.newInstance(null, null, 1L, 2L, getWells(), getUniqueWellTypes());
+        var cctx = CalculationContext.newInstance(PlateDTO.builder().id(1L).build(), Protocol.builder().id(1L).build(), 1L, 2L, getWells(), getUniqueWellTypes());
 
         var feature = new Feature(1L, "Feature1", null, null, "AFormat", FeatureType.CALCULATION, 0,
                 new Formula(1L, "abc_duplicator", null, Category.CALCULATION, "output <- input$abc * 2", ScriptLanguage.R, CalculationScope.WELL, "me", LocalDateTime.now(), "me", LocalDateTime.now()),

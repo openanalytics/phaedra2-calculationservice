@@ -5,6 +5,7 @@ import eu.openanalytics.phaedra.platservice.dto.PlateDTO;
 import lombok.AccessLevel;
 import lombok.AllArgsConstructor;
 import lombok.Data;
+import lombok.NonNull;
 import lombok.Setter;
 
 import java.util.LinkedHashSet;
@@ -17,14 +18,29 @@ import java.util.concurrent.Future;
 @Setter(AccessLevel.PRIVATE)
 public class CalculationContext {
 
+    @NonNull
     PlateDTO plate;
+
+    @NonNull
     Protocol protocol;
+
+    @NonNull
     Long resultSetId;
+
+    @NonNull
     Long measId;
+
     ErrorCollector errorCollector;
+
+    @NonNull
     List<String> welltypesSorted;
+
+    @NonNull
     LinkedHashSet<String> uniqueWelltypes;
+
     int numWelltypes;
+
+    @NonNull
     ConcurrentHashMap<Feature, Future<Boolean>> computedStatsForFeature;
 
     public static CalculationContext newInstance(PlateDTO plate,
