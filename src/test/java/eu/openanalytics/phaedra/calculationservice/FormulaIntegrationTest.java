@@ -292,7 +292,7 @@ public class FormulaIntegrationTest extends AbstractIntegrationTest {
             put("language", "R");
         }}), HttpStatus.BAD_REQUEST);
 
-        Assertions.assertEquals("{\"error\":\"Validation error\",\"malformed_fields\":{\"category\":\"Invalid value provided\"},\"status\":\"error\"}", res3);
+        Assertions.assertEquals("{\"error\":\"Validation error\",\"malformed_fields\":{\"category\":\"Invalid value (\\\"NOT_EXISTING_CATEGORY\\\") provided\"},\"status\":\"error\"}", res3);
 
         // 4. wrong scope
         var res4 = performRequest(post("/formulas", new HashMap<>() {{
@@ -304,7 +304,7 @@ public class FormulaIntegrationTest extends AbstractIntegrationTest {
             put("language", "R");
         }}), HttpStatus.BAD_REQUEST);
 
-        Assertions.assertEquals("{\"error\":\"Validation error\",\"malformed_fields\":{\"scope\":\"Invalid value provided\"},\"status\":\"error\"}", res4);
+        Assertions.assertEquals("{\"error\":\"Validation error\",\"malformed_fields\":{\"scope\":\"Invalid value (\\\"NOT_EXISTING_SCOPE\\\") provided\"},\"status\":\"error\"}", res4);
 
         // 5. wrong language
         var res5 = performRequest(post("/formulas", new HashMap<>() {{
@@ -316,7 +316,7 @@ public class FormulaIntegrationTest extends AbstractIntegrationTest {
             put("language", "COBOL");
         }}), HttpStatus.BAD_REQUEST);
 
-        Assertions.assertEquals("{\"error\":\"Validation error\",\"malformed_fields\":{\"language\":\"Invalid value provided\"},\"status\":\"error\"}", res5);
+        Assertions.assertEquals("{\"error\":\"Validation error\",\"malformed_fields\":{\"language\":\"Invalid value (\\\"COBOL\\\") provided\"},\"status\":\"error\"}", res5);
     }
 
 }

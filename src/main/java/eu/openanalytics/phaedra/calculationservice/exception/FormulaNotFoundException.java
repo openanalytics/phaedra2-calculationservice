@@ -1,15 +1,11 @@
 package eu.openanalytics.phaedra.calculationservice.exception;
 
-public class FormulaNotFoundException extends Exception {
+import eu.openanalytics.phaedra.util.exceptionhandling.EntityNotFoundException;
 
-    private final long requestedId;
+public class FormulaNotFoundException extends EntityNotFoundException {
 
     public FormulaNotFoundException(long requestedId) {
-        this.requestedId = requestedId;
-    }
-
-    public String getMessage() {
-        return String.format("Requested formula with id %s was not found", requestedId);
+        super(String.format("Requested formula with id %s was not found", requestedId));
     }
 
 }
