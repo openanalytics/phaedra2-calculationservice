@@ -70,7 +70,7 @@ public class InMemoryResultDataServiceClient implements ResultDataServiceClient 
         var res = new ArrayList<ResultFeatureStatDTO>();
         for (var resultFeatureStat : resultFeatureStats) {
             var newId = (long) featureStats.size();
-            resultFeatureStat = resultFeatureStat.toBuilder().id(newId).build();
+            resultFeatureStat = resultFeatureStat.toBuilder().id(newId).resultSetId(resultSetId).build();
             featureStats.add(resultFeatureStat);
             res.add(resultFeatureStat);
         }
