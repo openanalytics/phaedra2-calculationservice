@@ -191,7 +191,6 @@ public class FeatureStatExecutor {
             }
 
             res.add(ResultFeatureStatDTO.builder()
-                    .resultSetId(cctx.getResultSetId())
                     .featureId(feature.getId())
                     .featureStatId(featureStat.getId())
                     .value(plateValue.orElse(null))
@@ -210,7 +209,6 @@ public class FeatureStatExecutor {
                     cctx.getErrorCollector().handleError(String.format("executing featureStat => processing output => expected to receive a result for welltype [%s] but did not receive it", welltype), feature, featureStat, featureStat.getFormula(), output);
                 }
                 res.add(ResultFeatureStatDTO.builder()
-                        .resultSetId(cctx.getResultSetId())
                         .featureId(feature.getId())
                         .featureStatId(featureStat.getId())
                         .value(value)
@@ -231,7 +229,6 @@ public class FeatureStatExecutor {
 
         if (featureStat.isPlateStat()) {
             res.add(ResultFeatureStatDTO.builder()
-                    .resultSetId(cctx.getResultSetId())
                     .featureId(feature.getId())
                     .featureStatId(featureStat.getId())
                     .value(null)
@@ -245,7 +242,6 @@ public class FeatureStatExecutor {
         if (featureStat.isWelltypeStat()) {
             for (var welltype : cctx.getUniqueWelltypes()) {
                 res.add(ResultFeatureStatDTO.builder()
-                        .resultSetId(cctx.getResultSetId())
                         .featureId(feature.getId())
                         .featureStatId(featureStat.getId())
                         .value(null)
@@ -265,7 +261,6 @@ public class FeatureStatExecutor {
     private void convertErrorOutput(List<ResultFeatureStatDTO> res, CalculationContext cctx, Feature feature, FeatureStat featureStat, String statusMessage) {
         if (featureStat.isPlateStat()) {
             res.add(ResultFeatureStatDTO.builder()
-                    .resultSetId(cctx.getResultSetId())
                     .featureId(feature.getId())
                     .featureStatId(featureStat.getId())
                     .value(null)
@@ -279,7 +274,6 @@ public class FeatureStatExecutor {
         if (featureStat.isWelltypeStat()) {
             for (var welltype : cctx.getUniqueWelltypes()) {
                 res.add(ResultFeatureStatDTO.builder()
-                        .resultSetId(cctx.getResultSetId())
                         .featureId(feature.getId())
                         .featureStatId(featureStat.getId())
                         .value(null)
