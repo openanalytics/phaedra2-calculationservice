@@ -15,7 +15,6 @@ import eu.openanalytics.phaedra.calculationservice.model.Protocol;
 import eu.openanalytics.phaedra.calculationservice.model.Sequence;
 import eu.openanalytics.phaedra.calculationservice.service.ModelMapper;
 import eu.openanalytics.phaedra.calculationservice.service.featurestat.FeatureStatExecutor;
-import eu.openanalytics.phaedra.calculationservice.service.protocol.ErrorCollector;
 import eu.openanalytics.phaedra.calculationservice.support.InMemoryResultDataServiceClient;
 import eu.openanalytics.phaedra.platservice.client.PlateServiceClient;
 import eu.openanalytics.phaedra.platservice.dto.PlateDTO;
@@ -41,12 +40,12 @@ import java.util.Arrays;
 import java.util.HashMap;
 import java.util.LinkedHashSet;
 import java.util.List;
-import java.util.Optional;
 import java.util.Timer;
 import java.util.TimerTask;
-import java.util.concurrent.ConcurrentHashMap;
 
 import static eu.openanalytics.phaedra.calculationservice.CalculationService.JAVASTAT_FAST_LANE;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.doNothing;
 import static org.mockito.Mockito.doReturn;
 import static org.mockito.Mockito.doThrow;
@@ -93,8 +92,7 @@ public class FeatureStatExecutorTest {
                 new HashMap<>() {{
                     put(0, new Sequence(0, List.of(feature)));
                 }});
-        var cctx = new CalculationContext(plate, protocol, 1L, 2L, new ErrorCollector(), getWells(), new LinkedHashSet<>(List.of("LC", "SAMPLE", "HC")), 3, new ConcurrentHashMap<>());
-
+        var cctx = CalculationContext.newInstance(plate, protocol, 1L, 2L, getWells(), getUniqueWellTypes());
 
         var input = new ScriptExecution(new TargetRuntime("JAVASTAT", "fast-lane", "v1"), formula.getFormula(),
                 "{\"isWelltypeStat\":true,\"isPlateStat\":true,\"welltypes\":[\"LC\",\"SAMPLE\",\"SAMPLE\",\"HC\"],\"highWelltype\":\"HCG\",\"lowWelltype\":\"LC\",\"featureValues\":[1.0,2.0,3.0,5.0]}",
@@ -141,7 +139,7 @@ public class FeatureStatExecutorTest {
                 new HashMap<>() {{
                     put(0, new Sequence(0, List.of(feature)));
                 }});
-        var cctx = new CalculationContext(plate, protocol, 1L, 2L, new ErrorCollector(), getWells(), new LinkedHashSet<>(List.of("LC", "SAMPLE", "HC")), 3, new ConcurrentHashMap<>());
+        var cctx = CalculationContext.newInstance(plate, protocol, 1L, 2L, getWells(), getUniqueWellTypes());
 
         var input1 = new ScriptExecution(new TargetRuntime("JAVASTAT", "fast-lane", "v1"), formula1.getFormula(),
                 "{\"isWelltypeStat\":true,\"isPlateStat\":true,\"welltypes\":[\"LC\",\"SAMPLE\",\"SAMPLE\",\"HC\"],\"highWelltype\":\"HCG\",\"lowWelltype\":\"LC\",\"featureValues\":[1.0,2.0,3.0,5.0]}",
@@ -205,7 +203,7 @@ public class FeatureStatExecutorTest {
 
     @Test
     public void testInvalidFeatureId() {
-        var cctx = new CalculationContext(null, null, 1L, 2L, new ErrorCollector(), getWells(), new LinkedHashSet<>(List.of("LC", "SAMPLE", "HC")), 3, new ConcurrentHashMap<>());
+        var cctx = CalculationContext.newInstance(PlateDTO.builder().id(1L).build(), Protocol.builder().id(1L).build(), 1L, 2L, getWells(), getUniqueWellTypes());
 
         var feature = new Feature(1L, "Feature1", null, null, "AFormat", FeatureType.CALCULATION, 0,
                 new Formula(1L, "abc_duplicator", null, Category.CALCULATION, "output <- input$abc * 2", ScriptLanguage.R, CalculationScope.WELL, "me", LocalDateTime.now(), "me", LocalDateTime.now()),
@@ -224,16 +222,16 @@ public class FeatureStatExecutorTest {
 
         var success = featureStatExecutor.executeFeatureStat(cctx, feature, resultData);
         Assertions.assertFalse(success);
-        Assertions.assertTrue(cctx.errorCollector().hasError());
-        Assertions.assertEquals(1, cctx.errorCollector().getErrors().size());
-        Assertions.assertEquals("Skipping calculating FeatureStats because FeatureId does not match the FeatureId of the ResultData", cctx.errorCollector().getErrors().get(0).getDescription());
-        Assertions.assertEquals(1L, cctx.errorCollector().getErrors().get(0).getFeatureId());
+        Assertions.assertTrue(cctx.getErrorCollector().hasError());
+        Assertions.assertEquals(1, cctx.getErrorCollector().getErrors().size());
+        Assertions.assertEquals("Skipping calculating FeatureStats because FeatureId does not match the FeatureId of the ResultData", cctx.getErrorCollector().getErrors().get(0).getDescription());
+        Assertions.assertEquals(1L, cctx.getErrorCollector().getErrors().get(0).getFeatureId());
     }
 
 
     @Test
     public void testInvalidStatusCode() {
-        var cctx = new CalculationContext(null, null, 1L, 2L, new ErrorCollector(), getWells(), new LinkedHashSet<>(List.of("LC", "SAMPLE", "HC")), 3, new ConcurrentHashMap<>());
+        var cctx = CalculationContext.newInstance(PlateDTO.builder().id(1L).build(), Protocol.builder().id(1L).build(), 1L, 2L, getWells(), getUniqueWellTypes());
 
         var feature = new Feature(1L, "Feature1", null, null, "AFormat", FeatureType.CALCULATION, 0,
                 new Formula(1L, "abc_duplicator", null, Category.CALCULATION, "output <- input$abc * 2", ScriptLanguage.R, CalculationScope.WELL, "me", LocalDateTime.now(), "me", LocalDateTime.now()),
@@ -252,10 +250,10 @@ public class FeatureStatExecutorTest {
 
         var success = featureStatExecutor.executeFeatureStat(cctx, feature, resultData);
         Assertions.assertFalse(success);
-        Assertions.assertTrue(cctx.errorCollector().hasError());
-        Assertions.assertEquals(1, cctx.errorCollector().getErrors().size());
-        Assertions.assertEquals("Skipping calculating FeatureStats because the ResultData indicates an error", cctx.errorCollector().getErrors().get(0).getDescription());
-        Assertions.assertEquals(1L, cctx.errorCollector().getErrors().get(0).getFeatureId());
+        Assertions.assertTrue(cctx.getErrorCollector().hasError());
+        Assertions.assertEquals(1, cctx.getErrorCollector().getErrors().size());
+        Assertions.assertEquals("Skipping calculating FeatureStats because the ResultData indicates an error", cctx.getErrorCollector().getErrors().get(0).getDescription());
+        Assertions.assertEquals(1L, cctx.getErrorCollector().getErrors().get(0).getFeatureId());
     }
 
     @Test
@@ -283,7 +281,7 @@ public class FeatureStatExecutorTest {
                 new HashMap<>() {{
                     put(0, new Sequence(0, List.of(feature)));
                 }});
-        var cctx = new CalculationContext(plate, protocol, 1L, 2L, new ErrorCollector(), getWells(), new LinkedHashSet<>(List.of("LC", "SAMPLE", "HC")), 3, new ConcurrentHashMap<>());
+        var cctx = CalculationContext.newInstance(plate, protocol, 1L, 2L, getWells(), getUniqueWellTypes());
 
         var input1 = new ScriptExecution(new TargetRuntime("JAVASTAT", "fast-lane", "v1"), formula1.getFormula(),
                 "{\"isWelltypeStat\":true,\"isPlateStat\":true,\"welltypes\":[\"LC\",\"SAMPLE\",\"SAMPLE\",\"HC\"],\"highWelltype\":\"HCG\",\"lowWelltype\":\"LC\",\"featureValues\":[1.0,2.0,3.0,5.0]}",
@@ -307,12 +305,12 @@ public class FeatureStatExecutorTest {
         assertFeatureStatResult("SAMPLE", 6L, "count", 61);
         assertFeatureStatResult("HC", 7L, "count", 10);
 
-        Assertions.assertTrue(cctx.errorCollector().hasError());
-        Assertions.assertEquals(1, cctx.errorCollector().getErrors().size());
-        Assertions.assertEquals("Skipping calculating FeatureStat because the formula is not valid (category must be CALCULATION, language must be JAVASTAT)", cctx.errorCollector().getErrors().get(0).getDescription());
-        Assertions.assertEquals(1L, cctx.errorCollector().getErrors().get(0).getFeatureId());
-        Assertions.assertEquals(14L, cctx.errorCollector().getErrors().get(0).getFormulaId());
-        Assertions.assertEquals("min", cctx.errorCollector().getErrors().get(0).getFormulaName());
+        Assertions.assertTrue(cctx.getErrorCollector().hasError());
+        Assertions.assertEquals(1, cctx.getErrorCollector().getErrors().size());
+        Assertions.assertEquals("Skipping calculating FeatureStat because the formula is not valid (category must be CALCULATION, language must be JAVASTAT)", cctx.getErrorCollector().getErrors().get(0).getDescription());
+        Assertions.assertEquals(1L, cctx.getErrorCollector().getErrors().get(0).getFeatureId());
+        Assertions.assertEquals(14L, cctx.getErrorCollector().getErrors().get(0).getFormulaId());
+        Assertions.assertEquals("min", cctx.getErrorCollector().getErrors().get(0).getFormulaName());
 
         verifyNoMoreInteractions(plateServiceClient, scriptEngineClient);
     }
@@ -336,7 +334,7 @@ public class FeatureStatExecutorTest {
                 new HashMap<>() {{
                     put(0, new Sequence(0, List.of(feature)));
                 }});
-        var cctx = new CalculationContext(plate, protocol, 1L, 2L, new ErrorCollector(), getWells(), new LinkedHashSet<>(List.of("LC", "SAMPLE", "HC")), 3, new ConcurrentHashMap<>());
+        var cctx = CalculationContext.newInstance(plate, protocol, 1L, 2L, getWells(), getUniqueWellTypes());
 
         var input1 = new ScriptExecution(new TargetRuntime("JAVASTAT", "fast-lane", "v1"), formula1.getFormula(),
                 "{\"isWelltypeStat\":true,\"isPlateStat\":true,\"welltypes\":[\"LC\",\"SAMPLE\",\"SAMPLE\",\"HC\"],\"highWelltype\":\"HCG\",\"lowWelltype\":\"LC\",\"featureValues\":[1.0,2.0,3.0,5.0]}",
@@ -365,14 +363,14 @@ public class FeatureStatExecutorTest {
         assertFeatureStatResult("SAMPLE", 2L, "count", 61);
         assertFeatureStatResult("HC", 3L, "count", 10);
 
-        Assertions.assertTrue(cctx.errorCollector().hasError());
-        Assertions.assertEquals(1, cctx.errorCollector().getErrors().size());
-        Assertions.assertEquals("executing featureStat => waiting for output to be received => exception during execution", cctx.errorCollector().getErrors().get(0).getDescription());
-        Assertions.assertEquals("Some error during execution!", cctx.errorCollector().getErrors().get(0).getExceptionMessage());
-        Assertions.assertEquals("RuntimeException", cctx.errorCollector().getErrors().get(0).getExceptionClassName());
-        Assertions.assertEquals(1L, cctx.errorCollector().getErrors().get(0).getFeatureId());
-        Assertions.assertEquals(14L, cctx.errorCollector().getErrors().get(0).getFormulaId());
-        Assertions.assertEquals("min", cctx.errorCollector().getErrors().get(0).getFormulaName());
+        Assertions.assertTrue(cctx.getErrorCollector().hasError());
+        Assertions.assertEquals(1, cctx.getErrorCollector().getErrors().size());
+        Assertions.assertEquals("executing featureStat => waiting for output to be received => exception during execution", cctx.getErrorCollector().getErrors().get(0).getDescription());
+        Assertions.assertEquals("Some error during execution!", cctx.getErrorCollector().getErrors().get(0).getExceptionMessage());
+        Assertions.assertEquals("RuntimeException", cctx.getErrorCollector().getErrors().get(0).getExceptionClassName());
+        Assertions.assertEquals(1L, cctx.getErrorCollector().getErrors().get(0).getFeatureId());
+        Assertions.assertEquals(14L, cctx.getErrorCollector().getErrors().get(0).getFormulaId());
+        Assertions.assertEquals("min", cctx.getErrorCollector().getErrors().get(0).getFormulaName());
 
         verifyNoMoreInteractions(plateServiceClient, scriptEngineClient);
     }
@@ -396,7 +394,7 @@ public class FeatureStatExecutorTest {
                 new HashMap<>() {{
                     put(0, new Sequence(0, List.of(feature)));
                 }});
-        var cctx = new CalculationContext(plate, protocol, 1L, 2L, new ErrorCollector(), getWells(), new LinkedHashSet<>(List.of("LC", "SAMPLE", "HC")), 3, new ConcurrentHashMap<>());
+        var cctx = CalculationContext.newInstance(plate, protocol, 1L, 2L, getWells(), getUniqueWellTypes());
 
         var input1 = new ScriptExecution(new TargetRuntime("JAVASTAT", "fast-lane", "v1"), formula1.getFormula(),
                 "{\"isWelltypeStat\":true,\"isPlateStat\":true,\"welltypes\":[\"LC\",\"SAMPLE\",\"SAMPLE\",\"HC\"],\"highWelltype\":\"HCG\",\"lowWelltype\":\"LC\",\"featureValues\":[1.0,2.0,3.0,5.0]}",
@@ -425,14 +423,14 @@ public class FeatureStatExecutorTest {
         assertFeatureStatResult("SAMPLE", 2L, "count", 61);
         assertFeatureStatResult("HC", 3L, "count", 10);
 
-        Assertions.assertTrue(cctx.errorCollector().hasError());
-        Assertions.assertEquals(1, cctx.errorCollector().getErrors().size());
-        Assertions.assertEquals("executing featureStat => waiting for output to be received => exception during execution", cctx.errorCollector().getErrors().get(0).getDescription());
-        Assertions.assertNull(cctx.errorCollector().getErrors().get(0).getExceptionMessage());
-        Assertions.assertEquals("CancellationException", cctx.errorCollector().getErrors().get(0).getExceptionClassName());
-        Assertions.assertEquals(1L, cctx.errorCollector().getErrors().get(0).getFeatureId());
-        Assertions.assertEquals(14L, cctx.errorCollector().getErrors().get(0).getFormulaId());
-        Assertions.assertEquals("min", cctx.errorCollector().getErrors().get(0).getFormulaName());
+        Assertions.assertTrue(cctx.getErrorCollector().hasError());
+        Assertions.assertEquals(1, cctx.getErrorCollector().getErrors().size());
+        Assertions.assertEquals("executing featureStat => waiting for output to be received => exception during execution", cctx.getErrorCollector().getErrors().get(0).getDescription());
+        Assertions.assertNull(cctx.getErrorCollector().getErrors().get(0).getExceptionMessage());
+        Assertions.assertEquals("CancellationException", cctx.getErrorCollector().getErrors().get(0).getExceptionClassName());
+        Assertions.assertEquals(1L, cctx.getErrorCollector().getErrors().get(0).getFeatureId());
+        Assertions.assertEquals(14L, cctx.getErrorCollector().getErrors().get(0).getFormulaId());
+        Assertions.assertEquals("min", cctx.getErrorCollector().getErrors().get(0).getFormulaName());
 
         verifyNoMoreInteractions(plateServiceClient, scriptEngineClient);
     }
@@ -456,7 +454,7 @@ public class FeatureStatExecutorTest {
                 new HashMap<>() {{
                     put(0, new Sequence(0, List.of(feature)));
                 }});
-        var cctx = new CalculationContext(plate, protocol, 1L, 2L, new ErrorCollector(), getWells(), new LinkedHashSet<>(List.of("LC", "SAMPLE", "HC")), 3, new ConcurrentHashMap<>());
+        var cctx = CalculationContext.newInstance(plate, protocol, 1L, 2L, getWells(), getUniqueWellTypes());
 
         var input1 = new ScriptExecution(new TargetRuntime("JAVASTAT", "fast-lane", "v1"), formula1.getFormula(),
                 "{\"isWelltypeStat\":true,\"isPlateStat\":true,\"welltypes\":[\"LC\",\"SAMPLE\",\"SAMPLE\",\"HC\"],\"highWelltype\":\"HCG\",\"lowWelltype\":\"LC\",\"featureValues\":[1.0,2.0,3.0,5.0]}",
@@ -492,14 +490,14 @@ public class FeatureStatExecutorTest {
         assertFeatureStatResult("SAMPLE", 2L, "count", 61);
         assertFeatureStatResult("HC", 3L, "count", 10);
 
-        Assertions.assertTrue(cctx.errorCollector().hasError());
-        Assertions.assertEquals(1, cctx.errorCollector().getErrors().size());
-        Assertions.assertEquals("executing featureStat => waiting for output to be received => interrupted", cctx.errorCollector().getErrors().get(0).getDescription());
-        Assertions.assertNull(cctx.errorCollector().getErrors().get(0).getExceptionMessage());
-        Assertions.assertEquals("InterruptedException", cctx.errorCollector().getErrors().get(0).getExceptionClassName());
-        Assertions.assertEquals(1L, cctx.errorCollector().getErrors().get(0).getFeatureId());
-        Assertions.assertEquals(14L, cctx.errorCollector().getErrors().get(0).getFormulaId());
-        Assertions.assertEquals("min", cctx.errorCollector().getErrors().get(0).getFormulaName());
+        Assertions.assertTrue(cctx.getErrorCollector().hasError());
+        Assertions.assertEquals(1, cctx.getErrorCollector().getErrors().size());
+        Assertions.assertEquals("executing featureStat => waiting for output to be received => interrupted", cctx.getErrorCollector().getErrors().get(0).getDescription());
+        Assertions.assertNull(cctx.getErrorCollector().getErrors().get(0).getExceptionMessage());
+        Assertions.assertEquals("InterruptedException", cctx.getErrorCollector().getErrors().get(0).getExceptionClassName());
+        Assertions.assertEquals(1L, cctx.getErrorCollector().getErrors().get(0).getFeatureId());
+        Assertions.assertEquals(14L, cctx.getErrorCollector().getErrors().get(0).getFormulaId());
+        Assertions.assertEquals("min", cctx.getErrorCollector().getErrors().get(0).getFormulaName());
 
         verifyNoMoreInteractions(plateServiceClient, scriptEngineClient);
     }
@@ -518,7 +516,7 @@ public class FeatureStatExecutorTest {
                 new HashMap<>() {{
                     put(0, new Sequence(0, List.of(feature)));
                 }});
-        var cctx = new CalculationContext(plate, protocol, 1L, 2L, new ErrorCollector(), getWells(), new LinkedHashSet<>(List.of("LC", "SAMPLE", "HC")), 3, new ConcurrentHashMap<>());
+        var cctx = CalculationContext.newInstance(plate, protocol, 1L, 2L, getWells(), getUniqueWellTypes());
 
         var input = new ScriptExecution(new TargetRuntime("JAVASTAT", "fast-lane", "v1"), formula.getFormula(),
                 "{\"isWelltypeStat\":true,\"isPlateStat\":true,\"welltypes\":[\"LC\",\"SAMPLE\",\"SAMPLE\",\"HC\"],\"highWelltype\":\"HCG\",\"lowWelltype\":\"LC\",\"featureValues\":[1.0,2.0,3.0,5.0]}",
@@ -532,14 +530,14 @@ public class FeatureStatExecutorTest {
         var success = featureStatExecutor.executeFeatureStat(cctx, feature, createResultData());
 
         Assertions.assertFalse(success);
-        Assertions.assertTrue(cctx.errorCollector().hasError());
-        Assertions.assertEquals(1, cctx.errorCollector().getErrors().size());
-        Assertions.assertEquals("executing featureStat => processing output => parsing output", cctx.errorCollector().getErrors().get(0).getDescription());
-        Assertions.assertNotNull(cctx.errorCollector().getErrors().get(0).getExceptionMessage());
-        Assertions.assertEquals("JsonEOFException", cctx.errorCollector().getErrors().get(0).getExceptionClassName());
-        Assertions.assertEquals(1L, cctx.errorCollector().getErrors().get(0).getFeatureId());
-        Assertions.assertEquals(13L, cctx.errorCollector().getErrors().get(0).getFormulaId());
-        Assertions.assertEquals("count", cctx.errorCollector().getErrors().get(0).getFormulaName());
+        Assertions.assertTrue(cctx.getErrorCollector().hasError());
+        Assertions.assertEquals(1, cctx.getErrorCollector().getErrors().size());
+        Assertions.assertEquals("executing featureStat => processing output => parsing output", cctx.getErrorCollector().getErrors().get(0).getDescription());
+        Assertions.assertNotNull(cctx.getErrorCollector().getErrors().get(0).getExceptionMessage());
+        Assertions.assertEquals("JsonEOFException", cctx.getErrorCollector().getErrors().get(0).getExceptionClassName());
+        Assertions.assertEquals(1L, cctx.getErrorCollector().getErrors().get(0).getFeatureId());
+        Assertions.assertEquals(13L, cctx.getErrorCollector().getErrors().get(0).getFormulaId());
+        Assertions.assertEquals("count", cctx.getErrorCollector().getErrors().get(0).getFormulaName());
 
         verifyNoMoreInteractions(plateServiceClient, scriptEngineClient);
     }
@@ -560,7 +558,7 @@ public class FeatureStatExecutorTest {
                 new HashMap<>() {{
                     put(0, new Sequence(0, List.of(feature)));
                 }});
-        var cctx = new CalculationContext(plate, protocol, 1L, 2L, new ErrorCollector(), getWells(), new LinkedHashSet<>(List.of("LC", "SAMPLE", "HC")), 3, new ConcurrentHashMap<>());
+        var cctx = CalculationContext.newInstance(plate, protocol, 1L, 2L, getWells(), getUniqueWellTypes());
 
         var input = new ScriptExecution(new TargetRuntime("JAVASTAT", "fast-lane", "v1"), formula.getFormula(),
                 "{\"isWelltypeStat\":false,\"isPlateStat\":true,\"welltypes\":[\"LC\",\"SAMPLE\",\"SAMPLE\",\"HC\"],\"highWelltype\":\"HCG\",\"lowWelltype\":\"LC\",\"featureValues\":[1.0,2.0,3.0,5.0]}",
@@ -571,19 +569,19 @@ public class FeatureStatExecutorTest {
         stubExecute(input);
         completeInputSuccessfully(input, "{\"plateValue\": 42, \"welltypeValues\": {}}");
 
-        doThrow(new ResultFeatureStatUnresolvableException("Error while creating ResultFeatureStat")).when(mockResultDataServiceClient).createResultFeatureStat(1L, 1L, 13L, Optional.of(42f), "count", null, StatusCode.SUCCESS, "Ok", 0);
+        doThrow(new ResultFeatureStatUnresolvableException("Error while creating ResultFeatureStat")).when(mockResultDataServiceClient).createResultFeatureStats(eq(1L), any());
 
         var success = featureStatExecutor.executeFeatureStat(cctx, feature, createResultData());
 
         Assertions.assertFalse(success);
-        Assertions.assertTrue(cctx.errorCollector().hasError());
-        Assertions.assertEquals(1, cctx.errorCollector().getErrors().size());
-        Assertions.assertEquals("executing featureStat  => processing output => saving resultdata", cctx.errorCollector().getErrors().get(0).getDescription());
-        Assertions.assertEquals("Error while creating ResultFeatureStat", cctx.errorCollector().getErrors().get(0).getExceptionMessage());
-        Assertions.assertEquals("ResultFeatureStatUnresolvableException", cctx.errorCollector().getErrors().get(0).getExceptionClassName());
-        Assertions.assertEquals(1L, cctx.errorCollector().getErrors().get(0).getFeatureId());
-        Assertions.assertEquals(13L, cctx.errorCollector().getErrors().get(0).getFormulaId());
-        Assertions.assertEquals("count", cctx.errorCollector().getErrors().get(0).getFormulaName());
+        Assertions.assertTrue(cctx.getErrorCollector().hasError());
+        Assertions.assertEquals(1, cctx.getErrorCollector().getErrors().size());
+        Assertions.assertEquals("executing featureStat => processing output => saving resultdata", cctx.getErrorCollector().getErrors().get(0).getDescription());
+        Assertions.assertEquals("Error while creating ResultFeatureStat", cctx.getErrorCollector().getErrors().get(0).getExceptionMessage());
+        Assertions.assertEquals("ResultFeatureStatUnresolvableException", cctx.getErrorCollector().getErrors().get(0).getExceptionClassName());
+        Assertions.assertEquals(1,cctx.getErrorCollector().getErrors().get(0).getFeatureId());
+        Assertions.assertNull(cctx.getErrorCollector().getErrors().get(0).getFormulaId());
+        Assertions.assertNull( cctx.getErrorCollector().getErrors().get(0).getFormulaName());
 
         verifyNoMoreInteractions(plateServiceClient, scriptEngineClient);
     }
@@ -606,7 +604,7 @@ public class FeatureStatExecutorTest {
                 new HashMap<>() {{
                     put(0, new Sequence(0, List.of(feature)));
                 }});
-        var cctx = new CalculationContext(plate, protocol, 1L, 2L, new ErrorCollector(), getWells(), new LinkedHashSet<>(List.of("LC", "SAMPLE", "HC")), 3, new ConcurrentHashMap<>());
+        var cctx = CalculationContext.newInstance(plate, protocol, 1L, 2L, getWells(), getUniqueWellTypes());
 
         var input1 = new ScriptExecution(new TargetRuntime("JAVASTAT", "fast-lane", "v1"), formula1.getFormula(),
                 "{\"isWelltypeStat\":true,\"isPlateStat\":true,\"welltypes\":[\"LC\",\"SAMPLE\",\"SAMPLE\",\"HC\"],\"highWelltype\":\"HCG\",\"lowWelltype\":\"LC\",\"featureValues\":[1.0,2.0,3.0,5.0]}",
@@ -629,15 +627,15 @@ public class FeatureStatExecutorTest {
         var success = featureStatExecutor.executeFeatureStat(cctx, feature, createResultData());
 
         Assertions.assertFalse(success);
-        Assertions.assertTrue(cctx.errorCollector().hasError());
-        Assertions.assertEquals(1, cctx.errorCollector().getErrors().size());
-        Assertions.assertEquals("executing featureStat => processing output => output indicates bad request", cctx.errorCollector().getErrors().get(0).getDescription());
-        Assertions.assertNull(cctx.errorCollector().getErrors().get(0).getExceptionMessage());
-        Assertions.assertNull(cctx.errorCollector().getErrors().get(0).getExceptionClassName());
-        Assertions.assertEquals(1L, cctx.errorCollector().getErrors().get(0).getFeatureId());
-        Assertions.assertEquals(14L, cctx.errorCollector().getErrors().get(0).getFeatureStatId());
-        Assertions.assertEquals(14L, cctx.errorCollector().getErrors().get(0).getFormulaId());
-        Assertions.assertEquals("min", cctx.errorCollector().getErrors().get(0).getFormulaName());
+        Assertions.assertTrue(cctx.getErrorCollector().hasError());
+        Assertions.assertEquals(1, cctx.getErrorCollector().getErrors().size());
+        Assertions.assertEquals("executing featureStat => processing output => output indicates bad request", cctx.getErrorCollector().getErrors().get(0).getDescription());
+        Assertions.assertNull(cctx.getErrorCollector().getErrors().get(0).getExceptionMessage());
+        Assertions.assertNull(cctx.getErrorCollector().getErrors().get(0).getExceptionClassName());
+        Assertions.assertEquals(1L, cctx.getErrorCollector().getErrors().get(0).getFeatureId());
+        Assertions.assertEquals(14L, cctx.getErrorCollector().getErrors().get(0).getFeatureStatId());
+        Assertions.assertEquals(14L, cctx.getErrorCollector().getErrors().get(0).getFormulaId());
+        Assertions.assertEquals("min", cctx.getErrorCollector().getErrors().get(0).getFormulaName());
 
         // results of first featureStat should still be saved
         assertPlateFeatureStatResult(0L, "count", 42);
@@ -666,7 +664,7 @@ public class FeatureStatExecutorTest {
                 new HashMap<>() {{
                     put(0, new Sequence(0, List.of(feature)));
                 }});
-        var cctx = new CalculationContext(plate, protocol, 1L, 2L, new ErrorCollector(), getWells(), new LinkedHashSet<>(List.of("LC", "SAMPLE", "HC")), 3, new ConcurrentHashMap<>());
+        var cctx = CalculationContext.newInstance(plate, protocol, 1L, 2L, getWells(), getUniqueWellTypes());
 
         var input1 = new ScriptExecution(new TargetRuntime("JAVASTAT", "fast-lane", "v1"), formula1.getFormula(),
                 "{\"isWelltypeStat\":true,\"isPlateStat\":true,\"welltypes\":[\"LC\",\"SAMPLE\",\"SAMPLE\",\"HC\"],\"highWelltype\":\"HCG\",\"lowWelltype\":\"LC\",\"featureValues\":[1.0,2.0,3.0,5.0]}",
@@ -689,15 +687,15 @@ public class FeatureStatExecutorTest {
         var success = featureStatExecutor.executeFeatureStat(cctx, feature, createResultData());
 
         Assertions.assertFalse(success);
-        Assertions.assertTrue(cctx.errorCollector().hasError());
-        Assertions.assertEquals(1, cctx.errorCollector().getErrors().size());
-        Assertions.assertEquals("executing featureStat => processing output => output indicates script error", cctx.errorCollector().getErrors().get(0).getDescription());
-        Assertions.assertNull(cctx.errorCollector().getErrors().get(0).getExceptionMessage());
-        Assertions.assertNull(cctx.errorCollector().getErrors().get(0).getExceptionClassName());
-        Assertions.assertEquals(1L, cctx.errorCollector().getErrors().get(0).getFeatureId());
-        Assertions.assertEquals(14L, cctx.errorCollector().getErrors().get(0).getFeatureStatId());
-        Assertions.assertEquals(14L, cctx.errorCollector().getErrors().get(0).getFormulaId());
-        Assertions.assertEquals("min", cctx.errorCollector().getErrors().get(0).getFormulaName());
+        Assertions.assertTrue(cctx.getErrorCollector().hasError());
+        Assertions.assertEquals(1, cctx.getErrorCollector().getErrors().size());
+        Assertions.assertEquals("executing featureStat => processing output => output indicates script error", cctx.getErrorCollector().getErrors().get(0).getDescription());
+        Assertions.assertNull(cctx.getErrorCollector().getErrors().get(0).getExceptionMessage());
+        Assertions.assertNull(cctx.getErrorCollector().getErrors().get(0).getExceptionClassName());
+        Assertions.assertEquals(1L, cctx.getErrorCollector().getErrors().get(0).getFeatureId());
+        Assertions.assertEquals(14L, cctx.getErrorCollector().getErrors().get(0).getFeatureStatId());
+        Assertions.assertEquals(14L, cctx.getErrorCollector().getErrors().get(0).getFormulaId());
+        Assertions.assertEquals("min", cctx.getErrorCollector().getErrors().get(0).getFormulaName());
 
         // results of first featureStat should still be saved
         assertPlateFeatureStatResult(0L, "count", 42);
@@ -718,6 +716,10 @@ public class FeatureStatExecutorTest {
 
     private List<String> getWells() {
         return List.of("LC", "SAMPLE", "SAMPLE", "HC");
+    }
+
+    private LinkedHashSet<String> getUniqueWellTypes() {
+        return new LinkedHashSet<>(List.of("LC", "SAMPLE", "HC"));
     }
 
     private void completeInputSuccessfully(ScriptExecution input, String output) {

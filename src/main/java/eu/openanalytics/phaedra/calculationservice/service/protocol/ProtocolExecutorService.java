@@ -1,5 +1,6 @@
 package eu.openanalytics.phaedra.calculationservice.service.protocol;
 
+import com.google.common.util.concurrent.ThreadFactoryBuilder;
 import eu.openanalytics.phaedra.calculationservice.model.CalculationContext;
 import eu.openanalytics.phaedra.calculationservice.model.Sequence;
 import eu.openanalytics.phaedra.platservice.client.PlateServiceClient;
@@ -16,12 +17,13 @@ import org.springframework.stereotype.Service;
 
 import java.util.ArrayList;
 import java.util.LinkedHashSet;
-import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Future;
 import java.util.concurrent.SynchronousQueue;
 import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
+
+import static eu.openanalytics.phaedra.calculationservice.service.protocol.ProtocolLogger.log;
 
 @Service
 public class ProtocolExecutorService {
@@ -44,7 +46,8 @@ public class ProtocolExecutorService {
         this.protocolInfoCollector = protocolInfoCollector;
         this.plateServiceClient = plateServiceClient;
 
-        executorService = new ThreadPoolExecutor(8, 1024, 60L, TimeUnit.SECONDS, new SynchronousQueue<>());
+        var threadFactory = new ThreadFactoryBuilder().setNameFormat("protocol-exec-%s").build();
+        executorService = new ThreadPoolExecutor(8, 1024, 60L, TimeUnit.SECONDS, new SynchronousQueue<>(), threadFactory);
     }
 
     public Future<ResultSetDTO> execute(long protocolId, long plateId, long measId) {
@@ -56,7 +59,7 @@ public class ProtocolExecutorService {
 
     public ResultSetDTO executeProtocol(long protocolId, long plateId, long measId) throws ProtocolUnresolvableException, ResultSetUnresolvableException, PlateUnresolvableException {
         // 1. get protocol
-        // TODO handle these errors
+        logger.info("Preparing new calculation");
         final var protocol = protocolInfoCollector.getProtocol(protocolId);
         final var plate = plateServiceClient.getPlate(plateId);
         final var wellsSorted = plateServiceClient.getWellsOfPlateSorted(plateId);
@@ -65,20 +68,18 @@ public class ProtocolExecutorService {
 
         // 2. create CalculationContext
         final var resultSet = resultDataServiceClient.createResultDataSet(protocolId, plateId, measId);
-        final var errorCollector = new ErrorCollector();
+        final var cctx = CalculationContext.newInstance(plate, protocol, resultSet.getId(), measId, welltypesSorted, uniqueWelltypes);
 
-        final var calculationContext = new CalculationContext(plate, protocol, resultSet.getId(),
-                measId, errorCollector, welltypesSorted,  uniqueWelltypes,
-                uniqueWelltypes.size(), new ConcurrentHashMap<>());
+        log(logger, cctx, "Starting calculation");
 
         // 3. sequentially execute every sequence
         for (var seq = 0; seq < protocol.getSequences().size(); seq++) {
             Sequence currentSequence = protocol.getSequences().get(seq);
             if (currentSequence == null) {
-                errorCollector.handleError("executing protocol => missing sequence", seq);
-                return saveError(resultSet, errorCollector);
+                cctx.getErrorCollector().handleError("executing protocol => missing sequence", seq);
+                return saveError(resultSet, cctx.getErrorCollector());
             }
-            var success = sequenceExecutorService.executeSequence(calculationContext, executorService, currentSequence);
+            var success = sequenceExecutorService.executeSequence(cctx, executorService, currentSequence);
 
             // 4. check for errors
             if (!success) {
@@ -89,28 +90,31 @@ public class ProtocolExecutorService {
             // 5. no errors -> continue processing sequences
         }
 
+        log(logger, cctx, "Waiting for FeatureStats to finish");
+
         // 6. wait for FeatureStats to be calculated
         // we can wait for all featureStats (of all sequences) here since nothing in the protocol depends on them
-        for (var featureStat : calculationContext.computedStatsForFeature().entrySet()) {
+        for (var featureStat : cctx.getComputedStatsForFeature().entrySet()) {
             try {
                 featureStat.getValue().get();
             } catch (InterruptedException e) {
                 // ideally these exceptions should be caught and handled in the FeatureStatExecutor service, however
                 // we still need to catch them here, because of the API design of Future.
-                errorCollector.handleError("executing protocol => waiting for calculations of featureStats of a feature to complete => interrupted", e, featureStat.getKey());
+                cctx.getErrorCollector().handleError("executing protocol => waiting for calculations of featureStats of a feature to complete => interrupted", e, featureStat.getKey());
             } catch (ExecutionException e) {
-                errorCollector.handleError("executing protocol => waiting for calculations of featureStats of a feature to complete => exception during execution", e.getCause(), featureStat.getKey());
+                cctx.getErrorCollector().handleError("executing protocol => waiting for calculations of featureStats of a feature to complete => exception during execution", e.getCause(), featureStat.getKey());
             } catch (Throwable e) {
-                errorCollector.handleError("executing protocol => waiting for calculations of featureStats of a feature to complete => exception during execution", e, featureStat.getKey());
+                cctx.getErrorCollector().handleError("executing protocol => waiting for calculations of featureStats of a feature to complete => exception during execution", e, featureStat.getKey());
             }
         }
 
         // 7. check for errors
-        if (errorCollector.hasError()) {
-            return saveError(resultSet, errorCollector);
+        if (cctx.getErrorCollector().hasError()) {
+            return saveError(resultSet, cctx.getErrorCollector());
         }
 
         // 8. set ResultData status
+        log(logger, cctx, "Calculation finished: SUCCESS");
         return resultDataServiceClient.completeResultDataSet(resultSet.getId(), StatusCode.SUCCESS, new ArrayList<>(), "");
     }
 

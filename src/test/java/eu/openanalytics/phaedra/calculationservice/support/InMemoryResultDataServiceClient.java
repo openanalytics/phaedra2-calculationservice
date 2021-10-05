@@ -66,6 +66,18 @@ public class InMemoryResultDataServiceClient implements ResultDataServiceClient 
     }
 
     @Override
+    public List<ResultFeatureStatDTO> createResultFeatureStats(long resultSetId, List<ResultFeatureStatDTO> resultFeatureStats) throws ResultFeatureStatUnresolvableException {
+        var res = new ArrayList<ResultFeatureStatDTO>();
+        for (var resultFeatureStat : resultFeatureStats) {
+            var newId = (long) featureStats.size();
+            resultFeatureStat = resultFeatureStat.toBuilder().id(newId).resultSetId(resultSetId).build();
+            featureStats.add(resultFeatureStat);
+            res.add(resultFeatureStat);
+        }
+        return res;
+    }
+
+    @Override
     public synchronized ResultFeatureStatDTO getResultFeatureStat(long resultSetId, long resultFeatureStatId) throws ResultFeatureStatUnresolvableException {
         var res = featureStats.get((int) resultFeatureStatId);
         if (res == null || res.getResultSetId() != resultSetId) {

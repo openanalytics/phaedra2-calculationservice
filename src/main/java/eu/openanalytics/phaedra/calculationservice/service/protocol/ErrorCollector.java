@@ -1,5 +1,6 @@
 package eu.openanalytics.phaedra.calculationservice.service.protocol;
 
+import eu.openanalytics.phaedra.calculationservice.model.CalculationContext;
 import eu.openanalytics.phaedra.calculationservice.model.CalculationInputValue;
 import eu.openanalytics.phaedra.calculationservice.model.Feature;
 import eu.openanalytics.phaedra.calculationservice.model.FeatureStat;
@@ -15,11 +16,17 @@ import java.util.Collections;
 import java.util.List;
 import java.util.Optional;
 
-// TODO keep track of state
+import static eu.openanalytics.phaedra.calculationservice.service.protocol.ProtocolLogger.log;
+
 public class ErrorCollector {
 
     private final List<ErrorDTO> errors = Collections.synchronizedList(new ArrayList<>());
     private final Logger logger = LoggerFactory.getLogger(getClass());
+    private final CalculationContext cctx;
+
+    public ErrorCollector(CalculationContext cctx) {
+        this.cctx = cctx;
+    }
 
     public List<ErrorDTO> getErrors() {
         return errors;
@@ -73,20 +80,20 @@ public class ErrorCollector {
                         .exceptionClassName(e.getClass().getSimpleName())
                         .exceptionMessage(e.getMessage());
                 if (exception.isPresent()) {
-                    logger.warn("Multiple exception provided to errorCollector:handleError");
+                    log(logger, cctx, "Multiple exception provided to errorCollector:handleError");
                 }
                 exception = Optional.of(e);
             } else {
-                logger.warn("Unrecognized contextObject passed to errorCollector:handleError");
+                log(logger, cctx, "Unrecognized contextObject passed to errorCollector:handleError");
             }
         }
 
         var error = errorBuilder.build();
         errors.add(error);
         if (exception.isPresent()) {
-            logger.info(error.toString(), exception);
+            log(logger, cctx, "Error added to ErrorCollector" + error.toString(), exception);
         } else {
-            logger.info(error.toString());
+            log(logger, cctx, "Error added to ErrorCollector" + error.toString());
         }
     }
 

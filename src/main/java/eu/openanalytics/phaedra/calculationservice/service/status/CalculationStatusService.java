@@ -78,7 +78,7 @@ public class CalculationStatusService {
     }
 
     public CalculationStatus.CalculationComplexityDTO getComplexity(CalculationContext cctx) {
-        return getComplexity(cctx.protocol(), cctx.numWelltypes());
+        return getComplexity(cctx.getProtocol(), cctx.getNumWelltypes());
     }
 
     /**
