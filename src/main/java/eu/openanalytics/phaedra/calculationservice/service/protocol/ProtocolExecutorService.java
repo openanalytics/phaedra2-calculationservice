@@ -1,5 +1,6 @@
 package eu.openanalytics.phaedra.calculationservice.service.protocol;
 
+import com.google.common.util.concurrent.ThreadFactoryBuilder;
 import eu.openanalytics.phaedra.calculationservice.model.CalculationContext;
 import eu.openanalytics.phaedra.calculationservice.model.Sequence;
 import eu.openanalytics.phaedra.platservice.client.PlateServiceClient;
@@ -45,7 +46,8 @@ public class ProtocolExecutorService {
         this.protocolInfoCollector = protocolInfoCollector;
         this.plateServiceClient = plateServiceClient;
 
-        executorService = new ThreadPoolExecutor(8, 1024, 60L, TimeUnit.SECONDS, new SynchronousQueue<>());
+        var threadFactory = new ThreadFactoryBuilder().setNameFormat("protocol-exec-%s").build();
+        executorService = new ThreadPoolExecutor(8, 1024, 60L, TimeUnit.SECONDS, new SynchronousQueue<>(), threadFactory);
     }
 
     public Future<ResultSetDTO> execute(long protocolId, long plateId, long measId) {
