@@ -16,6 +16,8 @@ import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 import java.util.concurrent.ExecutionException;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.TimeoutException;
 
 @RestController
 public class CalculationController {
@@ -29,11 +31,20 @@ public class CalculationController {
     }
 
     @PostMapping("/calculation")
-    public void calculate(@RequestBody CalculationRequestDTO calculationRequestDTO) throws ExecutionException, InterruptedException {
-        protocolExecutorService.execute(
+    public void calculate(@RequestBody CalculationRequestDTO calculationRequestDTO, @RequestParam(value = "timeout", required = false) Long timeout) throws ExecutionException, InterruptedException {
+        var future = protocolExecutorService.execute(
                 calculationRequestDTO.getProtocolId(),
                 calculationRequestDTO.getPlateId(),
-                calculationRequestDTO.getMeasId()).get();
+                calculationRequestDTO.getMeasId());
+        if (timeout != null) {
+            try {
+                future.get(timeout, TimeUnit.MILLISECONDS);
+            } catch (TimeoutException ex) {
+
+            }
+        } else {
+            future.get();
+        }
     }
 
     @GetMapping("/status")
