@@ -75,7 +75,7 @@ public class FeatureStatExecutorTest {
         resultDataServiceClient = new InMemoryResultDataServiceClient(); // TODO mock or inMemoery?
         scriptEngineClient = mockUnimplemented(ScriptEngineClient.class);
         plateServiceClient = mockUnimplemented(PlateServiceClient.class);
-        featureStatExecutor = new FeatureStatExecutor(plateServiceClient, scriptEngineClient, objectMapper, resultDataServiceClient, modelMapper);
+        featureStatExecutor = new FeatureStatExecutor(scriptEngineClient, objectMapper, resultDataServiceClient, modelMapper);
     }
 
     @Test
@@ -545,7 +545,7 @@ public class FeatureStatExecutorTest {
     @Test
     public void errorWhileSavingResultDataTest() throws Exception {
         var mockResultDataServiceClient = mockUnimplemented(ResultDataServiceClient.class);
-        var featureStatExecutor = new FeatureStatExecutor(plateServiceClient, scriptEngineClient, objectMapper, mockResultDataServiceClient, modelMapper);
+        var featureStatExecutor = new FeatureStatExecutor(scriptEngineClient, objectMapper, mockResultDataServiceClient, modelMapper);
         var plate = PlateDTO.builder().id(10L).build();
         var formula = createFormula("JavaStat::count", "count", 13L);
         var featureStat = createFeatureStat(formula, false);

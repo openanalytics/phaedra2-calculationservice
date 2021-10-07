@@ -9,8 +9,8 @@ import eu.openanalytics.phaedra.calculationservice.enumeration.ScriptLanguage;
 import eu.openanalytics.phaedra.calculationservice.model.CalculationContext;
 import eu.openanalytics.phaedra.calculationservice.model.Feature;
 import eu.openanalytics.phaedra.calculationservice.model.FeatureStat;
+import eu.openanalytics.phaedra.calculationservice.model.SuccessTracker;
 import eu.openanalytics.phaedra.calculationservice.service.ModelMapper;
-import eu.openanalytics.phaedra.platservice.client.PlateServiceClient;
 import eu.openanalytics.phaedra.resultdataservice.client.ResultDataServiceClient;
 import eu.openanalytics.phaedra.resultdataservice.client.exception.ResultFeatureStatUnresolvableException;
 import eu.openanalytics.phaedra.resultdataservice.dto.ResultDataDTO;
@@ -18,6 +18,7 @@ import eu.openanalytics.phaedra.resultdataservice.dto.ResultFeatureStatDTO;
 import eu.openanalytics.phaedra.resultdataservice.enumeration.StatusCode;
 import eu.openanalytics.phaedra.scriptengine.client.ScriptEngineClient;
 import eu.openanalytics.phaedra.scriptengine.client.model.ScriptExecution;
+import eu.openanalytics.phaedra.scriptengine.dto.ResponseStatusCode;
 import eu.openanalytics.phaedra.scriptengine.dto.ScriptExecutionOutputDTO;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -44,7 +45,9 @@ public class FeatureStatExecutor {
     private final ResultDataServiceClient resultDataServiceClient;
     private final ModelMapper modelMapper;
 
-    public FeatureStatExecutor(PlateServiceClient plateServiceClient, ScriptEngineClient scriptEngineClient, ObjectMapper objectMapper, ResultDataServiceClient resultDataServiceClient, ModelMapper modelMapper) {
+    private final static int MAX_ATTEMPTS = 3;
+
+    public FeatureStatExecutor(ScriptEngineClient scriptEngineClient, ObjectMapper objectMapper, ResultDataServiceClient resultDataServiceClient, ModelMapper modelMapper) {
         this.scriptEngineClient = scriptEngineClient;
         this.objectMapper = objectMapper;
         this.resultDataServiceClient = resultDataServiceClient;
@@ -62,14 +65,96 @@ public class FeatureStatExecutor {
             return false;
         }
 
-        var success = true;
+        var success = new SuccessTracker<Void>();
 
         log(logger, cctx, "[F=%s] Calculating FeatureStats", feature.getId());
 
+        // 1. try to calculate all FeatureStats
+        var featureStatsToCalculate = feature.getFeatureStats();
+        final var featureStatCount = featureStatsToCalculate.size(); // total number of featureStats to calculate
+        var calculations = new ArrayList<FeatureStatCalculation>();
+        var resultFeatureStats = new ArrayList<ResultFeatureStatDTO>();
+
+        for (int attempt = 1; true; attempt++) {
+            log(logger, cctx, "[F=%s] Attempt %s to calculate [%s of %s] featureStats", feature.getId(), attempt, featureStatsToCalculate.size(), featureStatCount);
+            var currentAttempt = calculateFeatureStats(cctx, feature, featureStatsToCalculate, resultData, resultFeatureStats);
+            success.failedIfStepFailed(currentAttempt);
+
+            if (!currentAttempt.isSuccess() || attempt == MAX_ATTEMPTS) {
+                // 2. there was a hard-error or we are at the last attempt -> do not re-attempt any calculation
+                calculations.addAll(currentAttempt.getResult());
+                break;
+            }
+
+            // 3. check if we have to retry any of the calculations
+            var featuresStatsToRetry = new ArrayList<FeatureStat>();
+            for (var calculation : currentAttempt.getResult()) {
+                if (calculation.getOutput().isPresent() && calculation.getOutput().get().getStatusCode() == ResponseStatusCode.WORKER_INTERNAL_ERROR) {
+                    featuresStatsToRetry.add(calculation.getFeatureStat());
+                } else {
+                    calculations.add(calculation);
+                }
+            }
+            if (featuresStatsToRetry.size() == 0) {
+                // 4. nothing to retry
+                break;
+            }
+            featureStatsToCalculate = featuresStatsToRetry;
+        }
+
+        // 5. collect output
+        for (var calculation : calculations) {
+            var featureStat = calculation.getFeatureStat();
+            if (calculation.getOutput().isEmpty()) {
+                convertErrorOutput(resultFeatureStats, cctx, feature, featureStat, "CalculationService was unable to process the calculation");
+                continue;
+            }
+
+            var output = calculation.getOutput().get();
+            switch (output.getStatusCode()) {
+                case SUCCESS -> {
+                    try {
+                        convertOutput(resultFeatureStats, cctx, feature, featureStat, output);
+                    } catch (JsonProcessingException e) {
+                        cctx.getErrorCollector().handleError("executing featureStat => processing output => parsing output", e, feature, featureStat, featureStat.getFormula(), output);
+                        success.failed();
+                    }
+                }
+                case BAD_REQUEST -> {
+                    cctx.getErrorCollector().handleError("executing featureStat => processing output => output indicates bad request", feature, featureStat, featureStat.getFormula());
+                    convertErrorOutput(resultFeatureStats, cctx, feature, featureStat, output);
+                    success.failed();
+                }
+                case SCRIPT_ERROR -> {
+                    cctx.getErrorCollector().handleError("executing featureStat => processing output => output indicates script error", feature, featureStat, featureStat.getFormula());
+                    convertErrorOutput(resultFeatureStats, cctx, feature, featureStat, output);
+                    success.failed();
+                }
+                case WORKER_INTERNAL_ERROR -> {
+                    cctx.getErrorCollector().handleError("executing featureStat => processing output => output indicates internal error in the worker", feature, featureStat, featureStat.getFormula());
+                    convertErrorOutput(resultFeatureStats, cctx, feature, featureStat, output);
+                    success.failed();
+                }
+            }
+        }
+
+        // 6. store output
+        try {
+            resultDataServiceClient.createResultFeatureStats(cctx.getResultSetId(), resultFeatureStats);
+        } catch (ResultFeatureStatUnresolvableException e) {
+            cctx.getErrorCollector().handleError("executing featureStat => processing output => saving resultdata", e, feature);
+            success.failed();
+        }
+
+        log(logger, cctx, "[F=%s] All FeatureStat output saved", feature.getId());
+        return success.isSuccess();
+    }
+
+    private SuccessTracker<List<FeatureStatCalculation>> calculateFeatureStats(CalculationContext cctx, Feature feature, List<FeatureStat> featureStats, ResultDataDTO resultData, ArrayList<ResultFeatureStatDTO> resultFeatureStats) {
+        var success = new SuccessTracker<List<FeatureStatCalculation>>();
         // 1. send Calculations to ScriptEngine (we do this synchronous, because no API/DB queries are needed)
         final var calculations = new ArrayList<FeatureStatCalculation>();
-        final var resultFeatureStats = new ArrayList<ResultFeatureStatDTO>();
-        for (var featureStat : feature.getFeatureStats()) {
+        for (var featureStat : featureStats) {
             // A. get formula
             var formula = featureStat.getFormula();
 
@@ -79,7 +164,7 @@ public class FeatureStatExecutor {
                 cctx.getErrorCollector().handleError("Skipping calculating FeatureStat because the formula is not valid (category must be CALCULATION, language must be JAVASTAT)",
                         feature, featureStat, formula);
                 convertErrorOutput(resultFeatureStats, cctx, feature, featureStat, "CalculationService detected an invalid formula");
-                success = false;
+                success.failed();
                 continue;
             }
 
@@ -113,72 +198,31 @@ public class FeatureStatExecutor {
 
         log(logger, cctx, "[F=%s] All FeatureStat calculations send to script engine", feature.getId());
 
-        // 2. collect output
+        // 2. wait for output to be received
         for (var calculation : calculations) {
             try {
                 calculation.waitForOutput();
             } catch (InterruptedException e) {
                 cctx.getErrorCollector().handleError("executing featureStat => waiting for output to be received => interrupted", e, feature, calculation.getFeatureStat(), calculation.getFeatureStat().getFormula());
-                success = false;
+                success.failed();
             } catch (ExecutionException e) {
                 cctx.getErrorCollector().handleError("executing featureStat => waiting for output to be received => exception during execution", e.getCause(), feature, calculation.getFeatureStat(), calculation.getFeatureStat().getFormula());
-                success = false;
+                success.failed();
             } catch (Throwable e) {
                 cctx.getErrorCollector().handleError("executing featureStat => waiting for output to be received => exception during execution", e, feature, calculation.getFeatureStat(), calculation.getFeatureStat().getFormula());
-                success = false;
+                success.failed();
             }
         }
 
         log(logger, cctx, "[F=%s] All FeatureStat output received from script engine", feature.getId());
 
-        // 3. collect output
-        for (var calculation : calculations) {
-            var featureStat = calculation.getFeatureStat();
-            if (calculation.getOutput().isEmpty()) {
-                convertErrorOutput(resultFeatureStats, cctx, feature, featureStat, "CalculationService was unable to process the calculation");
-                continue;
-            }
-
-            var output = calculation.getOutput().get();
-            switch (output.getStatusCode()) {
-                case SUCCESS -> {
-                    try {
-                        convertOutput(resultFeatureStats, cctx, feature, featureStat, output);
-                    } catch (JsonProcessingException e) {
-                        cctx.getErrorCollector().handleError("executing featureStat => processing output => parsing output", e, feature, featureStat, featureStat.getFormula(), output);
-                        success = false;
-                    }
-                }
-                case BAD_REQUEST -> {
-                    cctx.getErrorCollector().handleError("executing featureStat => processing output => output indicates bad request", feature, featureStat, featureStat.getFormula());
-                    convertErrorOutput(resultFeatureStats, cctx, feature, featureStat, output);
-                    success = false;
-                }
-                case SCRIPT_ERROR -> {
-                    cctx.getErrorCollector().handleError("executing featureStat => processing output => output indicates script error", feature, featureStat, featureStat.getFormula());
-                    convertErrorOutput(resultFeatureStats, cctx, feature, featureStat, output);
-                    success = false;
-                }
-                case WORKER_INTERNAL_ERROR -> {
-                    // TODO re-schedule script?
-                }
-            }
-        }
-
-        // 4. store output
-        try {
-            resultDataServiceClient.createResultFeatureStats(cctx.getResultSetId(), resultFeatureStats);
-        } catch (ResultFeatureStatUnresolvableException e) {
-            cctx.getErrorCollector().handleError("executing featureStat => processing output => saving resultdata", e, feature);
-            success = false;
-        }
-
-        log(logger, cctx, "[F=%s] All FeatureStat output saved", feature.getId());
+        success.setResult(calculations);
         return success;
     }
 
+
     /**
-     * Save output in case of a succesful calculation.
+     * Save output in case of a successful calculation.
      */
     private void convertOutput(List<ResultFeatureStatDTO> res, CalculationContext cctx, Feature feature, FeatureStat featureStat, ScriptExecutionOutputDTO output) throws JsonProcessingException {
         var outputValues = objectMapper.readValue(output.getOutput(), OutputWrapper.class);
