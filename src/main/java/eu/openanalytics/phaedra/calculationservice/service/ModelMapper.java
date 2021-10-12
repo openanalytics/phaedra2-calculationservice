@@ -115,7 +115,7 @@ public class ModelMapper {
     public StatusCode map(ResponseStatusCode responseStatusCode) {
         return switch (responseStatusCode) {
             case SUCCESS -> StatusCode.SUCCESS;
-            case SCRIPT_ERROR, BAD_REQUEST, WORKER_INTERNAL_ERROR -> StatusCode.FAILURE;
+            case SCRIPT_ERROR, BAD_REQUEST, WORKER_INTERNAL_ERROR, RESCHEDULED_BY_WATCHDOG  -> StatusCode.FAILURE;
         };
     }
 

@@ -629,7 +629,7 @@ public class FeatureStatExecutorTest {
         Assertions.assertFalse(success);
         Assertions.assertTrue(cctx.getErrorCollector().hasError());
         Assertions.assertEquals(1, cctx.getErrorCollector().getErrors().size());
-        Assertions.assertEquals("executing featureStat => processing output => output indicates bad request", cctx.getErrorCollector().getErrors().get(0).getDescription());
+        Assertions.assertEquals("executing featureStat => processing output => output indicates error [BAD_REQUEST]", cctx.getErrorCollector().getErrors().get(0).getDescription());
         Assertions.assertNull(cctx.getErrorCollector().getErrors().get(0).getExceptionMessage());
         Assertions.assertNull(cctx.getErrorCollector().getErrors().get(0).getExceptionClassName());
         Assertions.assertEquals(1L, cctx.getErrorCollector().getErrors().get(0).getFeatureId());
@@ -689,7 +689,7 @@ public class FeatureStatExecutorTest {
         Assertions.assertFalse(success);
         Assertions.assertTrue(cctx.getErrorCollector().hasError());
         Assertions.assertEquals(1, cctx.getErrorCollector().getErrors().size());
-        Assertions.assertEquals("executing featureStat => processing output => output indicates script error", cctx.getErrorCollector().getErrors().get(0).getDescription());
+        Assertions.assertEquals("executing featureStat => processing output => output indicates error [SCRIPT_ERROR]", cctx.getErrorCollector().getErrors().get(0).getDescription());
         Assertions.assertNull(cctx.getErrorCollector().getErrors().get(0).getExceptionMessage());
         Assertions.assertNull(cctx.getErrorCollector().getErrors().get(0).getExceptionClassName());
         Assertions.assertEquals(1L, cctx.getErrorCollector().getErrors().get(0).getFeatureId());
@@ -705,6 +705,120 @@ public class FeatureStatExecutorTest {
 
         verifyNoMoreInteractions(plateServiceClient, scriptEngineClient);
     }
+
+    @Test
+    public void simpleTestWithSingleStatWithThreeRetries() throws Exception {
+        var plate = PlateDTO.builder().id(10L).build();
+        var formula = createFormula("JavaStat::count", "count", 13L);
+        var featureStat = createFeatureStat(formula);
+
+        var feature = new Feature(1L, "Feature1", null, null, "AFormat", FeatureType.CALCULATION, 0,
+                new Formula(1L, "abc_duplicator", null, Category.CALCULATION, "output <- input$abc * 2", ScriptLanguage.R, CalculationScope.WELL, "me", LocalDateTime.now(), "me", LocalDateTime.now()),
+                List.of(new CalculationInputValue(1L, 1L, "abc", null, "abc")), List.of(featureStat));
+
+        var protocol = new Protocol(1L, "TestProtocol", null, true, true, "LC", "HCG",
+                new HashMap<>() {{
+                    put(0, new Sequence(0, List.of(feature)));
+                }});
+        var cctx = CalculationContext.newInstance(plate, protocol, 1L, 2L, getWells(), getUniqueWellTypes());
+
+        var input = new ScriptExecution(new TargetRuntime("JAVASTAT", "fast-lane", "v1"), formula.getFormula(),
+                "{\"isWelltypeStat\":true,\"isPlateStat\":true,\"welltypes\":[\"LC\",\"SAMPLE\",\"SAMPLE\",\"HC\"],\"highWelltype\":\"HCG\",\"lowWelltype\":\"LC\",\"featureValues\":[1.0,2.0,3.0,5.0]}",
+                "CalculationService"
+        );
+
+        var input2 = new ScriptExecution(new TargetRuntime("JAVASTAT", "fast-lane", "v1"), formula.getFormula(),
+                "{\"isWelltypeStat\":true,\"isPlateStat\":true,\"welltypes\":[\"LC\",\"SAMPLE\",\"SAMPLE\",\"HC\"],\"highWelltype\":\"HCG\",\"lowWelltype\":\"LC\",\"featureValues\":[1.0,2.0,3.0,5.0]}",
+                "CalculationService"
+        );
+
+        var input3 = new ScriptExecution(new TargetRuntime("JAVASTAT", "fast-lane", "v1"), formula.getFormula(),
+                "{\"isWelltypeStat\":true,\"isPlateStat\":true,\"welltypes\":[\"LC\",\"SAMPLE\",\"SAMPLE\",\"HC\"],\"highWelltype\":\"HCG\",\"lowWelltype\":\"LC\",\"featureValues\":[1.0,2.0,3.0,5.0]}",
+                "CalculationService"
+        );
+
+        doReturn(input, input2, input3).when(scriptEngineClient).newScriptExecution(JAVASTAT_FAST_LANE, input.getScriptExecutionInput().getScript(), input.getScriptExecutionInput().getInput());
+
+        // attempt 1
+        stubExecute(input);
+        input.getOutput().complete(new ScriptExecutionOutputDTO(input.getScriptExecutionInput().getId(), "", ResponseStatusCode.WORKER_INTERNAL_ERROR, "Internal worker error", 0));
+
+        // attempt 2
+        stubExecute(input2);
+        input2.getOutput().complete(new ScriptExecutionOutputDTO(input2.getScriptExecutionInput().getId(), "", ResponseStatusCode.RESCHEDULED_BY_WATCHDOG, "Rescheduled by watchdog", 0));
+
+        stubExecute(input3);
+        // attempt 3
+        completeInputSuccessfully(input3, "{\"plateValue\": 42, \"welltypeValues\": {\"HC\": 10, \"LC\": 43, \"SAMPLE\": 52}}");
+        var success = featureStatExecutor.executeFeatureStat(cctx, feature, createResultData());
+
+        Assertions.assertTrue(success);
+
+        assertPlateFeatureStatResult(0L, "count", 42);
+        assertFeatureStatResult("LC", 1L, "count", 43);
+        assertFeatureStatResult("SAMPLE", 2L, "count", 52);
+        assertFeatureStatResult("HC", 3L, "count", 10);
+
+        verifyNoMoreInteractions(plateServiceClient, scriptEngineClient);
+    }
+
+
+    @Test
+    public void simpleTestWithSingleStatWithFourRetries() throws Exception {
+        var plate = PlateDTO.builder().id(10L).build();
+        var formula = createFormula("JavaStat::count", "count", 13L);
+        var featureStat = createFeatureStat(formula);
+
+        var feature = new Feature(1L, "Feature1", null, null, "AFormat", FeatureType.CALCULATION, 0,
+                new Formula(1L, "abc_duplicator", null, Category.CALCULATION, "output <- input$abc * 2", ScriptLanguage.R, CalculationScope.WELL, "me", LocalDateTime.now(), "me", LocalDateTime.now()),
+                List.of(new CalculationInputValue(1L, 1L, "abc", null, "abc")), List.of(featureStat));
+
+        var protocol = new Protocol(1L, "TestProtocol", null, true, true, "LC", "HCG",
+                new HashMap<>() {{
+                    put(0, new Sequence(0, List.of(feature)));
+                }});
+        var cctx = CalculationContext.newInstance(plate, protocol, 1L, 2L, getWells(), getUniqueWellTypes());
+
+        var input = new ScriptExecution(new TargetRuntime("JAVASTAT", "fast-lane", "v1"), formula.getFormula(),
+                "{\"isWelltypeStat\":true,\"isPlateStat\":true,\"welltypes\":[\"LC\",\"SAMPLE\",\"SAMPLE\",\"HC\"],\"highWelltype\":\"HCG\",\"lowWelltype\":\"LC\",\"featureValues\":[1.0,2.0,3.0,5.0]}",
+                "CalculationService"
+        );
+
+        var input2 = new ScriptExecution(new TargetRuntime("JAVASTAT", "fast-lane", "v1"), formula.getFormula(),
+                "{\"isWelltypeStat\":true,\"isPlateStat\":true,\"welltypes\":[\"LC\",\"SAMPLE\",\"SAMPLE\",\"HC\"],\"highWelltype\":\"HCG\",\"lowWelltype\":\"LC\",\"featureValues\":[1.0,2.0,3.0,5.0]}",
+                "CalculationService"
+        );
+
+        var input3 = new ScriptExecution(new TargetRuntime("JAVASTAT", "fast-lane", "v1"), formula.getFormula(),
+                "{\"isWelltypeStat\":true,\"isPlateStat\":true,\"welltypes\":[\"LC\",\"SAMPLE\",\"SAMPLE\",\"HC\"],\"highWelltype\":\"HCG\",\"lowWelltype\":\"LC\",\"featureValues\":[1.0,2.0,3.0,5.0]}",
+                "CalculationService"
+        );
+
+        doReturn(input, input2, input3).when(scriptEngineClient).newScriptExecution(JAVASTAT_FAST_LANE, input.getScriptExecutionInput().getScript(), input.getScriptExecutionInput().getInput());
+
+        // attempt 1
+        stubExecute(input);
+        input.getOutput().complete(new ScriptExecutionOutputDTO(input.getScriptExecutionInput().getId(), "", ResponseStatusCode.WORKER_INTERNAL_ERROR, "Internal worker error", 0));
+
+        // attempt 2
+        stubExecute(input2);
+        input2.getOutput().complete(new ScriptExecutionOutputDTO(input2.getScriptExecutionInput().getId(), "", ResponseStatusCode.RESCHEDULED_BY_WATCHDOG, "Rescheduled by watchdog", 0));
+
+        stubExecute(input3);
+        // attempt 3
+        input3.getOutput().complete(new ScriptExecutionOutputDTO(input2.getScriptExecutionInput().getId(), "", ResponseStatusCode.WORKER_INTERNAL_ERROR, "Internal worker error", 0));
+
+        var success = featureStatExecutor.executeFeatureStat(cctx, feature, createResultData());
+
+        Assertions.assertFalse(success);
+        Assertions.assertTrue(cctx.getErrorCollector().hasError());
+        Assertions.assertEquals(1, cctx.getErrorCollector().getErrors().size());
+        Assertions.assertEquals("executing featureStat => processing output => output indicates error [WORKER_INTERNAL_ERROR]", cctx.getErrorCollector().getErrors().get(0).getDescription());
+        Assertions.assertEquals(1L, cctx.getErrorCollector().getErrors().get(0).getFeatureId());
+
+        verifyNoMoreInteractions(plateServiceClient, scriptEngineClient);
+    }
+
 
     private void stubNewScriptExecution(ScriptExecution scriptExecution) {
         doReturn(scriptExecution).when(scriptEngineClient).newScriptExecution(JAVASTAT_FAST_LANE, scriptExecution.getScriptExecutionInput().getScript(), scriptExecution.getScriptExecutionInput().getInput());

@@ -18,7 +18,6 @@ import eu.openanalytics.phaedra.resultdataservice.dto.ResultFeatureStatDTO;
 import eu.openanalytics.phaedra.resultdataservice.enumeration.StatusCode;
 import eu.openanalytics.phaedra.scriptengine.client.ScriptEngineClient;
 import eu.openanalytics.phaedra.scriptengine.client.model.ScriptExecution;
-import eu.openanalytics.phaedra.scriptengine.dto.ResponseStatusCode;
 import eu.openanalytics.phaedra.scriptengine.dto.ScriptExecutionOutputDTO;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -89,7 +88,7 @@ public class FeatureStatExecutor {
             // 3. check if we have to retry any of the calculations
             var featuresStatsToRetry = new ArrayList<FeatureStat>();
             for (var calculation : currentAttempt.getResult()) {
-                if (calculation.getOutput().isPresent() && calculation.getOutput().get().getStatusCode() == ResponseStatusCode.WORKER_INTERNAL_ERROR) {
+                if (calculation.getOutput().isPresent() && calculation.getOutput().get().getStatusCode().canBeRetried()) {
                     featuresStatsToRetry.add(calculation.getFeatureStat());
                 } else {
                     calculations.add(calculation);
@@ -120,18 +119,8 @@ public class FeatureStatExecutor {
                         success.failed();
                     }
                 }
-                case BAD_REQUEST -> {
-                    cctx.getErrorCollector().handleError("executing featureStat => processing output => output indicates bad request", feature, featureStat, featureStat.getFormula());
-                    convertErrorOutput(resultFeatureStats, cctx, feature, featureStat, output);
-                    success.failed();
-                }
-                case SCRIPT_ERROR -> {
-                    cctx.getErrorCollector().handleError("executing featureStat => processing output => output indicates script error", feature, featureStat, featureStat.getFormula());
-                    convertErrorOutput(resultFeatureStats, cctx, feature, featureStat, output);
-                    success.failed();
-                }
-                case WORKER_INTERNAL_ERROR -> {
-                    cctx.getErrorCollector().handleError("executing featureStat => processing output => output indicates internal error in the worker", feature, featureStat, featureStat.getFormula());
+                case BAD_REQUEST, SCRIPT_ERROR, WORKER_INTERNAL_ERROR, RESCHEDULED_BY_WATCHDOG -> {
+                    cctx.getErrorCollector().handleError(String.format("executing featureStat => processing output => output indicates error [%s]", output.getStatusCode()), feature, featureStat, featureStat.getFormula());
                     convertErrorOutput(resultFeatureStats, cctx, feature, featureStat, output);
                     success.failed();
                 }

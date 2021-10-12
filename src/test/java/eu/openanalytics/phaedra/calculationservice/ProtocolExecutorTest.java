@@ -441,7 +441,7 @@ public class ProtocolExecutorTest {
         Assertions.assertNotNull(resultSet.getErrorsText());
 
         var error = resultSet.getErrors().get(0);
-        Assertions.assertEquals("executing sequence => processing output => output indicates script error", error.getDescription());
+        Assertions.assertEquals("executing sequence => processing output => output indicates error [SCRIPT_ERROR]", error.getDescription());
         Assertions.assertNull(error.getExceptionClassName());
         Assertions.assertNull(error.getExceptionMessage());
         Assertions.assertEquals(1, error.getFeatureId());
@@ -1068,6 +1068,135 @@ public class ProtocolExecutorTest {
         Assertions.assertEquals("RuntimeException", error.getExceptionClassName());
         Assertions.assertEquals("Some error during executing featureStat", error.getExceptionMessage());
         Assertions.assertEquals(1, error.getFeatureId());
+
+        verifyNoMoreInteractions(protocolInfoCollector, measurementServiceClient, scriptEngineClient);
+    }
+
+    @Test
+    public void singleFeatureRetryThreeTimesTest() throws Exception {
+        var formula = "output <- input$abc * 2";
+        var input = new ScriptExecution(new TargetRuntime("R", "fast-lane", "v1"), formula,
+                "{\"abc\":[1.0,2.0,3.0,5.0,8.0]}",
+                "CalculationService"
+        );
+
+        var input2 = new ScriptExecution(new TargetRuntime("R", "fast-lane", "v1"), formula,
+                "{\"abc\":[1.0,2.0,3.0,5.0,8.0]}",
+                "CalculationService"
+        );
+
+        var input3 = new ScriptExecution(new TargetRuntime("R", "fast-lane", "v1"), formula,
+                "{\"abc\":[1.0,2.0,3.0,5.0,8.0]}",
+                "CalculationService"
+        );
+
+        stubGetProtocol(new Protocol(1L, "TestProtocol", null, true, true, "lc", "hc",
+                new HashMap<>() {{
+                    put(0, new Sequence(0, List.of(new Feature(1L, "Feature1", null, null, "AFormat", FeatureType.CALCULATION, 0,
+                            new Formula(1L, "abc_duplicator", null, Category.CALCULATION, formula, ScriptLanguage.R, CalculationScope.WELL, "me", LocalDateTime.now(), "me", LocalDateTime.now()),
+                            List.of(new CalculationInputValue(1L, 1L, "abc", null, "abc")), Collections.emptyList()))));
+                }}));
+
+        stubGetWellData(4L, "abc", new float[]{1.0f, 2.0f, 3.0f, 5.0f, 8.0f});
+
+        doReturn(input, input2, input3).when(scriptEngineClient).newScriptExecution(R_FAST_LANE, input.getScriptExecutionInput().getScript(), input.getScriptExecutionInput().getInput());
+
+        // attempt 1
+        stubExecute(input);
+        input.getOutput().complete(new ScriptExecutionOutputDTO(input.getScriptExecutionInput().getId(), "", ResponseStatusCode.WORKER_INTERNAL_ERROR, "Internal worker error", 0));
+
+        // attempt  2
+        stubExecute(input2);
+        input2.getOutput().complete(new ScriptExecutionOutputDTO(input.getScriptExecutionInput().getId(), "", ResponseStatusCode.RESCHEDULED_BY_WATCHDOG, "Rescheduled by watchdog", 0));
+
+        // attempt  3
+        stubExecute(input3);
+        completeInputSuccessfully(input3, "{\"output\": [2.0,4.0,6.0,10.0,16.0]}");
+
+        stubExecuteFeatureStat();
+
+        var resultSet = protocolExecutorService.execute(1, 1, 4).get();
+        Assertions.assertEquals(StatusCode.SUCCESS, resultSet.getOutcome());
+        Assertions.assertEquals(0L, resultSet.getId());
+        Assertions.assertEquals(1L, resultSet.getProtocolId());
+        Assertions.assertEquals(4L, resultSet.getMeasId());
+        Assertions.assertEquals(1L, resultSet.getPlateId());
+        Assertions.assertEquals(Collections.emptyList(), resultSet.getErrors());
+        Assertions.assertEquals("", resultSet.getErrorsText());
+
+        var result1 = resultDataServiceClient.getResultData(0, 1);
+        Assertions.assertArrayEquals(new float[]{2.0f, 4.0f, 6.0f, 10.0f, 16.0f}, result1.getValues());
+        Assertions.assertEquals(StatusCode.SUCCESS, result1.getStatusCode());
+
+        verifyNoMoreInteractions(protocolInfoCollector, measurementServiceClient, scriptEngineClient);
+    }
+
+    @Test
+    public void singleFeatureRetryFrourTimesTest() throws Exception {
+        var formula = "output <- input$abc * 2";
+        var input = new ScriptExecution(new TargetRuntime("R", "fast-lane", "v1"), formula,
+                "{\"abc\":[1.0,2.0,3.0,5.0,8.0]}",
+                "CalculationService"
+        );
+
+        var input2 = new ScriptExecution(new TargetRuntime("R", "fast-lane", "v1"), formula,
+                "{\"abc\":[1.0,2.0,3.0,5.0,8.0]}",
+                "CalculationService"
+        );
+
+        var input3 = new ScriptExecution(new TargetRuntime("R", "fast-lane", "v1"), formula,
+                "{\"abc\":[1.0,2.0,3.0,5.0,8.0]}",
+                "CalculationService"
+        );
+
+        stubGetProtocol(new Protocol(1L, "TestProtocol", null, true, true, "lc", "hc",
+                new HashMap<>() {{
+                    put(0, new Sequence(0, List.of(new Feature(1L, "Feature1", null, null, "AFormat", FeatureType.CALCULATION, 0,
+                            new Formula(1L, "abc_duplicator", null, Category.CALCULATION, formula, ScriptLanguage.R, CalculationScope.WELL, "me", LocalDateTime.now(), "me", LocalDateTime.now()),
+                            List.of(new CalculationInputValue(1L, 1L, "abc", null, "abc")), Collections.emptyList()))));
+                }}));
+
+        stubGetWellData(4L, "abc", new float[]{1.0f, 2.0f, 3.0f, 5.0f, 8.0f});
+
+        doReturn(input, input2, input3).when(scriptEngineClient).newScriptExecution(R_FAST_LANE, input.getScriptExecutionInput().getScript(), input.getScriptExecutionInput().getInput());
+
+        // attempt 1
+        stubExecute(input);
+        input.getOutput().complete(new ScriptExecutionOutputDTO(input.getScriptExecutionInput().getId(), "", ResponseStatusCode.WORKER_INTERNAL_ERROR, "Internal worker error", 0));
+
+        // attempt  2
+        stubExecute(input2);
+        input2.getOutput().complete(new ScriptExecutionOutputDTO(input.getScriptExecutionInput().getId(), "", ResponseStatusCode.RESCHEDULED_BY_WATCHDOG, "Rescheduled by watchdog", 0));
+
+        // attempt  3
+        stubExecute(input3);
+        input3.getOutput().complete(new ScriptExecutionOutputDTO(input.getScriptExecutionInput().getId(), "", ResponseStatusCode.WORKER_INTERNAL_ERROR, "Internal worker error", 0));
+
+        var resultSet = protocolExecutorService.execute(1, 1, 4).get();
+        Assertions.assertEquals(StatusCode.FAILURE, resultSet.getOutcome());
+        Assertions.assertEquals(0L, resultSet.getId());
+        Assertions.assertEquals(1L, resultSet.getProtocolId());
+        Assertions.assertEquals(4L, resultSet.getMeasId());
+        Assertions.assertEquals(1L, resultSet.getPlateId());
+        Assertions.assertEquals(1, resultSet.getErrors().size());
+        Assertions.assertNotNull(resultSet.getErrorsText());
+
+        var error = resultSet.getErrors().get(0);
+        Assertions.assertEquals("executing sequence => processing output => output indicates error [WORKER_INTERNAL_ERROR]", error.getDescription());
+        Assertions.assertNull(error.getExceptionClassName());
+        Assertions.assertNull(error.getExceptionMessage());
+        Assertions.assertEquals(1, error.getFeatureId());
+        Assertions.assertEquals("Feature1", error.getFeatureName());
+        Assertions.assertEquals(0, error.getSequenceNumber());
+        Assertions.assertEquals(1, error.getFormulaId());
+        Assertions.assertEquals("abc_duplicator", error.getFormulaName());
+        Assertions.assertNull(error.getCivType());
+        Assertions.assertEquals(0, error.getExitCode());
+        Assertions.assertEquals("Internal worker error", error.getStatusMessage());
+
+        var result1 = resultDataServiceClient.getResultData(0, 1);
+        Assertions.assertEquals(0, result1.getValues().length);
+        Assertions.assertEquals(StatusCode.FAILURE, result1.getStatusCode());
 
         verifyNoMoreInteractions(protocolInfoCollector, measurementServiceClient, scriptEngineClient);
     }

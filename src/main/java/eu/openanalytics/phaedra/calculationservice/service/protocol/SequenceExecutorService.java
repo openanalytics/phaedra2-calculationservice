@@ -72,7 +72,7 @@ public class SequenceExecutorService {
             // 3. check if we have to retry any of the calculations
             var featuresToRetry = new ArrayList<Feature>();
             for (var calculation : currentAttempt.getResult()) {
-                if (calculation.getOutput().isPresent() && calculation.getOutput().get().getStatusCode() == ResponseStatusCode.WORKER_INTERNAL_ERROR) {
+                if (calculation.getOutput().isPresent() && calculation.getOutput().get().getStatusCode().canBeRetried()) {
                     featuresToRetry.add(calculation.getFeature());
                 } else {
                     calculations.add(calculation);
@@ -180,7 +180,7 @@ public class SequenceExecutorService {
                         output.getStatusMessage(),
                         output.getExitCode());
 
-                cctx.getErrorCollector().handleError("executing sequence => processing output => output indicates script error", output, feature, feature.getFormula());
+                cctx.getErrorCollector().handleError(String.format("executing sequence => processing output => output indicates error [%s]", output.getStatusCode()), output, feature, feature.getFormula());
                 return Optional.of(resultData);
             }
         } catch (Exception e) {
