@@ -92,6 +92,11 @@ public class InMemoryResultDataServiceClient implements ResultDataServiceClient 
     }
 
     @Override
+    public List<ResultSetDTO> getResultSet(StatusCode outcome) throws ResultSetUnresolvableException {
+        return null;
+    }
+
+    @Override
     public List<ResultDataDTO> getResultData(long resultSetId) throws ResultDataUnresolvableException {
         return null;
     }

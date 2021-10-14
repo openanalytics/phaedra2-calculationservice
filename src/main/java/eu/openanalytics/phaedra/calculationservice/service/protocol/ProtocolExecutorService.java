@@ -17,6 +17,7 @@ import org.springframework.stereotype.Service;
 
 import java.util.ArrayList;
 import java.util.LinkedHashSet;
+import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Future;
 import java.util.concurrent.SynchronousQueue;
@@ -50,14 +51,17 @@ public class ProtocolExecutorService {
         executorService = new ThreadPoolExecutor(8, 1024, 60L, TimeUnit.SECONDS, new SynchronousQueue<>(), threadFactory);
     }
 
-    public Future<ResultSetDTO> execute(long protocolId, long plateId, long measId) {
+    public record ProtocolExecution(CompletableFuture<Long> resultSetId, Future<ResultSetDTO> resultSet) {};
+
+    public ProtocolExecution execute(long protocolId, long plateId, long measId) {
         // submit execution to the ThreadPool/ExecutorService and return a future
-        return executorService.submit(() -> {
-            return executeProtocol(protocolId, plateId, measId);
-        });
+        var resultSetIdFuture = new CompletableFuture<Long>();
+        return new ProtocolExecution(resultSetIdFuture, executorService.submit(() -> {
+            return executeProtocol(resultSetIdFuture, protocolId, plateId, measId);
+        }));
     }
 
-    public ResultSetDTO executeProtocol(long protocolId, long plateId, long measId) throws ProtocolUnresolvableException, ResultSetUnresolvableException, PlateUnresolvableException {
+    public ResultSetDTO executeProtocol(CompletableFuture<Long> resultSetIdFuture, long protocolId, long plateId, long measId) throws ProtocolUnresolvableException, ResultSetUnresolvableException, PlateUnresolvableException {
         // 1. get protocol
         logger.info("Preparing new calculation");
         final var protocol = protocolInfoCollector.getProtocol(protocolId);
@@ -68,6 +72,7 @@ public class ProtocolExecutorService {
 
         // 2. create CalculationContext
         final var resultSet = resultDataServiceClient.createResultDataSet(protocolId, plateId, measId);
+        resultSetIdFuture.complete(resultSet.getId());
         final var cctx = CalculationContext.newInstance(plate, protocol, resultSet.getId(), measId, welltypesSorted, uniqueWelltypes);
 
         log(logger, cctx, "Starting calculation");

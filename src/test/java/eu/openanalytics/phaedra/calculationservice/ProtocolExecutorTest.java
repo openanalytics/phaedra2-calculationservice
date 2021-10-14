@@ -52,6 +52,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Timer;
 import java.util.TimerTask;
+import java.util.concurrent.CompletableFuture;
 
 import static eu.openanalytics.phaedra.calculationservice.CalculationService.R_FAST_LANE;
 import static org.mockito.ArgumentMatchers.any;
@@ -128,7 +129,7 @@ public class ProtocolExecutorTest {
         stubExecuteFeatureStat();
         completeInputSuccessfully(input, "{\"output\": [2.0,4.0,6.0,10.0,16.0]}");
 
-        var resultSet = protocolExecutorService.execute(1, 1, 4).get();
+        var resultSet = protocolExecutorService.execute(1, 1, 4).resultSet().get();
         Assertions.assertEquals(StatusCode.SUCCESS, resultSet.getOutcome());
         Assertions.assertEquals(0L, resultSet.getId());
         Assertions.assertEquals(1L, resultSet.getProtocolId());
@@ -157,7 +158,7 @@ public class ProtocolExecutorTest {
 
         doThrow(new MeasUnresolvableException("WellData not found")).when(measurementServiceClient).getWellData(4L, "abc");
 
-        var resultSet = protocolExecutorService.execute(1, 1, 4).get();
+        var resultSet = protocolExecutorService.execute(1, 1, 4).resultSet().get();
         Assertions.assertEquals(StatusCode.FAILURE, resultSet.getOutcome());
         Assertions.assertEquals(0L, resultSet.getId());
         Assertions.assertEquals(1L, resultSet.getProtocolId());
@@ -217,7 +218,7 @@ public class ProtocolExecutorTest {
 
         doThrow(new ResultDataUnresolvableException("ResultData not found")).when(mockResultDataServiceClient).getResultData(0, 1);
 
-        var resultSet = protocolExecutorService.execute(1, 1, 4).get();
+        var resultSet = protocolExecutorService.execute(1, 1, 4).resultSet().get();
         Assertions.assertEquals(StatusCode.FAILURE, resultSet.getOutcome());
         Assertions.assertEquals(0L, resultSet.getId());
         Assertions.assertEquals(1L, resultSet.getProtocolId());
@@ -264,7 +265,7 @@ public class ProtocolExecutorTest {
 
         stubGetWellData(4L, "abc", new float[]{1.0f, 2.0f, 3.0f, 5.0f, 8.0f});
 
-        var resultSet = protocolExecutorService.execute(1, 1, 4).get();
+        var resultSet = protocolExecutorService.execute(1, 1, 4).resultSet().get();
         Assertions.assertEquals(StatusCode.FAILURE, resultSet.getOutcome());
         Assertions.assertEquals(0L, resultSet.getId());
         Assertions.assertEquals(1L, resultSet.getProtocolId());
@@ -304,7 +305,7 @@ public class ProtocolExecutorTest {
                             List.of(new CalculationInputValue(1L, 1L, null, null, "abc")), Collections.emptyList()))));
                 }}));
 
-        var resultSet = protocolExecutorService.execute(1, 1, 4).get();
+        var resultSet = protocolExecutorService.execute(1, 1, 4).resultSet().get();
         Assertions.assertEquals(StatusCode.FAILURE, resultSet.getOutcome());
         Assertions.assertEquals(0L, resultSet.getId());
         Assertions.assertEquals(1L, resultSet.getProtocolId());
@@ -344,7 +345,7 @@ public class ProtocolExecutorTest {
                             List.of(new CalculationInputValue(1L, 1L, null, 1L, "abc")), Collections.emptyList()))));
                 }}));
 
-        var resultSet = protocolExecutorService.execute(1, 1, 4).get();
+        var resultSet = protocolExecutorService.execute(1, 1, 4).resultSet().get();
         Assertions.assertEquals(StatusCode.FAILURE, resultSet.getOutcome());
         Assertions.assertEquals(0L, resultSet.getId());
         Assertions.assertEquals(1L, resultSet.getProtocolId());
@@ -382,7 +383,7 @@ public class ProtocolExecutorTest {
                             List.of(new CalculationInputValue(1L, 1L, "abc", null, "abc")), Collections.emptyList()))));
                 }}));
 
-        var resultSet = protocolExecutorService.execute(1, 1, 4).get();
+        var resultSet = protocolExecutorService.execute(1, 1, 4).resultSet().get();
         Assertions.assertEquals(StatusCode.FAILURE, resultSet.getOutcome());
         Assertions.assertEquals(0L, resultSet.getId());
         Assertions.assertEquals(1L, resultSet.getProtocolId());
@@ -431,7 +432,7 @@ public class ProtocolExecutorTest {
         stubExecute(input);
         completeInputScriptError(input);
 
-        var resultSet = protocolExecutorService.execute(1, 1, 4).get();
+        var resultSet = protocolExecutorService.execute(1, 1, 4).resultSet().get();
         Assertions.assertEquals(StatusCode.FAILURE, resultSet.getOutcome());
         Assertions.assertEquals(0L, resultSet.getId());
         Assertions.assertEquals(1L, resultSet.getProtocolId());
@@ -482,7 +483,7 @@ public class ProtocolExecutorTest {
         stubExecute(input);
         completeInputSuccessfully(input, "{\"output\": [2.0,4.0,6.0,10.0,16.0}"); // invalid output!
 
-        var resultSet = protocolExecutorService.execute(1, 1, 4).get();
+        var resultSet = protocolExecutorService.execute(1, 1, 4).resultSet().get();
         Assertions.assertEquals(StatusCode.FAILURE, resultSet.getOutcome());
         Assertions.assertEquals(0L, resultSet.getId());
         Assertions.assertEquals(1L, resultSet.getProtocolId());
@@ -531,7 +532,7 @@ public class ProtocolExecutorTest {
         stubExecute(input);
         input.getOutput().completeExceptionally(new RuntimeException("Some error during execution!"));
 
-        var resultSet = protocolExecutorService.execute(1, 1, 4).get();
+        var resultSet = protocolExecutorService.execute(1, 1, 4).resultSet().get();
         Assertions.assertEquals(StatusCode.FAILURE, resultSet.getOutcome());
         Assertions.assertEquals(0L, resultSet.getId());
         Assertions.assertEquals(1L, resultSet.getProtocolId());
@@ -611,7 +612,7 @@ public class ProtocolExecutorTest {
         // input 3: return value after 1000ms -> should NOT get cancelled
         completeInputSuccessfullyWithDelay(input3, "{\"output\": [4.0,8.0,12.0,20.0,32.0]}", 1000);
 
-        var resultSet = protocolExecutorService.execute(1, 1, 4).get();
+        var resultSet = protocolExecutorService.execute(1, 1, 4).resultSet().get();
 
         Assertions.assertFalse(input1.getOutput().isCancelled());
         Assertions.assertFalse(input2.getOutput().isCancelled());
@@ -702,7 +703,7 @@ public class ProtocolExecutorTest {
         // input 3:  return value after 1000ms -> should NOT get cancelled
         completeInputSuccessfullyWithDelay(input3, "{\"output\": [4.0,8.0,12.0,20.0,32.0]}", 1000);
 
-        var resultSet = protocolExecutorService.execute(1, 1, 4).get();
+        var resultSet = protocolExecutorService.execute(1, 1, 4).resultSet().get();
 
         Assertions.assertFalse(input1.getOutput().isCancelled()); //
         Assertions.assertFalse(input2.getOutput().isCancelled());
@@ -781,7 +782,8 @@ public class ProtocolExecutorTest {
             }
         }, 5000);
 
-        var resultSet = protocolExecutorService.executeProtocol(1, 1, 4);
+        var resultSetIdFuture = new CompletableFuture<Long>();
+        var resultSet = protocolExecutorService.executeProtocol(resultSetIdFuture, 1, 1, 4);
         Assertions.assertEquals(StatusCode.FAILURE, resultSet.getOutcome());
         Assertions.assertEquals(0L, resultSet.getId());
         Assertions.assertEquals(1L, resultSet.getProtocolId());
@@ -836,7 +838,7 @@ public class ProtocolExecutorTest {
             }
         }, 2000);
 
-        var resultSet = protocolExecutorService.execute(1, 1, 4).get();
+        var resultSet = protocolExecutorService.execute(1, 1, 4).resultSet().get();
         Assertions.assertEquals(StatusCode.FAILURE, resultSet.getOutcome());
         Assertions.assertEquals(0L, resultSet.getId());
         Assertions.assertEquals(1L, resultSet.getProtocolId());
@@ -891,7 +893,7 @@ public class ProtocolExecutorTest {
             }
         }, 2000);
 
-        var resultSet = protocolExecutorService.execute(1, 1, 4).get();
+        var resultSet = protocolExecutorService.execute(1, 1, 4).resultSet().get();
         Assertions.assertEquals(StatusCode.FAILURE, resultSet.getOutcome());
         Assertions.assertEquals(0L, resultSet.getId());
         Assertions.assertEquals(1L, resultSet.getProtocolId());
@@ -978,7 +980,8 @@ public class ProtocolExecutorTest {
 
         completeInputSuccessfully(input, "{\"output\": [2.0,4.0,6.0,10.0,16.0]}");
 
-        var resultSet = protocolExecutorService.executeProtocol(1, 1, 4);
+        var resultSetIdFuture = new CompletableFuture<Long>();
+        var resultSet = protocolExecutorService.executeProtocol(resultSetIdFuture, 1, 1, 4);
         Assertions.assertEquals(StatusCode.FAILURE, resultSet.getOutcome());
         Assertions.assertEquals(0L, resultSet.getId());
         Assertions.assertEquals(1L, resultSet.getProtocolId());
@@ -1050,7 +1053,7 @@ public class ProtocolExecutorTest {
 
         completeInputSuccessfully(input, "{\"output\": [2.0,4.0,6.0,10.0,16.0]}");
 
-        var resultSet = protocolExecutorService.execute(1, 1, 4).get();
+        var resultSet = protocolExecutorService.execute(1, 1, 4).resultSet().get();
         Assertions.assertEquals(StatusCode.FAILURE, resultSet.getOutcome());
         Assertions.assertEquals(0L, resultSet.getId());
         Assertions.assertEquals(1L, resultSet.getProtocolId());
@@ -1115,7 +1118,7 @@ public class ProtocolExecutorTest {
 
         stubExecuteFeatureStat();
 
-        var resultSet = protocolExecutorService.execute(1, 1, 4).get();
+        var resultSet = protocolExecutorService.execute(1, 1, 4).resultSet().get();
         Assertions.assertEquals(StatusCode.SUCCESS, resultSet.getOutcome());
         Assertions.assertEquals(0L, resultSet.getId());
         Assertions.assertEquals(1L, resultSet.getProtocolId());
@@ -1172,7 +1175,7 @@ public class ProtocolExecutorTest {
         stubExecute(input3);
         input3.getOutput().complete(new ScriptExecutionOutputDTO(input.getScriptExecutionInput().getId(), "", ResponseStatusCode.WORKER_INTERNAL_ERROR, "Internal worker error", 0));
 
-        var resultSet = protocolExecutorService.execute(1, 1, 4).get();
+        var resultSet = protocolExecutorService.execute(1, 1, 4).resultSet().get();
         Assertions.assertEquals(StatusCode.FAILURE, resultSet.getOutcome());
         Assertions.assertEquals(0L, resultSet.getId());
         Assertions.assertEquals(1L, resultSet.getProtocolId());
