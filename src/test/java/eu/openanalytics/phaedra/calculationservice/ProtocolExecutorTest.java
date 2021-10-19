@@ -99,13 +99,12 @@ public class ProtocolExecutorTest {
         featureExecutorService = new FeatureExecutorService(scriptEngineClient, measurementServiceClient, resultDataServiceClient);
         sequenceExecutorService = new SequenceExecutorService(resultDataServiceClient, featureExecutorService, modelMapper, featureStatExecutorService);
         protocolExecutorService = new ProtocolExecutorService(resultDataServiceClient, sequenceExecutorService, protocolInfoCollector, plateServiceClient);
-        doReturn(PlateDTO.builder().id(1L).build()).when(plateServiceClient).getPlate(anyLong());
-        doReturn(List.of(
+        doReturn(PlateDTO.builder().id(1L).wells(List.of(
                 new WellDTO(1L, 10L, 1, 1, "LC", WellStatus.ACCEPTED_DEFAULT, 1L, ""),
                 new WellDTO(1L, 10L, 1, 2, "SAMPLE", WellStatus.ACCEPTED_DEFAULT, 1L, ""),
                 new WellDTO(1L, 10L, 1, 3, "SAMPLE", WellStatus.ACCEPTED_DEFAULT, 1L, ""),
                 new WellDTO(1L, 10L, 1, 3, "HC", WellStatus.ACCEPTED_DEFAULT, 1L, ""))
-        ).when(plateServiceClient).getWellsOfPlateSorted(anyLong());
+        ).build()).when(plateServiceClient).getPlate(anyLong());
     }
 
     @Test
