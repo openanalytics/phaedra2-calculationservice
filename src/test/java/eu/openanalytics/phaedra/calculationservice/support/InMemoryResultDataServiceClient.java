@@ -43,7 +43,7 @@ public class InMemoryResultDataServiceClient implements ResultDataServiceClient 
     @Override
     public synchronized ResultDataDTO addResultData(long resultSetId, long featureId, float[] values, StatusCode statusCode, String statusMessage, Integer exitCode) {
         var newId = resultData.get(resultSetId).size();
-        var res = new ResultDataDTO((long) newId, resultSetId, featureId, values, statusCode, statusMessage, exitCode, LocalDateTime.now());
+        var res = new ResultDataDTO((long) newId, resultSetId, featureId, values, statusCode, statusMessage, exitCode, LocalDateTime.now(), null);
         resultData.get(resultSetId).add(res);
         return res;
     }
