@@ -38,12 +38,12 @@ public class CalculationController {
                 calculationRequestDTO.getMeasId());
         if (timeout != null) {
             try {
-                future.get(timeout, TimeUnit.MILLISECONDS);
+                future.resultSet().get(timeout, TimeUnit.MILLISECONDS);
             } catch (TimeoutException ex) {
 
             }
         } else {
-            future.get();
+            future.resultSet().get();
         }
     }
 

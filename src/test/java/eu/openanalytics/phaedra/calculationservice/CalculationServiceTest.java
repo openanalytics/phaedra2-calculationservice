@@ -11,6 +11,7 @@ import eu.openanalytics.phaedra.calculationservice.service.protocol.ProtocolInfo
 import eu.openanalytics.phaedra.calculationservice.service.status.CalculationStatusService;
 import eu.openanalytics.phaedra.platservice.client.PlateServiceClient;
 import eu.openanalytics.phaedra.platservice.client.exception.PlateUnresolvableException;
+import eu.openanalytics.phaedra.platservice.dto.PlateDTO;
 import eu.openanalytics.phaedra.platservice.dto.WellDTO;
 import eu.openanalytics.phaedra.protocolservice.client.exception.ProtocolUnresolvableException;
 import eu.openanalytics.phaedra.resultdataservice.client.ResultDataServiceClient;
@@ -59,7 +60,7 @@ public class CalculationServiceTest {
     public void simpleSuccessfulCalculation() throws Exception {
         mockResultSet(StatusCode.SUCCESS);
         mockProtocol();
-        mockWells();
+        mockPlate();
         mockResultData(
                 ResultDataDTO.builder().id(1L).featureId(1L).statusCode(StatusCode.SUCCESS).build(),
                 ResultDataDTO.builder().id(2L).featureId(2L).statusCode(StatusCode.SUCCESS).build(),
@@ -144,7 +145,7 @@ public class CalculationServiceTest {
     public void featureFailedTest() throws Exception {
         mockResultSet(StatusCode.FAILURE);
         mockProtocol();
-        mockWells();
+        mockPlate();
         mockResultData(
                 ResultDataDTO.builder().id(1L).featureId(1L).statusCode(StatusCode.SUCCESS).build(),
                 ResultDataDTO.builder().id(2L).featureId(2L).statusCode(StatusCode.FAILURE).statusMessage("Something went wrong during the calculation!").build()
@@ -220,7 +221,7 @@ public class CalculationServiceTest {
     public void featureStatFailed() throws Exception {
         mockResultSet(StatusCode.FAILURE);
         mockProtocol();
-        mockWells();
+        mockPlate();
         mockResultData(
                 ResultDataDTO.builder().id(1L).featureId(1L).statusCode(StatusCode.SUCCESS).build(),
                 ResultDataDTO.builder().id(2L).featureId(2L).statusCode(StatusCode.SUCCESS).build(),
@@ -317,7 +318,7 @@ public class CalculationServiceTest {
     public void featureStillRunning() throws Exception {
         mockResultSet(StatusCode.SCHEDULED);
         mockProtocol();
-        mockWells();
+        mockPlate();
         mockResultData(
                 ResultDataDTO.builder().id(1L).featureId(1L).statusCode(StatusCode.SUCCESS).build(),
                 ResultDataDTO.builder().id(2L).featureId(2L).statusCode(StatusCode.SUCCESS).build());
@@ -389,7 +390,7 @@ public class CalculationServiceTest {
     public void featureStatStillRunning() throws Exception {
         mockResultSet(StatusCode.SCHEDULED);
         mockProtocol();
-        mockWells();
+        mockPlate();
         mockResultData(
                 ResultDataDTO.builder().id(1L).featureId(1L).statusCode(StatusCode.SUCCESS).build(),
                 ResultDataDTO.builder().id(2L).featureId(2L).statusCode(StatusCode.SUCCESS).build(),
@@ -473,7 +474,7 @@ public class CalculationServiceTest {
     public void stillNeedToStart() throws Exception{
         mockResultSet(StatusCode.SCHEDULED);
         mockProtocol();
-        mockWells();
+        mockPlate();
         mockResultData(); // still need to start -> no data
         mockFeatureStatData(); // still need to start -> no data
 
@@ -527,7 +528,7 @@ public class CalculationServiceTest {
     public void notYetAllResultsForSingleFeatureStat() throws Exception {
         mockResultSet(StatusCode.SCHEDULED);
         mockProtocol();
-        mockWells();
+        mockPlate();
         mockResultData(
                 ResultDataDTO.builder().id(1L).featureId(1L).statusCode(StatusCode.SUCCESS).build(),
                 ResultDataDTO.builder().id(2L).featureId(2L).statusCode(StatusCode.SUCCESS).build(),
@@ -616,13 +617,13 @@ public class CalculationServiceTest {
         doReturn(Arrays.asList(data)).when(resultDataServiceClient).getResultData(1);
     }
 
-    private void mockWells() throws PlateUnresolvableException {
-        doReturn(List.of(
+    private void mockPlate() throws PlateUnresolvableException {
+        doReturn(PlateDTO.builder().id(1L).wells(List.of(
                 WellDTO.builder().welltype("LC").id(1L).build(),
                 WellDTO.builder().welltype("SAMPLE").id(2L).build(),
                 WellDTO.builder().welltype("SAMPLE").id(3L).build(),
-                WellDTO.builder().welltype("HC").id(3L).build()
-        )).when(plateServiceClient).getWellsOfPlateSorted(1);
+                WellDTO.builder().welltype("HC").id(3L).build())).build()
+        ).when(plateServiceClient).getPlate(1);
     }
 
     private void mockProtocol() throws ProtocolUnresolvableException {
