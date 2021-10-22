@@ -65,7 +65,7 @@ public class FormulaController implements MethodArgumentNotValidExceptionHandler
     }
 
     @GetMapping(params = {"category"})
-    public List<FormulaDTO> getFormulasByCategory(@RequestParam(value = "category") Category category) {
+    public List<FormulaDTO> getFormulasByCategory(@RequestParam(value = "category", required = false) Category category) {
         return formulaService.getFormulasByCategory(category);
     }
 
