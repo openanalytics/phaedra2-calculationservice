@@ -10,7 +10,7 @@ import java.util.List;
 
 public interface FormulaRepository extends CrudRepository<Formula, Long> {
 
-    @Query("select * from formula f where f.category = CAST(:category AS public.category) ")
+    @Query("select * from formula f where f.category = CAST(:category AS calculations.category) ")
     List<Formula> findFormulasByCategory(@Param("category") Category category);
 
 }
