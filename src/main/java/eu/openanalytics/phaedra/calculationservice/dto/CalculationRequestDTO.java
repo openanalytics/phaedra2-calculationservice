@@ -1,10 +1,10 @@
 package eu.openanalytics.phaedra.calculationservice.dto;
 
-import lombok.AccessLevel;
-import lombok.NoArgsConstructor;
-import lombok.Value;
+import lombok.*;
 
+@Builder
 @Value
+@AllArgsConstructor
 @NoArgsConstructor(force = true, access = AccessLevel.PRIVATE) // Jackson deserialize compatibility
 public class CalculationRequestDTO {
 

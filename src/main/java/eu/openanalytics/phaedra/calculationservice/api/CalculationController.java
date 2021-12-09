@@ -9,6 +9,9 @@ import eu.openanalytics.phaedra.protocolservice.client.exception.ProtocolUnresol
 import eu.openanalytics.phaedra.resultdataservice.client.exception.ResultDataUnresolvableException;
 import eu.openanalytics.phaedra.resultdataservice.client.exception.ResultFeatureStatUnresolvableException;
 import eu.openanalytics.phaedra.resultdataservice.client.exception.ResultSetUnresolvableException;
+import eu.openanalytics.phaedra.resultdataservice.dto.ResultSetDTO;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
@@ -31,7 +34,7 @@ public class CalculationController {
     }
 
     @PostMapping("/calculation")
-    public void calculate(@RequestBody CalculationRequestDTO calculationRequestDTO, @RequestParam(value = "timeout", required = false) Long timeout) throws ExecutionException, InterruptedException {
+    public ResponseEntity<Long> calculate(@RequestBody CalculationRequestDTO calculationRequestDTO, @RequestParam(value = "timeout", required = false) Long timeout) throws ExecutionException, InterruptedException {
         var future = protocolExecutorService.execute(
                 calculationRequestDTO.getProtocolId(),
                 calculationRequestDTO.getPlateId(),
@@ -42,14 +45,14 @@ public class CalculationController {
             } catch (TimeoutException ex) {
 
             }
-        } else {
-            future.resultSet().get();
         }
+
+        return new ResponseEntity(future.resultSet().get().getId(), HttpStatus.CREATED);
     }
 
     @GetMapping("/status")
-    public CalculationStatus status(@RequestParam(value = "resultSetId") int resultSetId) throws ResultSetUnresolvableException, ResultDataUnresolvableException, ResultFeatureStatUnresolvableException, ProtocolUnresolvableException, PlateUnresolvableException {
-        return calculationStatusService.getStatus(resultSetId);
+    public ResponseEntity<CalculationStatus> status(@RequestParam(value = "resultSetId") int resultSetId) throws ResultSetUnresolvableException, ResultDataUnresolvableException, ResultFeatureStatUnresolvableException, ProtocolUnresolvableException, PlateUnresolvableException {
+        return new ResponseEntity(calculationStatusService.getStatus(resultSetId), HttpStatus.OK);
     }
 
 }
