@@ -47,7 +47,7 @@ public class CalculationController {
             }
         }
 
-        return new ResponseEntity(future.resultSet().get().getId(), HttpStatus.CREATED);
+        return new ResponseEntity(future.resultSetId().get(), HttpStatus.CREATED);
     }
 
     @GetMapping("/status")
