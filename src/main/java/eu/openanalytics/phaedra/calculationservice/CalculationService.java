@@ -1,5 +1,21 @@
 package eu.openanalytics.phaedra.calculationservice;
 
+import java.time.Clock;
+
+import javax.servlet.ServletContext;
+import javax.sql.DataSource;
+
+import org.apache.commons.lang3.StringUtils;
+import org.springframework.boot.SpringApplication;
+import org.springframework.boot.autoconfigure.SpringBootApplication;
+import org.springframework.cloud.client.discovery.EnableDiscoveryClient;
+import org.springframework.cloud.client.loadbalancer.LoadBalanced;
+import org.springframework.context.annotation.Bean;
+import org.springframework.context.annotation.Import;
+import org.springframework.core.env.Environment;
+import org.springframework.jdbc.datasource.DriverManagerDataSource;
+import org.springframework.scheduling.annotation.EnableScheduling;
+
 import eu.openanalytics.phaedra.measurementservice.client.config.MeasurementServiceClientAutoConfiguration;
 import eu.openanalytics.phaedra.platservice.client.config.PlateServiceClientAutoConfiguration;
 import eu.openanalytics.phaedra.protocolservice.client.config.ProtocolServiceClientAutoConfiguration;
@@ -12,23 +28,6 @@ import eu.openanalytics.phaedra.util.jdbc.JDBCUtils;
 import io.swagger.v3.oas.models.OpenAPI;
 import io.swagger.v3.oas.models.servers.Server;
 import liquibase.integration.spring.SpringLiquibase;
-import org.apache.commons.lang3.StringUtils;
-import org.springframework.boot.SpringApplication;
-import org.springframework.boot.autoconfigure.SpringBootApplication;
-import org.springframework.cloud.client.discovery.EnableDiscoveryClient;
-import org.springframework.cloud.client.loadbalancer.LoadBalanced;
-import org.springframework.context.annotation.Bean;
-import org.springframework.context.annotation.Import;
-import org.springframework.core.env.Environment;
-import org.springframework.jdbc.datasource.DriverManagerDataSource;
-import org.springframework.scheduling.annotation.EnableScheduling;
-import org.springframework.web.servlet.config.annotation.CorsRegistration;
-import org.springframework.web.servlet.config.annotation.CorsRegistry;
-import org.springframework.web.servlet.config.annotation.WebMvcConfigurer;
-
-import javax.servlet.ServletContext;
-import javax.sql.DataSource;
-import java.time.Clock;
 
 @SpringBootApplication
 @EnableDiscoveryClient
@@ -39,6 +38,7 @@ import java.time.Clock;
         PlateServiceClientAutoConfiguration.class,
         MeasurementServiceClientAutoConfiguration.class})
 public class CalculationService {
+	
     private final ServletContext servletContext;
     private final Environment environment;
 
@@ -119,15 +119,4 @@ public class CalculationService {
     public Clock clock() {
         return Clock.systemDefaultZone();
     }
-
-	@Bean
-	public WebMvcConfigurer corsConfigurer() {
-		return new WebMvcConfigurer() {
-			@Override
-			public void addCorsMappings(CorsRegistry registry) {
-				CorsRegistration registration = registry.addMapping("/**");
-				registration.allowedMethods("*");
-			}
-		};
-	}
 }
