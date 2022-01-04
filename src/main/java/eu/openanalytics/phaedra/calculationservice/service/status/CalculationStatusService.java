@@ -131,7 +131,7 @@ public class CalculationStatusService {
         final var plate = plateServiceClient.getPlate(resultSet.getPlateId());
 
         // 2. determine number of unique wellTypes
-        final var welltypesSorted = plate.getWells().stream().map(WellDTO::getWelltype).toList();
+        final var welltypesSorted = plate.getWells().stream().map(WellDTO::getWellType).toList();
         final var uniqueWelltypes = new LinkedHashSet<>(welltypesSorted);
         final var numWelltypes = uniqueWelltypes.size();
 

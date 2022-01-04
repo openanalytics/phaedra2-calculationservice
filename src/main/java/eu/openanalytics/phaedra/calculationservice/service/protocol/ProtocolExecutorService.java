@@ -66,7 +66,7 @@ public class ProtocolExecutorService {
         logger.info("Preparing new calculation");
         final var protocol = protocolInfoCollector.getProtocol(protocolId);
         final var plate = plateServiceClient.getPlate(plateId);
-        final var welltypesSorted = plate.getWells().stream().map(WellDTO::getWelltype).toList();
+        final var welltypesSorted = plate.getWells().stream().map(WellDTO::getWellType).toList();
         final var uniqueWelltypes = new LinkedHashSet<>(welltypesSorted);
 
         // 2. create CalculationContext
