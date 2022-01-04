@@ -1,19 +1,21 @@
 package eu.openanalytics.phaedra.calculationservice.service;
 
 
-import eu.openanalytics.phaedra.calculationservice.dto.FormulaDTO;
-import eu.openanalytics.phaedra.calculationservice.enumeration.Category;
-import eu.openanalytics.phaedra.calculationservice.exception.FormulaNotFoundException;
-import eu.openanalytics.phaedra.calculationservice.model.Formula;
-import eu.openanalytics.phaedra.calculationservice.repository.FormulaRepository;
-import org.springframework.stereotype.Service;
-
 import java.time.Clock;
 import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.stream.Collectors;
+
+import org.springframework.stereotype.Service;
+
+import eu.openanalytics.phaedra.calculationservice.dto.FormulaDTO;
+import eu.openanalytics.phaedra.calculationservice.enumeration.Category;
+import eu.openanalytics.phaedra.calculationservice.exception.FormulaNotFoundException;
+import eu.openanalytics.phaedra.calculationservice.model.Formula;
+import eu.openanalytics.phaedra.calculationservice.repository.FormulaRepository;
+import eu.openanalytics.phaedra.calculationservice.util.FormulaParser;
 
 @Service
 public class FormulaService {
@@ -90,6 +92,14 @@ public class FormulaService {
                 ));
     }
 
+    public List<String> getFormulaInputNames(long formulaId) throws FormulaNotFoundException {
+    	Optional<Formula> formula = formulaRepository.findById(formulaId);
+        if (formula.isEmpty()) {
+            throw new FormulaNotFoundException(formulaId);
+        }
+    	return new FormulaParser().parseInputNames(formula.get());
+    }
+    
     private FormulaDTO save(Formula formula) {
         Formula newFormula = formulaRepository.save(formula);
         return modelMapper.map(newFormula).build();

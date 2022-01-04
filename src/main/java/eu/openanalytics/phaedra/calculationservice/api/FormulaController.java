@@ -1,15 +1,7 @@
 package eu.openanalytics.phaedra.calculationservice.api;
 
-import eu.openanalytics.phaedra.calculationservice.dto.FormulaDTO;
-import eu.openanalytics.phaedra.calculationservice.dto.validation.OnCreate;
-import eu.openanalytics.phaedra.calculationservice.dto.validation.OnUpdate;
-import eu.openanalytics.phaedra.calculationservice.enumeration.Category;
-import eu.openanalytics.phaedra.calculationservice.exception.FormulaNotFoundException;
-import eu.openanalytics.phaedra.calculationservice.service.FormulaService;
-import eu.openanalytics.phaedra.util.exceptionhandling.HttpMessageNotReadableExceptionHandler;
-import eu.openanalytics.phaedra.util.exceptionhandling.MethodArgumentNotValidExceptionHandler;
-import eu.openanalytics.phaedra.util.exceptionhandling.UserVisibleExceptionHandler;
-import lombok.extern.slf4j.Slf4j;
+import java.util.List;
+
 import org.springframework.http.HttpStatus;
 import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.DeleteMapping;
@@ -23,7 +15,16 @@ import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.ResponseStatus;
 import org.springframework.web.bind.annotation.RestController;
 
-import java.util.List;
+import eu.openanalytics.phaedra.calculationservice.dto.FormulaDTO;
+import eu.openanalytics.phaedra.calculationservice.dto.validation.OnCreate;
+import eu.openanalytics.phaedra.calculationservice.dto.validation.OnUpdate;
+import eu.openanalytics.phaedra.calculationservice.enumeration.Category;
+import eu.openanalytics.phaedra.calculationservice.exception.FormulaNotFoundException;
+import eu.openanalytics.phaedra.calculationservice.service.FormulaService;
+import eu.openanalytics.phaedra.util.exceptionhandling.HttpMessageNotReadableExceptionHandler;
+import eu.openanalytics.phaedra.util.exceptionhandling.MethodArgumentNotValidExceptionHandler;
+import eu.openanalytics.phaedra.util.exceptionhandling.UserVisibleExceptionHandler;
+import lombok.extern.slf4j.Slf4j;
 
 @RestController
 @RequestMapping("/formulas")
@@ -55,12 +56,12 @@ public class FormulaController implements MethodArgumentNotValidExceptionHandler
     }
 
     @GetMapping("/{formulaId}")
-    public FormulaDTO getFormulas(@PathVariable long formulaId) throws FormulaNotFoundException {
+    public FormulaDTO getFormula(@PathVariable long formulaId) throws FormulaNotFoundException {
         return formulaService.getFormulaById(formulaId);
     }
 
     @GetMapping
-    public List<FormulaDTO> getFormulas() {
+    public List<FormulaDTO> getAllFormulas() {
         return formulaService.getAllFormulas();
     }
 
@@ -69,4 +70,8 @@ public class FormulaController implements MethodArgumentNotValidExceptionHandler
         return formulaService.getFormulasByCategory(category);
     }
 
+    @GetMapping("/{formulaId}/inputs")
+    public List<String> getFormulaInputNames(@PathVariable long formulaId) throws FormulaNotFoundException {
+        return formulaService.getFormulaInputNames(formulaId);
+    }
 }
