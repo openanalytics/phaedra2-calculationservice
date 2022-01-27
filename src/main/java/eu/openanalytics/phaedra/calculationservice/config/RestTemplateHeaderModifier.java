@@ -10,6 +10,7 @@ import org.springframework.http.client.ClientHttpResponse;
 
 import java.io.IOException;
 
+
 public class RestTemplateHeaderModifier implements ClientHttpRequestInterceptor {
 
     @Autowired
@@ -19,12 +20,13 @@ public class RestTemplateHeaderModifier implements ClientHttpRequestInterceptor 
     public ClientHttpResponse intercept(HttpRequest httpRequest,
                                         byte[] bytes,
                                         ClientHttpRequestExecution execution) throws IOException {
-        if (httpRequest.getHeaders().containsKey(HttpHeaders.AUTHORIZATION)) {
-            return execution.execute(httpRequest, bytes);
-        } else {
-            var bearerToken = tokenService.getAuthorisationToken();
-            httpRequest.getHeaders().add(HttpHeaders.AUTHORIZATION, bearerToken);
-            return execution.execute(httpRequest, bytes);
+        if (!httpRequest.getHeaders().containsKey(HttpHeaders.AUTHORIZATION)) {
+            if (tokenService != null) {
+                var bearerToken = tokenService.getAuthorisationToken();
+                httpRequest.getHeaders().add(HttpHeaders.AUTHORIZATION, bearerToken);
+                return execution.execute(httpRequest, bytes);
+            }
         }
+        return execution.execute(httpRequest, bytes);
     }
 }

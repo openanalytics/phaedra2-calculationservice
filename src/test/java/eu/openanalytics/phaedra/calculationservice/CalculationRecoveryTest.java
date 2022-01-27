@@ -1,14 +1,17 @@
 package eu.openanalytics.phaedra.calculationservice;
 
 import eu.openanalytics.phaedra.calculationservice.service.CalculationRecoveryService;
+import eu.openanalytics.phaedra.calculationservice.service.TokenService;
 import eu.openanalytics.phaedra.calculationservice.service.protocol.ProtocolExecutorService;
 import eu.openanalytics.phaedra.resultdataservice.client.ResultDataServiceClient;
 import eu.openanalytics.phaedra.resultdataservice.dto.ErrorDTO;
 import eu.openanalytics.phaedra.resultdataservice.dto.ResultSetDTO;
 import eu.openanalytics.phaedra.resultdataservice.enumeration.StatusCode;
 import org.junit.jupiter.api.Assertions;
+import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 import org.mockito.ArgumentCaptor;
+import org.springframework.http.HttpHeaders;
 
 import java.time.LocalDateTime;
 import java.util.List;
@@ -22,11 +25,19 @@ import static org.mockito.Mockito.when;
 
 public class CalculationRecoveryTest {
 
+    static TokenService tokenService;
+
+
+    @BeforeAll
+    static void init() {
+        tokenService = new TokenService();
+    }
+
     @Test
     public void simpleTest() throws Exception {
         var resultDataServiceClient = mock(ResultDataServiceClient.class);
         var protocolExecutorService = mock(ProtocolExecutorService.class);
-        var calculationRecoveryService = new CalculationRecoveryService(resultDataServiceClient, protocolExecutorService);
+        var calculationRecoveryService = new CalculationRecoveryService(resultDataServiceClient, protocolExecutorService, tokenService);
 
         when(resultDataServiceClient.getResultSet(StatusCode.SCHEDULED)).thenReturn(List.of(
                 // this ResultSet is too old and should not be retried
@@ -67,7 +78,7 @@ public class CalculationRecoveryTest {
         when(protocolExecutorService.execute(9L, 10L, 11L)).thenReturn(new ProtocolExecutorService.ProtocolExecution(f3, f4));
 
         calculationRecoveryService.recoverCalculations();
-        
+
         verify(resultDataServiceClient).getResultSet(StatusCode.SCHEDULED);
         var errorCapture = ArgumentCaptor.forClass(List.class);
         verify(resultDataServiceClient).completeResultDataSet(eq(43L), eq(StatusCode.FAILURE), errorCapture.capture(), matches(" - Timestamp: \\[.*\\], Description: \\[Calculation re-scheduled because CalculationService was restarted\\], Id of new ResultSet: \\[45\\]"));

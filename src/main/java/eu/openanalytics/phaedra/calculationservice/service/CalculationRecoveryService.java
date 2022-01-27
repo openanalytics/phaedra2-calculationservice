@@ -18,14 +18,14 @@ import java.util.concurrent.ExecutionException;
 
 @Service
 public class CalculationRecoveryService {
+    private final Logger logger = LoggerFactory.getLogger(getClass());
 
     private final ResultDataServiceClient resultDataServiceClient;
-    private final Logger logger = LoggerFactory.getLogger(getClass());
     private final ProtocolExecutorService protocolExecutorService;
 
     private static final Duration MAX_RECOVER_TIME = Duration.ofHours(2);
 
-    public CalculationRecoveryService(ResultDataServiceClient resultDataServiceClient, ProtocolExecutorService protocolExecutorService) {
+    public CalculationRecoveryService(ResultDataServiceClient resultDataServiceClient, ProtocolExecutorService protocolExecutorService, TokenService tokenService) {
         this.resultDataServiceClient = resultDataServiceClient;
         this.protocolExecutorService = protocolExecutorService;
     }
