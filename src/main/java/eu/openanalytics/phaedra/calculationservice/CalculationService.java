@@ -91,12 +91,6 @@ public class CalculationService {
     }
 
     @Bean
-    @Scope(ConfigurableBeanFactory.SCOPE_SINGLETON)
-    public TokenService tokenService() {
-        return new TokenService();
-    }
-
-    @Bean
     public SpringLiquibase liquibase() {
         SpringLiquibase liquibase = new SpringLiquibase();
         liquibase.setChangeLog("classpath:liquibase-changeLog.xml");
