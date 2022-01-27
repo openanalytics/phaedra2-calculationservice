@@ -22,6 +22,7 @@ import java.util.List;
 import java.util.concurrent.CompletableFuture;
 
 import static org.mockito.ArgumentMatchers.anyLong;
+import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
@@ -47,7 +48,7 @@ public class CalculationIntegrationTest extends AbstractIntegrationTest {
         f1.complete(45L);
         var f2 = new CompletableFuture<ResultSetDTO>();
         f2.complete(new ResultSetDTO(45L, 1L, 1L, 1L, LocalDateTime.now(), LocalDateTime.now(), StatusCode.SUCCESS, new ArrayList<>(),"error"));
-        when(protocolExecutorService.execute(anyLong(),anyLong(),anyLong())).thenReturn(new ProtocolExecutorService.ProtocolExecution(f1, f2));
+        when(protocolExecutorService.execute(anyLong(),anyLong(),anyLong(),anyString())).thenReturn(new ProtocolExecutorService.ProtocolExecution(f1, f2));
         var calculationController = new CalculationController(protocolExecutorService, calculationStatusService, tokenService);
         var calculationRequestDTO = CalculationRequestDTO.builder().protocolId(1L).plateId(1L).measId(1L).build();
         var res = calculationController.calculate(httpHeaders, calculationRequestDTO,null);
@@ -62,7 +63,7 @@ public class CalculationIntegrationTest extends AbstractIntegrationTest {
         f1.complete(45L);
         var f2 = new CompletableFuture<ResultSetDTO>();
         f2.complete(new ResultSetDTO(45L, 1L, 1L, 1L, LocalDateTime.now(), LocalDateTime.now(), StatusCode.SUCCESS, new ArrayList<>(),"error"));
-        when(protocolExecutorService.execute(anyLong(),anyLong(),anyLong())).thenReturn(new ProtocolExecutorService.ProtocolExecution(f1, f2));
+        when(protocolExecutorService.execute(anyLong(),anyLong(),anyLong(),anyString())).thenReturn(new ProtocolExecutorService.ProtocolExecution(f1, f2));
         var calculationController = new CalculationController(protocolExecutorService, calculationStatusService, tokenService);
         var calculationRequestDTO = CalculationRequestDTO.builder().protocolId(1L).plateId(1L).measId(1L).build();
 

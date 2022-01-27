@@ -1,26 +1,5 @@
 package eu.openanalytics.phaedra.calculationservice;
 
-import java.time.Clock;
-import java.util.Collections;
-
-import javax.servlet.ServletContext;
-import javax.sql.DataSource;
-
-import eu.openanalytics.phaedra.calculationservice.config.RestTemplateHeaderModifier;
-import eu.openanalytics.phaedra.calculationservice.service.TokenService;
-import org.apache.commons.lang3.StringUtils;
-import org.springframework.beans.factory.config.ConfigurableBeanFactory;
-import org.springframework.boot.SpringApplication;
-import org.springframework.boot.autoconfigure.SpringBootApplication;
-import org.springframework.cloud.client.discovery.EnableDiscoveryClient;
-import org.springframework.cloud.client.loadbalancer.LoadBalanced;
-import org.springframework.context.annotation.Bean;
-import org.springframework.context.annotation.Import;
-import org.springframework.context.annotation.Scope;
-import org.springframework.core.env.Environment;
-import org.springframework.jdbc.datasource.DriverManagerDataSource;
-import org.springframework.scheduling.annotation.EnableScheduling;
-
 import eu.openanalytics.phaedra.measurementservice.client.config.MeasurementServiceClientAutoConfiguration;
 import eu.openanalytics.phaedra.platservice.client.config.PlateServiceClientAutoConfiguration;
 import eu.openanalytics.phaedra.protocolservice.client.config.ProtocolServiceClientAutoConfiguration;
@@ -33,6 +12,20 @@ import eu.openanalytics.phaedra.util.jdbc.JDBCUtils;
 import io.swagger.v3.oas.models.OpenAPI;
 import io.swagger.v3.oas.models.servers.Server;
 import liquibase.integration.spring.SpringLiquibase;
+import org.apache.commons.lang3.StringUtils;
+import org.springframework.boot.SpringApplication;
+import org.springframework.boot.autoconfigure.SpringBootApplication;
+import org.springframework.cloud.client.discovery.EnableDiscoveryClient;
+import org.springframework.cloud.client.loadbalancer.LoadBalanced;
+import org.springframework.context.annotation.Bean;
+import org.springframework.context.annotation.Import;
+import org.springframework.core.env.Environment;
+import org.springframework.jdbc.datasource.DriverManagerDataSource;
+import org.springframework.scheduling.annotation.EnableScheduling;
+
+import javax.servlet.ServletContext;
+import javax.sql.DataSource;
+import java.time.Clock;
 
 @SpringBootApplication
 @EnableDiscoveryClient
@@ -86,7 +79,6 @@ public class CalculationService {
     @LoadBalanced
     public PhaedraRestTemplate restTemplate() {
         PhaedraRestTemplate restTemplate = new PhaedraRestTemplate();
-        restTemplate.setInterceptors(Collections.singletonList(new RestTemplateHeaderModifier()));
         return restTemplate;
     }
 

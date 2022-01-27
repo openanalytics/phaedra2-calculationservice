@@ -53,19 +53,19 @@ public class ProtocolExecutorService {
 
     public record ProtocolExecution(CompletableFuture<Long> resultSetId, Future<ResultSetDTO> resultSet) {};
 
-    public ProtocolExecution execute(long protocolId, long plateId, long measId) {
+    public ProtocolExecution execute(long protocolId, long plateId, long measId, String...authToken) {
         // submit execution to the ThreadPool/ExecutorService and return a future
         var resultSetIdFuture = new CompletableFuture<Long>();
         return new ProtocolExecution(resultSetIdFuture, executorService.submit(() -> {
-            return executeProtocol(resultSetIdFuture, protocolId, plateId, measId);
+            return executeProtocol(resultSetIdFuture, protocolId, plateId, measId, authToken);
         }));
     }
 
-    public ResultSetDTO executeProtocol(CompletableFuture<Long> resultSetIdFuture, long protocolId, long plateId, long measId) throws ProtocolUnresolvableException, ResultSetUnresolvableException, PlateUnresolvableException {
+    public ResultSetDTO executeProtocol(CompletableFuture<Long> resultSetIdFuture, long protocolId, long plateId, long measId, String... authToken) throws ProtocolUnresolvableException, ResultSetUnresolvableException, PlateUnresolvableException {
         // 1. get protocol
         logger.info("Preparing new calculation");
         final var protocol = protocolInfoCollector.getProtocol(protocolId);
-        final var plate = plateServiceClient.getPlate(plateId);
+        final var plate = plateServiceClient.getPlate(plateId, authToken);
         final var welltypesSorted = plate.getWells().stream().map(WellDTO::getWellType).toList();
         final var uniqueWelltypes = new LinkedHashSet<>(welltypesSorted);
 

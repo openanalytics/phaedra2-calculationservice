@@ -37,12 +37,13 @@ public class CalculationController {
                                           @RequestBody CalculationRequestDTO calculationRequestDTO,
                                           @RequestParam(value = "timeout", required = false) Long timeout) throws ExecutionException, InterruptedException {
         var authToken = httpHeaders.getFirst(HttpHeaders.AUTHORIZATION);
-        tokenService.setAuthorisationToken(authToken);
+//        tokenService.setAuthorisationToken(authToken);
 
         var future = protocolExecutorService.execute(
                 calculationRequestDTO.getProtocolId(),
                 calculationRequestDTO.getPlateId(),
-                calculationRequestDTO.getMeasId());
+                calculationRequestDTO.getMeasId(),
+                authToken);
         if (timeout != null) {
             try {
                 future.resultSet().get(timeout, TimeUnit.MILLISECONDS);
