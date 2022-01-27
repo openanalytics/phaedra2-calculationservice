@@ -15,6 +15,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
+import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
 import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.context.DynamicPropertyRegistry;
@@ -37,7 +38,7 @@ import java.sql.SQLException;
 @ExtendWith(SpringExtension.class)
 @ContextConfiguration(classes = {CalculationService.class, IntegrationTestConfiguration.class})
 @WebAppConfiguration
-@AutoConfigureMockMvc
+@AutoConfigureMockMvc(addFilters = false)
 @TestPropertySource(locations = "classpath:application-test.properties")
 abstract public class AbstractIntegrationTest {
 
@@ -119,12 +120,14 @@ abstract public class AbstractIntegrationTest {
     protected RequestBuilder post(String url, Object input) throws JsonProcessingException {
         return MockMvcRequestBuilders.post(url)
                 .contentType("application/json")
+                .header(HttpHeaders.AUTHORIZATION, "Bearer dsjfldkjdfldjkj3l21j3k21j3l12kj3lk12j31l2kj3")
                 .content(om.writeValueAsString(input));
     }
 
     protected RequestBuilder put(String url, Object input) throws JsonProcessingException {
         return MockMvcRequestBuilders.put(url)
                 .contentType("application/json")
+                .header(HttpHeaders.AUTHORIZATION, "Bearer dsjfldkjdfldjkj3l21j3k21j3l12kj3lk12j31l2kj3")
                 .content(om.writeValueAsString(input));
     }
 

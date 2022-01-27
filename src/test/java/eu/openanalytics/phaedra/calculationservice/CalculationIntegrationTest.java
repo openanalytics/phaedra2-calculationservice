@@ -3,18 +3,22 @@ package eu.openanalytics.phaedra.calculationservice;
 import eu.openanalytics.phaedra.calculationservice.api.CalculationController;
 import eu.openanalytics.phaedra.calculationservice.dto.CalculationRequestDTO;
 import eu.openanalytics.phaedra.calculationservice.dto.CalculationStatus;
+import eu.openanalytics.phaedra.calculationservice.service.TokenService;
 import eu.openanalytics.phaedra.calculationservice.service.protocol.ProtocolExecutorService;
 import eu.openanalytics.phaedra.calculationservice.service.status.CalculationStatusService;
 import eu.openanalytics.phaedra.calculationservice.support.AbstractIntegrationTest;
 import eu.openanalytics.phaedra.resultdataservice.dto.ResultSetDTO;
 import eu.openanalytics.phaedra.resultdataservice.enumeration.StatusCode;
 import org.junit.jupiter.api.Assertions;
+import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
+import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
 
 import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.List;
 import java.util.concurrent.CompletableFuture;
 
 import static org.mockito.ArgumentMatchers.anyLong;
@@ -23,9 +27,19 @@ import static org.mockito.Mockito.when;
 
 public class CalculationIntegrationTest extends AbstractIntegrationTest {
 
+    static HttpHeaders httpHeaders;
+    static TokenService tokenService;
+
     private static final ProtocolExecutorService protocolExecutorService = mock(ProtocolExecutorService.class);
     private static final CalculationStatusService calculationStatusService = mock(CalculationStatusService.class);
 
+    @BeforeAll
+    static void init() {
+        httpHeaders = new HttpHeaders();
+        httpHeaders.put(HttpHeaders.AUTHORIZATION, List.of("Bearer 1234wertfd4354343sdw1212dfq912coi1c2e2"));
+
+        tokenService = new TokenService();
+    }
 
     @Test
     public void calculateTestNoTimeout() throws Exception {
@@ -34,10 +48,9 @@ public class CalculationIntegrationTest extends AbstractIntegrationTest {
         var f2 = new CompletableFuture<ResultSetDTO>();
         f2.complete(new ResultSetDTO(45L, 1L, 1L, 1L, LocalDateTime.now(), LocalDateTime.now(), StatusCode.SUCCESS, new ArrayList<>(),"error"));
         when(protocolExecutorService.execute(anyLong(),anyLong(),anyLong())).thenReturn(new ProtocolExecutorService.ProtocolExecution(f1, f2));
-        var calculationController = new CalculationController(protocolExecutorService, calculationStatusService);
+        var calculationController = new CalculationController(protocolExecutorService, calculationStatusService, tokenService);
         var calculationRequestDTO = CalculationRequestDTO.builder().protocolId(1L).plateId(1L).measId(1L).build();
-
-        var res = calculationController.calculate(calculationRequestDTO,null);
+        var res = calculationController.calculate(httpHeaders, calculationRequestDTO,null);
 
         Assertions.assertEquals(45L,res.getBody());
         Assertions.assertEquals(HttpStatus.CREATED,res.getStatusCode());
@@ -50,10 +63,10 @@ public class CalculationIntegrationTest extends AbstractIntegrationTest {
         var f2 = new CompletableFuture<ResultSetDTO>();
         f2.complete(new ResultSetDTO(45L, 1L, 1L, 1L, LocalDateTime.now(), LocalDateTime.now(), StatusCode.SUCCESS, new ArrayList<>(),"error"));
         when(protocolExecutorService.execute(anyLong(),anyLong(),anyLong())).thenReturn(new ProtocolExecutorService.ProtocolExecution(f1, f2));
-        var calculationController = new CalculationController(protocolExecutorService, calculationStatusService);
+        var calculationController = new CalculationController(protocolExecutorService, calculationStatusService, tokenService);
         var calculationRequestDTO = CalculationRequestDTO.builder().protocolId(1L).plateId(1L).measId(1L).build();
 
-        var res = calculationController.calculate(calculationRequestDTO,1000L);
+        var res = calculationController.calculate(httpHeaders,calculationRequestDTO,1000L);
 
         Assertions.assertEquals(45L,res.getBody());
         Assertions.assertEquals(HttpStatus.CREATED,res.getStatusCode());
@@ -62,7 +75,7 @@ public class CalculationIntegrationTest extends AbstractIntegrationTest {
     @Test
     public void statusTestSuccess() throws Exception {
         when(calculationStatusService.getStatus(20L)).thenReturn(new CalculationStatus(new CalculationStatus.CalculationComplexityDTO(1,1,1,1,1),StatusCode.SUCCESS,new ArrayList<>(), new HashMap<>()));
-        var calculationController = new CalculationController(protocolExecutorService, calculationStatusService);
+        var calculationController = new CalculationController(protocolExecutorService, calculationStatusService, tokenService);
         var res = calculationController.status(20);
         Assertions.assertEquals(new CalculationStatus(new CalculationStatus.CalculationComplexityDTO(1,1,1,1,1),StatusCode.SUCCESS,new ArrayList<>(), new HashMap<>()),res.getBody());
         Assertions.assertEquals(HttpStatus.OK, res.getStatusCode());
@@ -71,7 +84,7 @@ public class CalculationIntegrationTest extends AbstractIntegrationTest {
     @Test
     public void statusTestScheduled() throws Exception {
         when(calculationStatusService.getStatus(20L)).thenReturn(new CalculationStatus(new CalculationStatus.CalculationComplexityDTO(1,1,1,1,1),StatusCode.SCHEDULED,new ArrayList<>(), new HashMap<>()));
-        var calculationController = new CalculationController(protocolExecutorService, calculationStatusService);
+        var calculationController = new CalculationController(protocolExecutorService, calculationStatusService, tokenService);
         var res = calculationController.status(20);
         Assertions.assertEquals(new CalculationStatus(new CalculationStatus.CalculationComplexityDTO(1,1,1,1,1),StatusCode.SCHEDULED,new ArrayList<>(), new HashMap<>()),res.getBody());
         Assertions.assertEquals(HttpStatus.OK, res.getStatusCode());
@@ -80,7 +93,7 @@ public class CalculationIntegrationTest extends AbstractIntegrationTest {
     @Test
     public void statusTestFailure() throws Exception {
         when(calculationStatusService.getStatus(20L)).thenReturn(new CalculationStatus(new CalculationStatus.CalculationComplexityDTO(1,1,1,1,1),StatusCode.FAILURE,new ArrayList<>(), new HashMap<>()));
-        var calculationController = new CalculationController(protocolExecutorService, calculationStatusService);
+        var calculationController = new CalculationController(protocolExecutorService, calculationStatusService, tokenService);
         var res = calculationController.status(20);
         Assertions.assertEquals(new CalculationStatus(new CalculationStatus.CalculationComplexityDTO(1,1,1,1,1),StatusCode.FAILURE,new ArrayList<>(), new HashMap<>()),res.getBody());
         Assertions.assertEquals(HttpStatus.OK, res.getStatusCode());

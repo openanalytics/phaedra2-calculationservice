@@ -1,10 +1,12 @@
 package eu.openanalytics.phaedra.calculationservice;
 
 import java.time.Clock;
+import java.util.Collections;
 
 import javax.servlet.ServletContext;
 import javax.sql.DataSource;
 
+import eu.openanalytics.phaedra.calculationservice.config.RestTemplateHeaderModifier;
 import org.apache.commons.lang3.StringUtils;
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
@@ -38,7 +40,7 @@ import liquibase.integration.spring.SpringLiquibase;
         PlateServiceClientAutoConfiguration.class,
         MeasurementServiceClientAutoConfiguration.class})
 public class CalculationService {
-	
+
     private final ServletContext servletContext;
     private final Environment environment;
 
@@ -80,7 +82,9 @@ public class CalculationService {
     @Bean
     @LoadBalanced
     public PhaedraRestTemplate restTemplate() {
-        return new PhaedraRestTemplate();
+        PhaedraRestTemplate restTemplate = new PhaedraRestTemplate();
+        restTemplate.setInterceptors(Collections.singletonList(new RestTemplateHeaderModifier()));
+        return restTemplate;
     }
 
     @Bean

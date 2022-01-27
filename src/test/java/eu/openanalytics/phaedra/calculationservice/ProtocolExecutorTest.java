@@ -100,10 +100,10 @@ public class ProtocolExecutorTest {
         sequenceExecutorService = new SequenceExecutorService(resultDataServiceClient, featureExecutorService, modelMapper, featureStatExecutorService);
         protocolExecutorService = new ProtocolExecutorService(resultDataServiceClient, sequenceExecutorService, protocolInfoCollector, plateServiceClient);
         doReturn(PlateDTO.builder().id(1L).wells(List.of(
-                new WellDTO(1L, 10L, 1, 1, "LC", WellStatus.ACCEPTED_DEFAULT, 1L, ""),
-                new WellDTO(1L, 10L, 1, 2, "SAMPLE", WellStatus.ACCEPTED_DEFAULT, 1L, ""),
-                new WellDTO(1L, 10L, 1, 3, "SAMPLE", WellStatus.ACCEPTED_DEFAULT, 1L, ""),
-                new WellDTO(1L, 10L, 1, 3, "HC", WellStatus.ACCEPTED_DEFAULT, 1L, ""))
+                new WellDTO(1L, 10L, 1, 1, "LC", WellStatus.ACCEPTED_DEFAULT, 1L, "", null),
+                new WellDTO(1L, 10L, 1, 2, "SAMPLE", WellStatus.ACCEPTED_DEFAULT, 1L, "", null),
+                new WellDTO(1L, 10L, 1, 3, "SAMPLE", WellStatus.ACCEPTED_DEFAULT, 1L, "", null),
+                new WellDTO(1L, 10L, 1, 3, "HC", WellStatus.ACCEPTED_DEFAULT, 1L, "", null))
         ).build()).when(plateServiceClient).getPlate(anyLong());
     }
 
