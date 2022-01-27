@@ -7,13 +7,16 @@ import javax.servlet.ServletContext;
 import javax.sql.DataSource;
 
 import eu.openanalytics.phaedra.calculationservice.config.RestTemplateHeaderModifier;
+import eu.openanalytics.phaedra.calculationservice.service.TokenService;
 import org.apache.commons.lang3.StringUtils;
+import org.springframework.beans.factory.config.ConfigurableBeanFactory;
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
 import org.springframework.cloud.client.discovery.EnableDiscoveryClient;
 import org.springframework.cloud.client.loadbalancer.LoadBalanced;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Import;
+import org.springframework.context.annotation.Scope;
 import org.springframework.core.env.Environment;
 import org.springframework.jdbc.datasource.DriverManagerDataSource;
 import org.springframework.scheduling.annotation.EnableScheduling;
@@ -85,6 +88,12 @@ public class CalculationService {
         PhaedraRestTemplate restTemplate = new PhaedraRestTemplate();
         restTemplate.setInterceptors(Collections.singletonList(new RestTemplateHeaderModifier()));
         return restTemplate;
+    }
+
+    @Bean
+    @Scope(ConfigurableBeanFactory.SCOPE_SINGLETON)
+    public TokenService tokenService() {
+        return new TokenService();
     }
 
     @Bean
