@@ -19,6 +19,7 @@ import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
+import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
 
 import static org.mockito.ArgumentMatchers.anyLong;
@@ -28,7 +29,6 @@ import static org.mockito.Mockito.when;
 
 public class CalculationIntegrationTest extends AbstractIntegrationTest {
 
-    static HttpHeaders httpHeaders;
     static TokenService tokenService;
 
     private static final ProtocolExecutorService protocolExecutorService = mock(ProtocolExecutorService.class);
@@ -36,9 +36,6 @@ public class CalculationIntegrationTest extends AbstractIntegrationTest {
 
     @BeforeAll
     static void init() {
-        httpHeaders = new HttpHeaders();
-        httpHeaders.put(HttpHeaders.AUTHORIZATION, List.of("Bearer 1234wertfd4354343sdw1212dfq912coi1c2e2"));
-
         tokenService = new TokenService();
     }
 
@@ -51,7 +48,7 @@ public class CalculationIntegrationTest extends AbstractIntegrationTest {
         when(protocolExecutorService.execute(anyLong(),anyLong(),anyLong(),anyString())).thenReturn(new ProtocolExecutorService.ProtocolExecution(f1, f2));
         var calculationController = new CalculationController(protocolExecutorService, calculationStatusService, tokenService);
         var calculationRequestDTO = CalculationRequestDTO.builder().protocolId(1L).plateId(1L).measId(1L).build();
-        var res = calculationController.calculate(httpHeaders, calculationRequestDTO,null);
+        var res = calculationController.calculate(UUID.randomUUID().toString(), calculationRequestDTO,null);
 
         Assertions.assertEquals(45L,res.getBody());
         Assertions.assertEquals(HttpStatus.CREATED,res.getStatusCode());
@@ -67,7 +64,7 @@ public class CalculationIntegrationTest extends AbstractIntegrationTest {
         var calculationController = new CalculationController(protocolExecutorService, calculationStatusService, tokenService);
         var calculationRequestDTO = CalculationRequestDTO.builder().protocolId(1L).plateId(1L).measId(1L).build();
 
-        var res = calculationController.calculate(httpHeaders,calculationRequestDTO,1000L);
+        var res = calculationController.calculate(UUID.randomUUID().toString(),calculationRequestDTO,1000L);
 
         Assertions.assertEquals(45L,res.getBody());
         Assertions.assertEquals(HttpStatus.CREATED,res.getStatusCode());
