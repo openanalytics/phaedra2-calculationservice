@@ -1,7 +1,7 @@
 package eu.openanalytics.phaedra.calculationservice.model;
 
 import eu.openanalytics.phaedra.calculationservice.service.protocol.ErrorCollector;
-import eu.openanalytics.phaedra.platservice.dto.PlateDTO;
+import eu.openanalytics.phaedra.plateservice.dto.PlateDTO;
 import lombok.AccessLevel;
 import lombok.AllArgsConstructor;
 import lombok.Data;

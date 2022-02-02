@@ -1,7 +1,7 @@
 package eu.openanalytics.phaedra.calculationservice;
 
 import eu.openanalytics.phaedra.measurementservice.client.config.MeasurementServiceClientAutoConfiguration;
-import eu.openanalytics.phaedra.platservice.client.config.PlateServiceClientAutoConfiguration;
+import eu.openanalytics.phaedra.plateservice.client.config.PlateServiceClientAutoConfiguration;
 import eu.openanalytics.phaedra.protocolservice.client.config.ProtocolServiceClientAutoConfiguration;
 import eu.openanalytics.phaedra.resultdataservice.client.config.ResultDataServiceClientAutoConfiguration;
 import eu.openanalytics.phaedra.scriptengine.client.config.ScriptEngineClientAutoConfiguration;
