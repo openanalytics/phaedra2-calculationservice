@@ -68,7 +68,9 @@ public class ModelMapper {
                 .addMappings(mapper -> mapper.skip(FeatureStat.FeatureStatBuilder::formula));
 
         modelMapper.createTypeMap(ProtocolDTO.class, Protocol.ProtocolBuilder.class, builderConfiguration)
-                .addMappings(mapper -> mapper.skip(Protocol.ProtocolBuilder::sequences));
+                .addMappings(mapper -> mapper.skip(Protocol.ProtocolBuilder::sequences))
+                .addMappings(mapper -> mapper.skip(Protocol.ProtocolBuilder::inDevelopment))
+                .addMappings(mapper -> mapper.skip(Protocol.ProtocolBuilder::editable));
 
         modelMapper.validate(); // ensure that objects can be mapped
     }

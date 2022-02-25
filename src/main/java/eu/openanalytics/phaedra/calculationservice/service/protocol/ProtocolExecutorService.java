@@ -84,7 +84,7 @@ public class ProtocolExecutorService {
     public ResultSetDTO executeProtocol(CompletableFuture<Long> resultSetIdFuture, long protocolId, long plateId, long measId, String... authToken) throws ProtocolUnresolvableException, ResultSetUnresolvableException, PlateUnresolvableException {
         // 1. get protocol
         logger.info("Preparing new calculation");
-        final var protocol = protocolInfoCollector.getProtocol(protocolId);
+        final var protocol = protocolInfoCollector.getProtocol(protocolId, authToken);
         final var plate = plateServiceClient.getPlate(plateId, authToken);
         final var welltypesSorted = plate.getWells().stream().map(WellDTO::getWellType).toList();
         final var uniqueWelltypes = new LinkedHashSet<>(welltypesSorted);

@@ -56,12 +56,12 @@ public class ProtocolInfoCollector {
         this.formulaService = formulaService;
     }
 
-    public Protocol getProtocol(long protocolId) throws ProtocolUnresolvableException {
+    public Protocol getProtocol(long protocolId, String... authToken) throws ProtocolUnresolvableException {
         // 1. get protocol
-        var protocol = modelMapper.map(protocolServiceClient.getProtocol(protocolId));
+        var protocol = modelMapper.map(protocolServiceClient.getProtocol(protocolId, authToken));
 
         // 2. get features
-        var features = protocolServiceClient.getFeaturesOfProtocol(protocolId);
+        var features = protocolServiceClient.getFeaturesOfProtocol(protocolId, authToken);
 
         // 3. get CalculationInputValues corresponding to the feature
         var calculationInputValues = protocolServiceClient.getCalculationInputValuesOfProtocol(protocolId);
@@ -74,7 +74,7 @@ public class ProtocolInfoCollector {
                 ));
 
         // 4. get FeatureStats of protocol
-        var featureStats = protocolServiceClient.getFeatureStatsOfProtocol(protocolId);
+        var featureStats = protocolServiceClient.getFeatureStatsOfProtocol(protocolId, authToken);
 
         // 5. get formulas corresponding to the features and FeatureStats
         var formulaIds = new ArrayList<>(features.stream()
