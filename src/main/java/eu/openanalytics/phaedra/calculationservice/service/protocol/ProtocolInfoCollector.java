@@ -64,7 +64,7 @@ public class ProtocolInfoCollector {
         var features = protocolServiceClient.getFeaturesOfProtocol(protocolId, authToken);
 
         // 3. get CalculationInputValues corresponding to the feature
-        var calculationInputValues = protocolServiceClient.getCalculationInputValuesOfProtocol(protocolId);
+        var calculationInputValues = protocolServiceClient.getCalculationInputValuesOfProtocol(protocolId, authToken);
         // -> convert it to a map for easier lookup
         var calculationInputValuesMap = calculationInputValues.stream()
                 .map((civ) -> modelMapper.map(civ).build())
