@@ -31,21 +31,24 @@ import eu.openanalytics.phaedra.util.WellNumberUtils;
 public class CalculationInputHelper {
 
 	public static void addWellInfo(Map<String, Object> inputMap, CalculationContext context) {
-		inputMap.put("lowWellType", context.getProtocol().getLowWelltype());
-		inputMap.put("highWellType", context.getProtocol().getHighWelltype());
-		
-		List<WellDTO> wells = new ArrayList<>(context.getPlate().getWells());
-		
-		// Sort wells by wellNumber
-		int columnCount = context.getPlate().getColumns();
-		wells.sort((w1, w2) -> { 
-			return WellNumberUtils.getWellNr(w1.getRow(), w1.getColumn(), columnCount) - WellNumberUtils.getWellNr(w2.getRow(), w2.getColumn(), columnCount);
-		});
-		
-		inputMap.put("wellNumbers", wells.stream().map(w -> WellNumberUtils.getWellNr(w.getRow(), w.getColumn(), columnCount)).toList());
-		inputMap.put("wellTypes", wells.stream().map(WellDTO::getWellType).toList());
-		inputMap.put("wellRows", wells.stream().map(WellDTO::getRow).toList());
-		inputMap.put("wellColumns", wells.stream().map(WellDTO::getColumn).toList());
-		inputMap.put("wellStatus", wells.stream().map(w -> w.getStatus().getCode()).toList());
+		if (context.getProtocol() != null) {
+			inputMap.put("lowWellType", context.getProtocol().getLowWelltype());
+			inputMap.put("highWellType", context.getProtocol().getHighWelltype());
+		}
+
+		if (context.getPlate() != null) {
+			// Sort wells by wellNumber
+			List<WellDTO> wells = new ArrayList<>(context.getPlate().getWells());
+			int columnCount = context.getPlate().getColumns();
+			wells.sort((w1, w2) -> { 
+				return WellNumberUtils.getWellNr(w1.getRow(), w1.getColumn(), columnCount) - WellNumberUtils.getWellNr(w2.getRow(), w2.getColumn(), columnCount);
+			});
+			
+			inputMap.put("wellNumbers", wells.stream().map(w -> WellNumberUtils.getWellNr(w.getRow(), w.getColumn(), columnCount)).toList());
+			inputMap.put("wellTypes", wells.stream().map(WellDTO::getWellType).toList());
+			inputMap.put("wellRows", wells.stream().map(WellDTO::getRow).toList());
+			inputMap.put("wellColumns", wells.stream().map(WellDTO::getColumn).toList());
+			inputMap.put("wellStatus", wells.stream().map(w -> w.getStatus().getCode()).toList());
+		}
 	}
 }
