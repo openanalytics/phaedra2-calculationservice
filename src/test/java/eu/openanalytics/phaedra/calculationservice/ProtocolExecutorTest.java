@@ -442,7 +442,7 @@ public class ProtocolExecutorTest {
         stubGetProtocol(new Protocol(1L, "TestProtocol", null, true, true, "lc", "hc",
                 new HashMap<>() {{
                     put(0, new Sequence(0, List.of(new Feature(1L, "Feature1", null, null, "AFormat", FeatureType.CALCULATION, 0,
-                            new Formula(1L, "abc_duplicator", null, Category.CALCULATION, "output <- input$abc * 2", ScriptLanguage.R, CalculationScope.WELL,null,"1.0-1373172818", "me", LocalDateTime.now(), "me", LocalDateTime.now()),
+                            new Formula(1L, "abc_duplicator", null, Category.CALCULATION, formula, ScriptLanguage.R, CalculationScope.WELL,null,"1.0-1373172818", "me", LocalDateTime.now(), "me", LocalDateTime.now()),
                             List.of(new CalculationInputValue(1L, 1L, "abc", null, "abc")), Collections.emptyList()))));
                 }}));
 
