@@ -55,6 +55,7 @@ public class FormulaIntegrationTest extends AbstractIntegrationTest {
                 .category(Category.CALCULATION)
                 .language(ScriptLanguage.R)
                 .scope(CalculationScope.WELL)
+                .versionNumber("1.0")
                 .build();
 
         var res1 = performRequest(post("/formulas", input1), HttpStatus.CREATED, FormulaDTO.class);
@@ -65,6 +66,8 @@ public class FormulaIntegrationTest extends AbstractIntegrationTest {
         Assertions.assertEquals(Category.CALCULATION, res1.getCategory());
         Assertions.assertEquals(ScriptLanguage.R, res1.getLanguage());
         Assertions.assertEquals(CalculationScope.WELL, res1.getScope());
+        Assertions.assertEquals("1.0", res1.getVersionNumber().split("-")[0]);
+        Assertions.assertEquals(null, res1.getPreviousVersion());
 
         // 2. get formula
         var res2 = performRequest(get("/formulas/1"), HttpStatus.OK, FormulaDTO.class);
@@ -75,6 +78,8 @@ public class FormulaIntegrationTest extends AbstractIntegrationTest {
         Assertions.assertEquals(Category.CALCULATION, res2.getCategory());
         Assertions.assertEquals(ScriptLanguage.R, res2.getLanguage());
         Assertions.assertEquals(CalculationScope.WELL, res2.getScope());
+        Assertions.assertEquals("1.0", res2.getVersionNumber().split("-")[0]);
+        Assertions.assertEquals(null, res2.getPreviousVersion());
         Assertions.assertEquals("Anonymous", res2.getCreatedBy());
         Assertions.assertEquals("2042-12-31T23:59:59", res2.getCreatedOn().toString());
         Assertions.assertNull(res2.getUpdatedBy());
@@ -123,6 +128,7 @@ public class FormulaIntegrationTest extends AbstractIntegrationTest {
                 .category(Category.CALCULATION)
                 .language(ScriptLanguage.R)
                 .scope(CalculationScope.WELL)
+                .versionNumber("1.0")
                 .build();
 
         var res1 = performRequest(post("/formulas", input1), HttpStatus.CREATED, FormulaDTO.class);
@@ -142,31 +148,36 @@ public class FormulaIntegrationTest extends AbstractIntegrationTest {
                 .category(Category.HIT_CALLING)
                 .language(ScriptLanguage.JAVASCRIPT)
                 .scope(CalculationScope.PLATE)
+                .versionNumber("2.0")
+                .previousVersion(res1.getVersionNumber())
                 .build();
 
         var res2 = performRequest(put("/formulas/1", input2), HttpStatus.OK, FormulaDTO.class);
-        Assertions.assertEquals(1, res2.getId());
+        Assertions.assertEquals(2, res2.getId());
         Assertions.assertEquals("output <- input * 3", res2.getFormula());
         Assertions.assertEquals("MyFormula_updated", res2.getName());
         Assertions.assertEquals("An updated description", res2.getDescription());
         Assertions.assertEquals(Category.HIT_CALLING, res2.getCategory());
         Assertions.assertEquals(ScriptLanguage.JAVASCRIPT, res2.getLanguage());
         Assertions.assertEquals(CalculationScope.PLATE, res2.getScope());
+        Assertions.assertEquals(res1.getVersionNumber(), res2.getPreviousVersion());
+        Assertions.assertEquals("2.0", res2.getVersionNumber().split("-")[0]);
         Assertions.assertEquals("Anonymous", res2.getCreatedBy());
         Assertions.assertEquals("2042-12-31T23:59:59", res2.getCreatedOn().toString());
         Assertions.assertEquals("Anonymous", res2.getUpdatedBy());
         Assertions.assertEquals("2042-12-31T23:59:59", res2.getUpdatedOn().toString());
 
         // 3. get formula
-        var res3 = performRequest(get("/formulas/1"), HttpStatus.OK, FormulaDTO.class);
-        Assertions.assertEquals(1, res3.getId());
-        Assertions.assertEquals(1, res2.getId());
+        var res3 = performRequest(get("/formulas/2"), HttpStatus.OK, FormulaDTO.class);
+        Assertions.assertEquals(2, res3.getId());
         Assertions.assertEquals("output <- input * 3", res2.getFormula());
         Assertions.assertEquals("MyFormula_updated", res2.getName());
         Assertions.assertEquals("An updated description", res2.getDescription());
         Assertions.assertEquals(Category.HIT_CALLING, res2.getCategory());
         Assertions.assertEquals(ScriptLanguage.JAVASCRIPT, res2.getLanguage());
         Assertions.assertEquals(CalculationScope.PLATE, res2.getScope());
+        Assertions.assertEquals(res1.getVersionNumber(), res3.getPreviousVersion());
+        Assertions.assertEquals("2.0", res3.getVersionNumber().split("-")[0]);
         Assertions.assertEquals("Anonymous", res2.getCreatedBy());
         Assertions.assertEquals("2042-12-31T23:59:59", res2.getCreatedOn().toString());
         Assertions.assertEquals("Anonymous", res2.getUpdatedBy());
@@ -184,6 +195,7 @@ public class FormulaIntegrationTest extends AbstractIntegrationTest {
                     .category(Category.CALCULATION)
                     .language(ScriptLanguage.R)
                     .scope(CalculationScope.WELL)
+                    .versionNumber("1.0")
                     .build();
             performRequest(post("/formulas", input1), HttpStatus.CREATED, FormulaDTO.class);
         }
@@ -195,6 +207,7 @@ public class FormulaIntegrationTest extends AbstractIntegrationTest {
                     .category(Category.HIT_CALLING)
                     .language(ScriptLanguage.R)
                     .scope(CalculationScope.WELL)
+                    .versionNumber("1.0")
                     .build();
             performRequest(post("/formulas", input1), HttpStatus.CREATED, FormulaDTO.class);
         }
@@ -206,6 +219,7 @@ public class FormulaIntegrationTest extends AbstractIntegrationTest {
                     .category(Category.OUTLIER_DETECTION)
                     .language(ScriptLanguage.R)
                     .scope(CalculationScope.WELL)
+                    .versionNumber("1.0")
                     .build();
             performRequest(post("/formulas", input1), HttpStatus.CREATED, FormulaDTO.class);
         }
@@ -249,6 +263,7 @@ public class FormulaIntegrationTest extends AbstractIntegrationTest {
                     .category(Category.CALCULATION)
                     .language(ScriptLanguage.R)
                     .scope(CalculationScope.WELL)
+                    .versionNumber("1.0")
                     .build();
             performRequest(post("/formulas", input1), HttpStatus.CREATED, FormulaDTO.class);
         }
@@ -283,7 +298,7 @@ public class FormulaIntegrationTest extends AbstractIntegrationTest {
                 .build();
 
         var res1 = performRequest(post("/formulas", input1), HttpStatus.BAD_REQUEST);
-        Assertions.assertEquals("{\"error\":\"Validation error\",\"malformed_fields\":{\"category\":\"Category is mandatory\",\"formula\":\"Formula is mandatory\",\"language\":\"Language is mandatory\",\"name\":\"Name is mandatory\",\"scope\":\"Scope is mandatory\"},\"status\":\"error\"}", res1);
+        Assertions.assertEquals("{\"error\":\"Validation error\",\"malformed_fields\":{\"category\":\"Category is mandatory\",\"formula\":\"Formula is mandatory\",\"language\":\"Language is mandatory\",\"name\":\"Name is mandatory\",\"scope\":\"Scope is mandatory\",\"versionNumber\":\"versionNumber is mandatory\"},\"status\":\"error\"}", res1);
 
         // 2. too many fields
         var input2 = FormulaDTO.builder()
@@ -300,7 +315,7 @@ public class FormulaIntegrationTest extends AbstractIntegrationTest {
                 .build();
 
         var res2 = performRequest(post("/formulas", input2), HttpStatus.BAD_REQUEST);
-        Assertions.assertEquals("{\"error\":\"Validation error\",\"malformed_fields\":{\"createdBy\":\"CreatedBy must be null when creating a formula\",\"createdOn\":\"CreatedOn must be null when creating a formula\",\"updatedBy\":\"UpdatedBy must be null when creating a formula\",\"updatedOn\":\"UpdatedOn must be null when creating a formula\"},\"status\":\"error\"}", res2);
+        Assertions.assertEquals("{\"error\":\"Validation error\",\"malformed_fields\":{\"createdBy\":\"CreatedBy must be null when creating a formula\",\"createdOn\":\"CreatedOn must be null when creating a formula\",\"updatedBy\":\"UpdatedBy must be null when creating a formula\",\"updatedOn\":\"UpdatedOn must be null when creating a formula\",\"versionNumber\":\"versionNumber is mandatory\"},\"status\":\"error\"}", res2);
 
         // 3. wrong category
         var res3 = performRequest(post("/formulas", new HashMap<>() {{

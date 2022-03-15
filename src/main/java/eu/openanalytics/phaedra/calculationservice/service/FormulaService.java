@@ -23,6 +23,8 @@ package eu.openanalytics.phaedra.calculationservice.service;
 
 import java.time.Clock;
 import java.time.LocalDateTime;
+import java.time.ZoneId;
+import java.time.format.DateTimeFormatter;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
@@ -51,9 +53,12 @@ public class FormulaService {
     }
 
     public FormulaDTO createFormula(FormulaDTO formulaDTO) {
+        LocalDateTime date = LocalDateTime.now(clock);
+        DateTimeFormatter dateTimeFormatter = DateTimeFormatter.ofPattern("yyyyMMdd.hhmmss");
         var formula = modelMapper.map(formulaDTO)
-                .createdBy("Anonymous")
-                .createdOn(LocalDateTime.now(clock))
+                .versionNumber(formulaDTO.getVersionNumber()+"-"+date.format(dateTimeFormatter))
+                .createdBy("Anonymous") //TODO fill in createdBy
+                .createdOn(date)
                 .build();
 
         return save(formula);
@@ -64,10 +69,16 @@ public class FormulaService {
         if (existingFormula.isEmpty()) {
             throw new FormulaNotFoundException(formulaId);
         }
-
-        Formula updatedFormula = modelMapper.map(formulaDTO, existingFormula.get())
-                .updatedBy("Anonymous")
-                .updatedOn(LocalDateTime.now(clock))
+        LocalDateTime date = LocalDateTime.now(clock);
+        DateTimeFormatter dateTimeFormatter = DateTimeFormatter.ofPattern("yyyyMMdd.hhmmss");
+        Formula previousFormula = existingFormula.get();
+        Formula updatedFormula = modelMapper.map(formulaDTO, previousFormula)
+                .id(null) //To create new formula
+                .versionNumber(formulaDTO.getVersionNumber()+"-"+date.format(dateTimeFormatter))
+                .createdBy("Anonymous") //TODO fill in createdBy
+                .createdOn(date)
+                .updatedBy("Anonymous") //TODO fill in updatedBy
+                .updatedOn(date)
                 .build();
         return save(updatedFormula);
     }

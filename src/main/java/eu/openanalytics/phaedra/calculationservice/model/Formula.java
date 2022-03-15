@@ -58,6 +58,11 @@ public class Formula {
     @NotNull
     CalculationScope scope;
 
+    String previousVersion;
+
+    @NotNull
+    String versionNumber;
+
     @NotNull
     String createdBy;
 
