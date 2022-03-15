@@ -1258,7 +1258,7 @@ public class ProtocolExecutorTest {
     }
 
     private void stubNewScriptExecution(String targetName, ScriptExecution scriptExecution) {
-        doReturn(scriptExecution).when(scriptEngineClient).newScriptExecution(targetName, scriptExecution.getScriptExecutionInput().getScript(), scriptExecution.getScriptExecutionInput().getInput());
+        doReturn(scriptExecution).when(scriptEngineClient).newScriptExecution(targetName, scriptExecution.getScriptExecutionInput().getScript(), any(String.class));
     }
 
     private void completeInputSuccessfully(ScriptExecution input, String output) {
