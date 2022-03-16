@@ -1132,8 +1132,8 @@ public class ProtocolExecutorTest {
 
         stubGetWellData(4L, "abc", new float[]{1.0f, 2.0f, 3.0f, 5.0f, 8.0f});
 
-        doReturn(input, input2, input3).when(scriptEngineClient).newScriptExecution(R_FAST_LANE, input.getScriptExecutionInput().getScript(), input.getScriptExecutionInput().getInput());
-
+        doReturn(input, input2, input3).when(scriptEngineClient).newScriptExecution(eq(R_FAST_LANE), eq(input.getScriptExecutionInput().getScript()), any(String.class));
+        
         // attempt 1
         stubExecute(input);
         input.getOutput().complete(new ScriptExecutionOutputDTO(input.getScriptExecutionInput().getId(), "", ResponseStatusCode.WORKER_INTERNAL_ERROR, "Internal worker error", 0));
