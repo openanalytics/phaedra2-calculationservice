@@ -110,10 +110,12 @@ public class ErrorCollector {
 
         var error = errorBuilder.build();
         errors.add(error);
+        
+        String errorString = error.toString().replace("%", "%%"); // Avoid problems with String.format in the logger.
         if (exception.isPresent()) {
-            log(logger, cctx, "Error added to ErrorCollector" + error.toString(), exception);
+            log(logger, cctx, "Error added to ErrorCollector" + errorString, exception);
         } else {
-            log(logger, cctx, "Error added to ErrorCollector" + error.toString());
+            log(logger, cctx, "Error added to ErrorCollector" + errorString);
         }
     }
 
