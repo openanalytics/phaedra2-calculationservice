@@ -75,8 +75,6 @@ public class FormulaService {
         Formula updatedFormula = modelMapper.map(formulaDTO, previousFormula)
                 .id(null) //To create new formula
                 .versionNumber(formulaDTO.getVersionNumber()+"-"+date.format(dateTimeFormatter))
-                .createdBy("Anonymous") //TODO fill in createdBy
-                .createdOn(date)
                 .updatedBy("Anonymous") //TODO fill in updatedBy
                 .updatedOn(date)
                 .build();
