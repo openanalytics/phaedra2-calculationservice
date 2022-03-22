@@ -138,13 +138,21 @@ public class ProtocolExecutorService {
         }
 
         // 8. set ResultData status
-        log(logger, cctx, "Calculation finished: SUCCESS");
-        return resultDataServiceClient.completeResultDataSet(resultSet.getId(), StatusCode.SUCCESS, new ArrayList<>(), "");
+        return saveSuccess(resultSet, cctx);
     }
 
-    private ResultSetDTO saveError(ResultSetDTO resultSet, ErrorCollector errorCollector) throws ResultSetUnresolvableException {
+    private ResultSetDTO saveSuccess(ResultSetDTO resultSet, CalculationContext calculationContext, String... authToken) throws ResultSetUnresolvableException, PlateUnresolvableException {
+        log(logger, calculationContext, "Calculation finished: SUCCESS");
+        ResultSetDTO resultSetDTO = resultDataServiceClient.completeResultDataSet(resultSet.getId(), StatusCode.SUCCESS, new ArrayList<>(), "");
+        plateServiceClient.updatePlateCalculationStatus(resultSetDTO, authToken);
+        return resultSetDTO;
+    }
+
+    private ResultSetDTO saveError(ResultSetDTO resultSet, ErrorCollector errorCollector, String... authToken) throws ResultSetUnresolvableException, PlateUnresolvableException {
         logger.warn("Protocol failed with errorDescription\n" + errorCollector.getErrorDescription());
-        return resultDataServiceClient.completeResultDataSet(resultSet.getId(), StatusCode.FAILURE, errorCollector.getErrors(), errorCollector.getErrorDescription());
+        ResultSetDTO resultSetDTO = resultDataServiceClient.completeResultDataSet(resultSet.getId(), StatusCode.FAILURE, errorCollector.getErrors(), errorCollector.getErrorDescription());
+        plateServiceClient.updatePlateCalculationStatus(resultSetDTO, authToken);
+        return resultSetDTO;
     }
 
 }

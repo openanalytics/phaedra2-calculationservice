@@ -21,7 +21,38 @@
 package eu.openanalytics.phaedra.calculationservice;
 
 
+import static eu.openanalytics.phaedra.calculationservice.CalculationService.R_FAST_LANE;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyLong;
+import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mockito.doAnswer;
+import static org.mockito.Mockito.doNothing;
+import static org.mockito.Mockito.doReturn;
+import static org.mockito.Mockito.doThrow;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.verifyNoMoreInteractions;
+
+import java.time.LocalDateTime;
+import java.util.Arrays;
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Timer;
+import java.util.TimerTask;
+import java.util.concurrent.CompletableFuture;
+
+import org.junit.jupiter.api.Assertions;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.junit.jupiter.MockitoExtension;
+import org.mockito.junit.jupiter.MockitoSettings;
+import org.mockito.quality.Strictness;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 import com.fasterxml.jackson.core.JsonProcessingException;
+
 import eu.openanalytics.phaedra.calculationservice.enumeration.CalculationScope;
 import eu.openanalytics.phaedra.calculationservice.enumeration.Category;
 import eu.openanalytics.phaedra.calculationservice.enumeration.FeatureType;
@@ -49,40 +80,13 @@ import eu.openanalytics.phaedra.plateservice.enumartion.WellStatus;
 import eu.openanalytics.phaedra.protocolservice.client.exception.ProtocolUnresolvableException;
 import eu.openanalytics.phaedra.resultdataservice.client.ResultDataServiceClient;
 import eu.openanalytics.phaedra.resultdataservice.client.exception.ResultDataUnresolvableException;
+import eu.openanalytics.phaedra.resultdataservice.dto.ResultSetDTO;
 import eu.openanalytics.phaedra.resultdataservice.enumeration.StatusCode;
 import eu.openanalytics.phaedra.scriptengine.client.ScriptEngineClient;
 import eu.openanalytics.phaedra.scriptengine.client.model.ScriptExecution;
 import eu.openanalytics.phaedra.scriptengine.client.model.TargetRuntime;
 import eu.openanalytics.phaedra.scriptengine.dto.ResponseStatusCode;
 import eu.openanalytics.phaedra.scriptengine.dto.ScriptExecutionOutputDTO;
-import org.junit.jupiter.api.Assertions;
-import org.junit.jupiter.api.BeforeEach;
-import org.junit.jupiter.api.Test;
-import org.junit.jupiter.api.extension.ExtendWith;
-import org.mockito.junit.jupiter.MockitoExtension;
-import org.mockito.junit.jupiter.MockitoSettings;
-import org.mockito.quality.Strictness;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
-import java.time.LocalDateTime;
-import java.util.Arrays;
-import java.util.Collections;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Timer;
-import java.util.TimerTask;
-import java.util.concurrent.CompletableFuture;
-
-import static eu.openanalytics.phaedra.calculationservice.CalculationService.R_FAST_LANE;
-import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.ArgumentMatchers.anyLong;
-import static org.mockito.Mockito.doAnswer;
-import static org.mockito.Mockito.doNothing;
-import static org.mockito.Mockito.doReturn;
-import static org.mockito.Mockito.doThrow;
-import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.verifyNoMoreInteractions;
 
 @MockitoSettings(strictness = Strictness.STRICT_STUBS)
 @ExtendWith(MockitoExtension.class)
@@ -119,12 +123,19 @@ public class ProtocolExecutorTest {
         featureExecutorService = new FeatureExecutorService(scriptEngineClient, measurementServiceClient, resultDataServiceClient);
         sequenceExecutorService = new SequenceExecutorService(resultDataServiceClient, featureExecutorService, modelMapper, featureStatExecutorService);
         protocolExecutorService = new ProtocolExecutorService(resultDataServiceClient, sequenceExecutorService, protocolInfoCollector, plateServiceClient);
-        doReturn(PlateDTO.builder().id(1L).wells(List.of(
+        doReturn(PlateDTO.builder().id(1L).rows(1).columns(4).wells(List.of(
                 new WellDTO(1L, 10L, 1, 1, "LC", WellStatus.ACCEPTED_DEFAULT, 1L, "", null),
                 new WellDTO(1L, 10L, 1, 2, "SAMPLE", WellStatus.ACCEPTED_DEFAULT, 1L, "", null),
                 new WellDTO(1L, 10L, 1, 3, "SAMPLE", WellStatus.ACCEPTED_DEFAULT, 1L, "", null),
-                new WellDTO(1L, 10L, 1, 3, "HC", WellStatus.ACCEPTED_DEFAULT, 1L, "", null))
+                new WellDTO(1L, 10L, 1, 4, "HC", WellStatus.ACCEPTED_DEFAULT, 1L, "", null))
         ).build()).when(plateServiceClient).getPlate(anyLong());
+
+        doReturn(PlateDTO.builder().id(1L).rows(1).columns(4).wells(List.of(
+                new WellDTO(1L, 10L, 1, 1, "LC", WellStatus.ACCEPTED_DEFAULT, 1L, "", null),
+                new WellDTO(1L, 10L, 1, 2, "SAMPLE", WellStatus.ACCEPTED_DEFAULT, 1L, "", null),
+                new WellDTO(1L, 10L, 1, 3, "SAMPLE", WellStatus.ACCEPTED_DEFAULT, 1L, "", null),
+                new WellDTO(1L, 10L, 1, 4, "HC", WellStatus.ACCEPTED_DEFAULT, 1L, "", null))
+        ).build()).when(plateServiceClient).updatePlateCalculationStatus(any(ResultSetDTO.class));
     }
 
     @Test
@@ -1121,8 +1132,8 @@ public class ProtocolExecutorTest {
 
         stubGetWellData(4L, "abc", new float[]{1.0f, 2.0f, 3.0f, 5.0f, 8.0f});
 
-        doReturn(input, input2, input3).when(scriptEngineClient).newScriptExecution(R_FAST_LANE, input.getScriptExecutionInput().getScript(), input.getScriptExecutionInput().getInput());
-
+        doReturn(input, input2, input3).when(scriptEngineClient).newScriptExecution(eq(R_FAST_LANE), eq(input.getScriptExecutionInput().getScript()), any(String.class));
+        
         // attempt 1
         stubExecute(input);
         input.getOutput().complete(new ScriptExecutionOutputDTO(input.getScriptExecutionInput().getId(), "", ResponseStatusCode.WORKER_INTERNAL_ERROR, "Internal worker error", 0));
@@ -1180,8 +1191,8 @@ public class ProtocolExecutorTest {
 
         stubGetWellData(4L, "abc", new float[]{1.0f, 2.0f, 3.0f, 5.0f, 8.0f});
 
-        doReturn(input, input2, input3).when(scriptEngineClient).newScriptExecution(R_FAST_LANE, input.getScriptExecutionInput().getScript(), input.getScriptExecutionInput().getInput());
-
+        doReturn(input, input2, input3).when(scriptEngineClient).newScriptExecution(eq(R_FAST_LANE), eq(input.getScriptExecutionInput().getScript()), any(String.class));
+        
         // attempt 1
         stubExecute(input);
         input.getOutput().complete(new ScriptExecutionOutputDTO(input.getScriptExecutionInput().getId(), "", ResponseStatusCode.WORKER_INTERNAL_ERROR, "Internal worker error", 0));
@@ -1250,7 +1261,8 @@ public class ProtocolExecutorTest {
     }
 
     private void stubNewScriptExecution(String targetName, ScriptExecution scriptExecution) {
-        doReturn(scriptExecution).when(scriptEngineClient).newScriptExecution(targetName, scriptExecution.getScriptExecutionInput().getScript(), scriptExecution.getScriptExecutionInput().getInput());
+        doReturn(scriptExecution).when(scriptEngineClient).newScriptExecution(
+        		eq(targetName), eq(scriptExecution.getScriptExecutionInput().getScript()), any(String.class));
     }
 
     private void completeInputSuccessfully(ScriptExecution input, String output) {

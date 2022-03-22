@@ -20,25 +20,28 @@
  */
 package eu.openanalytics.phaedra.calculationservice.service.protocol;
 
+import static eu.openanalytics.phaedra.calculationservice.CalculationService.R_FAST_LANE;
+
+import java.util.HashMap;
+import java.util.Optional;
+
+import org.springframework.stereotype.Service;
+
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
+
 import eu.openanalytics.phaedra.calculationservice.enumeration.CalculationScope;
 import eu.openanalytics.phaedra.calculationservice.enumeration.Category;
 import eu.openanalytics.phaedra.calculationservice.enumeration.ScriptLanguage;
 import eu.openanalytics.phaedra.calculationservice.model.CalculationContext;
 import eu.openanalytics.phaedra.calculationservice.model.Feature;
+import eu.openanalytics.phaedra.calculationservice.util.CalculationInputHelper;
 import eu.openanalytics.phaedra.measurementservice.client.MeasurementServiceClient;
 import eu.openanalytics.phaedra.measurementservice.client.exception.MeasUnresolvableException;
 import eu.openanalytics.phaedra.resultdataservice.client.ResultDataServiceClient;
 import eu.openanalytics.phaedra.resultdataservice.client.exception.ResultDataUnresolvableException;
 import eu.openanalytics.phaedra.scriptengine.client.ScriptEngineClient;
 import eu.openanalytics.phaedra.scriptengine.client.model.ScriptExecution;
-import org.springframework.stereotype.Service;
-
-import java.util.HashMap;
-import java.util.Optional;
-
-import static eu.openanalytics.phaedra.calculationservice.CalculationService.R_FAST_LANE;
 
 @Service
 public class FeatureExecutorService {
@@ -86,8 +89,8 @@ public class FeatureExecutorService {
         return Optional.empty();
     }
 
-    private Optional<HashMap<String, float[]>> collectVariablesForFeature(CalculationContext cctx, Feature feature, long currentSequence) {
-        var inputVariables = new HashMap<String, float[]>();
+    private Optional<HashMap<String, Object>> collectVariablesForFeature(CalculationContext cctx, Feature feature, long currentSequence) {
+        var inputVariables = new HashMap<String, Object>();
 
         for (var civ : feature.getCalculationInputValues()) {
             try {
@@ -116,6 +119,10 @@ public class FeatureExecutorService {
                 return Optional.empty();
             }
         }
+        
+        // Add commonly used info about the wells
+        CalculationInputHelper.addWellInfo(inputVariables, cctx);
+        
         return Optional.of(inputVariables);
     }
 }
