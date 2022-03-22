@@ -107,12 +107,16 @@ public class SequenceExecutorService {
 
         // 5. save the output
         for (var calculation : calculations) {
-            var resultData = saveOutput(cctx, calculation);
-            if (resultData.isPresent() && resultData.get().getStatusCode() == StatusCode.SUCCESS) {
-                // E. trigger calculation of FeatureStats for the features in this Sequence
-                cctx.getComputedStatsForFeature().put(calculation.getFeature(), executorService.submit(() -> featureStatExecutor.executeFeatureStat(cctx, calculation.getFeature(), resultData.get())));
-            } else {
-                sequenceSuccess.failed();
+        	try {
+        		var resultData = saveOutput(cctx, calculation);
+        		if (resultData.isPresent() && resultData.get().getStatusCode() == StatusCode.SUCCESS) {
+        			// E. trigger calculation of FeatureStats for the features in this Sequence
+        			cctx.getComputedStatsForFeature().put(calculation.getFeature(), executorService.submit(() -> featureStatExecutor.executeFeatureStat(cctx, calculation.getFeature(), resultData.get())));
+        		} else {
+        			sequenceSuccess.failed();
+        		}
+            } catch (Throwable e) {
+                cctx.getErrorCollector().handleError("executing sequence => saving output", e, calculation.getFeature(), calculation.getFeature().getFormula());
             }
         }
 
