@@ -106,7 +106,7 @@ public class SequenceExecutorService {
         }
 
         // 5. save the output
-        for (var calculation : calculations) {
+       for (var calculation : calculations) {
         	try {
         		var resultData = saveOutput(cctx, calculation);
         		if (resultData.isPresent() && resultData.get().getStatusCode() == StatusCode.SUCCESS) {
