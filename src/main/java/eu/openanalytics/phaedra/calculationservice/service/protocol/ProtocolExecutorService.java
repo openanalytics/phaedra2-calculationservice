@@ -134,11 +134,11 @@ public class ProtocolExecutorService {
 
         // 7. check for errors
         if (cctx.getErrorCollector().hasError()) {
-            return saveError(resultSet, cctx.getErrorCollector());
+            return saveError(resultSet, cctx.getErrorCollector(), authToken);
         }
 
         // 8. set ResultData status
-        return saveSuccess(resultSet, cctx);
+        return saveSuccess(resultSet, cctx, authToken);
     }
 
     private ResultSetDTO saveSuccess(ResultSetDTO resultSet, CalculationContext calculationContext, String... authToken) throws ResultSetUnresolvableException, PlateUnresolvableException {
