@@ -77,7 +77,13 @@ public class ProtocolExecutorService {
         // submit execution to the ThreadPool/ExecutorService and return a future
         var resultSetIdFuture = new CompletableFuture<Long>();
         return new ProtocolExecution(resultSetIdFuture, executorService.submit(() -> {
-            return executeProtocol(resultSetIdFuture, protocolId, plateId, measId, authToken);
+            try {
+                return executeProtocol(resultSetIdFuture, protocolId, plateId, measId, authToken);
+            } catch (Throwable ex) {
+                // print the stack strace. Since the future may never be awaited, we may not see the error otherwise
+                ex.printStackTrace();
+                throw ex;
+            }
         }));
     }
 
