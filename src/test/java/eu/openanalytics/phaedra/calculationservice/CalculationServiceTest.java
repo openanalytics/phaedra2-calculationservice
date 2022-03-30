@@ -20,6 +20,18 @@
  */
 package eu.openanalytics.phaedra.calculationservice;
 
+import static org.mockito.Mockito.doReturn;
+import static org.mockito.Mockito.mock;
+
+import java.time.LocalDateTime;
+import java.util.Arrays;
+import java.util.HashMap;
+import java.util.List;
+
+import org.junit.jupiter.api.Assertions;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+
 import eu.openanalytics.phaedra.calculationservice.dto.CalculationStatus;
 import eu.openanalytics.phaedra.calculationservice.enumeration.CalculationStatusCode;
 import eu.openanalytics.phaedra.calculationservice.model.Feature;
@@ -32,6 +44,7 @@ import eu.openanalytics.phaedra.calculationservice.service.status.CalculationSta
 import eu.openanalytics.phaedra.plateservice.client.PlateServiceClient;
 import eu.openanalytics.phaedra.plateservice.client.exception.PlateUnresolvableException;
 import eu.openanalytics.phaedra.plateservice.dto.PlateDTO;
+import eu.openanalytics.phaedra.plateservice.dto.WellDTO;
 import eu.openanalytics.phaedra.protocolservice.client.exception.ProtocolUnresolvableException;
 import eu.openanalytics.phaedra.resultdataservice.client.ResultDataServiceClient;
 import eu.openanalytics.phaedra.resultdataservice.client.exception.ResultDataUnresolvableException;
@@ -41,17 +54,6 @@ import eu.openanalytics.phaedra.resultdataservice.dto.ResultDataDTO;
 import eu.openanalytics.phaedra.resultdataservice.dto.ResultFeatureStatDTO;
 import eu.openanalytics.phaedra.resultdataservice.dto.ResultSetDTO;
 import eu.openanalytics.phaedra.resultdataservice.enumeration.StatusCode;
-import org.junit.jupiter.api.Assertions;
-import org.junit.jupiter.api.BeforeEach;
-import org.junit.jupiter.api.Test;
-
-import java.time.LocalDateTime;
-import java.util.Arrays;
-import java.util.HashMap;
-import java.util.List;
-
-import static org.mockito.Mockito.doReturn;
-import static org.mockito.Mockito.mock;
 
 public class CalculationServiceTest {
 
@@ -638,6 +640,12 @@ public class CalculationServiceTest {
 
     private void mockPlate() throws PlateUnresolvableException {
         doReturn(PlateDTO.builder().id(1L).build()).when(plateServiceClient).getPlate(1);
+        doReturn(List.of(
+                WellDTO.builder().wellType("LC").id(1L).build(),
+                WellDTO.builder().wellType("SAMPLE").id(2L).build(),
+                WellDTO.builder().wellType("SAMPLE").id(3L).build(),
+                WellDTO.builder().wellType("HC").id(4L).build()
+        )).when(plateServiceClient).getWells(1);
     }
 
     private void mockProtocol() throws ProtocolUnresolvableException {

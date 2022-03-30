@@ -76,7 +76,6 @@ import eu.openanalytics.phaedra.plateservice.client.PlateServiceClient;
 import eu.openanalytics.phaedra.plateservice.client.exception.PlateUnresolvableException;
 import eu.openanalytics.phaedra.plateservice.dto.PlateDTO;
 import eu.openanalytics.phaedra.plateservice.dto.WellDTO;
-import eu.openanalytics.phaedra.plateservice.enumartion.WellStatus;
 import eu.openanalytics.phaedra.protocolservice.client.exception.ProtocolUnresolvableException;
 import eu.openanalytics.phaedra.resultdataservice.client.ResultDataServiceClient;
 import eu.openanalytics.phaedra.resultdataservice.client.exception.ResultDataUnresolvableException;
@@ -123,7 +122,15 @@ public class ProtocolExecutorTest {
         featureExecutorService = new FeatureExecutorService(scriptEngineClient, measurementServiceClient, resultDataServiceClient);
         sequenceExecutorService = new SequenceExecutorService(resultDataServiceClient, featureExecutorService, modelMapper, featureStatExecutorService);
         protocolExecutorService = new ProtocolExecutorService(resultDataServiceClient, sequenceExecutorService, protocolInfoCollector, plateServiceClient);
+        
         doReturn(PlateDTO.builder().id(1L).rows(1).columns(4).build()).when(plateServiceClient).getPlate(anyLong());
+        doReturn(List.of(
+                WellDTO.builder().wellType("LC").id(1L).build(),
+                WellDTO.builder().wellType("SAMPLE").id(2L).build(),
+                WellDTO.builder().wellType("SAMPLE").id(3L).build(),
+                WellDTO.builder().wellType("HC").id(4L).build()
+        )).when(plateServiceClient).getWells(anyLong());
+        
         doReturn(PlateDTO.builder().id(1L).rows(1).columns(4).build()).when(plateServiceClient).updatePlateCalculationStatus(any(ResultSetDTO.class));
     }
 
