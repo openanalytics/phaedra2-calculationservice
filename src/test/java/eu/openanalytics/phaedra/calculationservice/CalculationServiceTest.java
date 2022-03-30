@@ -639,12 +639,12 @@ public class CalculationServiceTest {
     }
 
     private void mockPlate() throws PlateUnresolvableException {
-        doReturn(PlateDTO.builder().id(1L).build()).when(plateServiceClient).getPlate(1);
+        doReturn(PlateDTO.builder().id(1L).rows(1).columns(4).build()).when(plateServiceClient).getPlate(1);
         doReturn(List.of(
-                WellDTO.builder().wellType("LC").id(1L).build(),
-                WellDTO.builder().wellType("SAMPLE").id(2L).build(),
-                WellDTO.builder().wellType("SAMPLE").id(3L).build(),
-                WellDTO.builder().wellType("HC").id(4L).build()
+                WellDTO.builder().wellType("LC").id(1L).row(1).column(1).build(),
+                WellDTO.builder().wellType("SAMPLE").id(2L).row(1).column(2).build(),
+                WellDTO.builder().wellType("SAMPLE").id(3L).row(1).column(3).build(),
+                WellDTO.builder().wellType("HC").id(4L).row(1).column(4).build()
         )).when(plateServiceClient).getWells(1);
     }
 
