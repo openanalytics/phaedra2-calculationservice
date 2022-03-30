@@ -30,6 +30,7 @@ import java.util.List;
 
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
 
 import eu.openanalytics.phaedra.calculationservice.dto.CalculationStatus;
@@ -55,6 +56,7 @@ import eu.openanalytics.phaedra.resultdataservice.dto.ResultFeatureStatDTO;
 import eu.openanalytics.phaedra.resultdataservice.dto.ResultSetDTO;
 import eu.openanalytics.phaedra.resultdataservice.enumeration.StatusCode;
 
+@Disabled
 public class CalculationServiceTest {
 
     private <T> T mockUnimplemented(Class<T> clazz) {
