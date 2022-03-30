@@ -112,7 +112,7 @@ public class FeatureStatExecutorTest {
                 new HashMap<>() {{
                     put(0, new Sequence(0, List.of(feature)));
                 }});
-        var cctx = CalculationContext.newInstance(plate, protocol, 1L, 2L, getWells(), getUniqueWellTypes());
+        var cctx = CalculationContext.newInstance(plate, null, protocol, 1L, 2L, getWells(), getUniqueWellTypes());
 
         var input = new ScriptExecution(new TargetRuntime("JAVASTAT", "fast-lane", "v1"), formula.getFormula(),
                 "{\"isWelltypeStat\":true,\"isPlateStat\":true,\"welltypes\":[\"LC\",\"SAMPLE\",\"SAMPLE\",\"HC\"],\"highWelltype\":\"HCG\",\"lowWelltype\":\"LC\",\"featureValues\":[1.0,2.0,3.0,5.0]}",
@@ -159,7 +159,7 @@ public class FeatureStatExecutorTest {
                 new HashMap<>() {{
                     put(0, new Sequence(0, List.of(feature)));
                 }});
-        var cctx = CalculationContext.newInstance(plate, protocol, 1L, 2L, getWells(), getUniqueWellTypes());
+        var cctx = CalculationContext.newInstance(plate, null, protocol, 1L, 2L, getWells(), getUniqueWellTypes());
 
         var input1 = new ScriptExecution(new TargetRuntime("JAVASTAT", "fast-lane", "v1"), formula1.getFormula(),
                 "{\"isWelltypeStat\":true,\"isPlateStat\":true,\"welltypes\":[\"LC\",\"SAMPLE\",\"SAMPLE\",\"HC\"],\"highWelltype\":\"HCG\",\"lowWelltype\":\"LC\",\"featureValues\":[1.0,2.0,3.0,5.0]}",
@@ -223,7 +223,7 @@ public class FeatureStatExecutorTest {
 
     @Test
     public void testInvalidFeatureId() {
-        var cctx = CalculationContext.newInstance(PlateDTO.builder().id(1L).build(), Protocol.builder().id(1L).build(), 1L, 2L, getWells(), getUniqueWellTypes());
+        var cctx = CalculationContext.newInstance(PlateDTO.builder().id(1L).build(), null, Protocol.builder().id(1L).build(), 1L, 2L, getWells(), getUniqueWellTypes());
 
         var feature = new Feature(1L, "Feature1", null, null, "AFormat", FeatureType.CALCULATION, 0,
                 new Formula(1L, "abc_duplicator", null, Category.CALCULATION, "output <- input$abc * 2", ScriptLanguage.R, CalculationScope.WELL, "me", LocalDateTime.now(), "me", LocalDateTime.now()),
@@ -251,7 +251,7 @@ public class FeatureStatExecutorTest {
 
     @Test
     public void testInvalidStatusCode() {
-        var cctx = CalculationContext.newInstance(PlateDTO.builder().id(1L).build(), Protocol.builder().id(1L).build(), 1L, 2L, getWells(), getUniqueWellTypes());
+        var cctx = CalculationContext.newInstance(PlateDTO.builder().id(1L).build(), null, Protocol.builder().id(1L).build(), 1L, 2L, getWells(), getUniqueWellTypes());
 
         var feature = new Feature(1L, "Feature1", null, null, "AFormat", FeatureType.CALCULATION, 0,
                 new Formula(1L, "abc_duplicator", null, Category.CALCULATION, "output <- input$abc * 2", ScriptLanguage.R, CalculationScope.WELL, "me", LocalDateTime.now(), "me", LocalDateTime.now()),
@@ -301,7 +301,7 @@ public class FeatureStatExecutorTest {
                 new HashMap<>() {{
                     put(0, new Sequence(0, List.of(feature)));
                 }});
-        var cctx = CalculationContext.newInstance(plate, protocol, 1L, 2L, getWells(), getUniqueWellTypes());
+        var cctx = CalculationContext.newInstance(plate, null, protocol, 1L, 2L, getWells(), getUniqueWellTypes());
 
         var input1 = new ScriptExecution(new TargetRuntime("JAVASTAT", "fast-lane", "v1"), formula1.getFormula(),
                 "{\"isWelltypeStat\":true,\"isPlateStat\":true,\"welltypes\":[\"LC\",\"SAMPLE\",\"SAMPLE\",\"HC\"],\"highWelltype\":\"HCG\",\"lowWelltype\":\"LC\",\"featureValues\":[1.0,2.0,3.0,5.0]}",
@@ -354,7 +354,7 @@ public class FeatureStatExecutorTest {
                 new HashMap<>() {{
                     put(0, new Sequence(0, List.of(feature)));
                 }});
-        var cctx = CalculationContext.newInstance(plate, protocol, 1L, 2L, getWells(), getUniqueWellTypes());
+        var cctx = CalculationContext.newInstance(plate, null, protocol, 1L, 2L, getWells(), getUniqueWellTypes());
 
         var input1 = new ScriptExecution(new TargetRuntime("JAVASTAT", "fast-lane", "v1"), formula1.getFormula(),
                 "{\"isWelltypeStat\":true,\"isPlateStat\":true,\"welltypes\":[\"LC\",\"SAMPLE\",\"SAMPLE\",\"HC\"],\"highWelltype\":\"HCG\",\"lowWelltype\":\"LC\",\"featureValues\":[1.0,2.0,3.0,5.0]}",
@@ -414,7 +414,7 @@ public class FeatureStatExecutorTest {
                 new HashMap<>() {{
                     put(0, new Sequence(0, List.of(feature)));
                 }});
-        var cctx = CalculationContext.newInstance(plate, protocol, 1L, 2L, getWells(), getUniqueWellTypes());
+        var cctx = CalculationContext.newInstance(plate, null, protocol, 1L, 2L, getWells(), getUniqueWellTypes());
 
         var input1 = new ScriptExecution(new TargetRuntime("JAVASTAT", "fast-lane", "v1"), formula1.getFormula(),
                 "{\"isWelltypeStat\":true,\"isPlateStat\":true,\"welltypes\":[\"LC\",\"SAMPLE\",\"SAMPLE\",\"HC\"],\"highWelltype\":\"HCG\",\"lowWelltype\":\"LC\",\"featureValues\":[1.0,2.0,3.0,5.0]}",
@@ -474,7 +474,7 @@ public class FeatureStatExecutorTest {
                 new HashMap<>() {{
                     put(0, new Sequence(0, List.of(feature)));
                 }});
-        var cctx = CalculationContext.newInstance(plate, protocol, 1L, 2L, getWells(), getUniqueWellTypes());
+        var cctx = CalculationContext.newInstance(plate, null, protocol, 1L, 2L, getWells(), getUniqueWellTypes());
 
         var input1 = new ScriptExecution(new TargetRuntime("JAVASTAT", "fast-lane", "v1"), formula1.getFormula(),
                 "{\"isWelltypeStat\":true,\"isPlateStat\":true,\"welltypes\":[\"LC\",\"SAMPLE\",\"SAMPLE\",\"HC\"],\"highWelltype\":\"HCG\",\"lowWelltype\":\"LC\",\"featureValues\":[1.0,2.0,3.0,5.0]}",
@@ -536,7 +536,7 @@ public class FeatureStatExecutorTest {
                 new HashMap<>() {{
                     put(0, new Sequence(0, List.of(feature)));
                 }});
-        var cctx = CalculationContext.newInstance(plate, protocol, 1L, 2L, getWells(), getUniqueWellTypes());
+        var cctx = CalculationContext.newInstance(plate, null, protocol, 1L, 2L, getWells(), getUniqueWellTypes());
 
         var input = new ScriptExecution(new TargetRuntime("JAVASTAT", "fast-lane", "v1"), formula.getFormula(),
                 "{\"isWelltypeStat\":true,\"isPlateStat\":true,\"welltypes\":[\"LC\",\"SAMPLE\",\"SAMPLE\",\"HC\"],\"highWelltype\":\"HCG\",\"lowWelltype\":\"LC\",\"featureValues\":[1.0,2.0,3.0,5.0]}",
@@ -578,7 +578,7 @@ public class FeatureStatExecutorTest {
                 new HashMap<>() {{
                     put(0, new Sequence(0, List.of(feature)));
                 }});
-        var cctx = CalculationContext.newInstance(plate, protocol, 1L, 2L, getWells(), getUniqueWellTypes());
+        var cctx = CalculationContext.newInstance(plate, null, protocol, 1L, 2L, getWells(), getUniqueWellTypes());
 
         var input = new ScriptExecution(new TargetRuntime("JAVASTAT", "fast-lane", "v1"), formula.getFormula(),
                 "{\"isWelltypeStat\":false,\"isPlateStat\":true,\"welltypes\":[\"LC\",\"SAMPLE\",\"SAMPLE\",\"HC\"],\"highWelltype\":\"HCG\",\"lowWelltype\":\"LC\",\"featureValues\":[1.0,2.0,3.0,5.0]}",
@@ -624,7 +624,7 @@ public class FeatureStatExecutorTest {
                 new HashMap<>() {{
                     put(0, new Sequence(0, List.of(feature)));
                 }});
-        var cctx = CalculationContext.newInstance(plate, protocol, 1L, 2L, getWells(), getUniqueWellTypes());
+        var cctx = CalculationContext.newInstance(plate, null, protocol, 1L, 2L, getWells(), getUniqueWellTypes());
 
         var input1 = new ScriptExecution(new TargetRuntime("JAVASTAT", "fast-lane", "v1"), formula1.getFormula(),
                 "{\"isWelltypeStat\":true,\"isPlateStat\":true,\"welltypes\":[\"LC\",\"SAMPLE\",\"SAMPLE\",\"HC\"],\"highWelltype\":\"HCG\",\"lowWelltype\":\"LC\",\"featureValues\":[1.0,2.0,3.0,5.0]}",
@@ -684,7 +684,7 @@ public class FeatureStatExecutorTest {
                 new HashMap<>() {{
                     put(0, new Sequence(0, List.of(feature)));
                 }});
-        var cctx = CalculationContext.newInstance(plate, protocol, 1L, 2L, getWells(), getUniqueWellTypes());
+        var cctx = CalculationContext.newInstance(plate, null, protocol, 1L, 2L, getWells(), getUniqueWellTypes());
 
         var input1 = new ScriptExecution(new TargetRuntime("JAVASTAT", "fast-lane", "v1"), formula1.getFormula(),
                 "{\"isWelltypeStat\":true,\"isPlateStat\":true,\"welltypes\":[\"LC\",\"SAMPLE\",\"SAMPLE\",\"HC\"],\"highWelltype\":\"HCG\",\"lowWelltype\":\"LC\",\"featureValues\":[1.0,2.0,3.0,5.0]}",
@@ -740,7 +740,7 @@ public class FeatureStatExecutorTest {
                 new HashMap<>() {{
                     put(0, new Sequence(0, List.of(feature)));
                 }});
-        var cctx = CalculationContext.newInstance(plate, protocol, 1L, 2L, getWells(), getUniqueWellTypes());
+        var cctx = CalculationContext.newInstance(plate, null, protocol, 1L, 2L, getWells(), getUniqueWellTypes());
 
         var input = new ScriptExecution(new TargetRuntime("JAVASTAT", "fast-lane", "v1"), formula.getFormula(),
                 "{\"isWelltypeStat\":true,\"isPlateStat\":true,\"welltypes\":[\"LC\",\"SAMPLE\",\"SAMPLE\",\"HC\"],\"highWelltype\":\"HCG\",\"lowWelltype\":\"LC\",\"featureValues\":[1.0,2.0,3.0,5.0]}",
@@ -797,7 +797,7 @@ public class FeatureStatExecutorTest {
                 new HashMap<>() {{
                     put(0, new Sequence(0, List.of(feature)));
                 }});
-        var cctx = CalculationContext.newInstance(plate, protocol, 1L, 2L, getWells(), getUniqueWellTypes());
+        var cctx = CalculationContext.newInstance(plate, null, protocol, 1L, 2L, getWells(), getUniqueWellTypes());
 
         var input = new ScriptExecution(new TargetRuntime("JAVASTAT", "fast-lane", "v1"), formula.getFormula(),
                 "{\"isWelltypeStat\":true,\"isPlateStat\":true,\"welltypes\":[\"LC\",\"SAMPLE\",\"SAMPLE\",\"HC\"],\"highWelltype\":\"HCG\",\"lowWelltype\":\"LC\",\"featureValues\":[1.0,2.0,3.0,5.0]}",

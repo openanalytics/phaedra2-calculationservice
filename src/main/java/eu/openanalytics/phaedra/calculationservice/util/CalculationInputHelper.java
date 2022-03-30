@@ -47,9 +47,9 @@ public class CalculationInputHelper {
 			inputMap.put(InputName.highWellType.name(), context.getProtocol().getHighWelltype());
 		}
 
-		if (context.getPlate() != null) {
+		if (context.getWells() != null) {
 			// Sort wells by wellNumber
-			List<WellDTO> wells = new ArrayList<>(context.getPlate().getWells());
+			List<WellDTO> wells = new ArrayList<>(context.getWells());
 			int columnCount = context.getPlate().getColumns();
 			wells.sort((w1, w2) -> { 
 				return WellNumberUtils.getWellNr(w1.getRow(), w1.getColumn(), columnCount) - WellNumberUtils.getWellNr(w2.getRow(), w2.getColumn(), columnCount);

@@ -123,19 +123,8 @@ public class ProtocolExecutorTest {
         featureExecutorService = new FeatureExecutorService(scriptEngineClient, measurementServiceClient, resultDataServiceClient);
         sequenceExecutorService = new SequenceExecutorService(resultDataServiceClient, featureExecutorService, modelMapper, featureStatExecutorService);
         protocolExecutorService = new ProtocolExecutorService(resultDataServiceClient, sequenceExecutorService, protocolInfoCollector, plateServiceClient);
-        doReturn(PlateDTO.builder().id(1L).rows(1).columns(4).wells(List.of(
-                new WellDTO(1L, 10L, 1, 1, "LC", WellStatus.ACCEPTED_DEFAULT, 1L, "", null),
-                new WellDTO(1L, 10L, 1, 2, "SAMPLE", WellStatus.ACCEPTED_DEFAULT, 1L, "", null),
-                new WellDTO(1L, 10L, 1, 3, "SAMPLE", WellStatus.ACCEPTED_DEFAULT, 1L, "", null),
-                new WellDTO(1L, 10L, 1, 4, "HC", WellStatus.ACCEPTED_DEFAULT, 1L, "", null))
-        ).build()).when(plateServiceClient).getPlate(anyLong());
-
-        doReturn(PlateDTO.builder().id(1L).rows(1).columns(4).wells(List.of(
-                new WellDTO(1L, 10L, 1, 1, "LC", WellStatus.ACCEPTED_DEFAULT, 1L, "", null),
-                new WellDTO(1L, 10L, 1, 2, "SAMPLE", WellStatus.ACCEPTED_DEFAULT, 1L, "", null),
-                new WellDTO(1L, 10L, 1, 3, "SAMPLE", WellStatus.ACCEPTED_DEFAULT, 1L, "", null),
-                new WellDTO(1L, 10L, 1, 4, "HC", WellStatus.ACCEPTED_DEFAULT, 1L, "", null))
-        ).build()).when(plateServiceClient).updatePlateCalculationStatus(any(ResultSetDTO.class));
+        doReturn(PlateDTO.builder().id(1L).rows(1).columns(4).build()).when(plateServiceClient).getPlate(anyLong());
+        doReturn(PlateDTO.builder().id(1L).rows(1).columns(4).build()).when(plateServiceClient).updatePlateCalculationStatus(any(ResultSetDTO.class));
     }
 
     @Test

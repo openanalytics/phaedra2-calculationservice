@@ -92,13 +92,14 @@ public class ProtocolExecutorService {
         logger.info("Preparing new calculation");
         final var protocol = protocolInfoCollector.getProtocol(protocolId, authToken);
         final var plate = plateServiceClient.getPlate(plateId, authToken);
-        final var welltypesSorted = plate.getWells().stream().map(WellDTO::getWellType).toList();
+        final var wells = plateServiceClient.getWells(plateId, authToken);
+        final var welltypesSorted = wells.stream().map(WellDTO::getWellType).toList();
         final var uniqueWelltypes = new LinkedHashSet<>(welltypesSorted);
 
         // 2. create CalculationContext
         final var resultSet = resultDataServiceClient.createResultDataSet(protocolId, plateId, measId);
         resultSetIdFuture.complete(resultSet.getId());
-        final var cctx = CalculationContext.newInstance(plate, protocol, resultSet.getId(), measId, welltypesSorted, uniqueWelltypes);
+        final var cctx = CalculationContext.newInstance(plate, wells, protocol, resultSet.getId(), measId, welltypesSorted, uniqueWelltypes);
 
         logMsg(logger, cctx,  "Starting calculation");
 

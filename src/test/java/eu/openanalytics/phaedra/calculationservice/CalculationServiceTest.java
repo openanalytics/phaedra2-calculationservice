@@ -32,7 +32,6 @@ import eu.openanalytics.phaedra.calculationservice.service.status.CalculationSta
 import eu.openanalytics.phaedra.plateservice.client.PlateServiceClient;
 import eu.openanalytics.phaedra.plateservice.client.exception.PlateUnresolvableException;
 import eu.openanalytics.phaedra.plateservice.dto.PlateDTO;
-import eu.openanalytics.phaedra.plateservice.dto.WellDTO;
 import eu.openanalytics.phaedra.protocolservice.client.exception.ProtocolUnresolvableException;
 import eu.openanalytics.phaedra.resultdataservice.client.ResultDataServiceClient;
 import eu.openanalytics.phaedra.resultdataservice.client.exception.ResultDataUnresolvableException;
@@ -638,12 +637,7 @@ public class CalculationServiceTest {
     }
 
     private void mockPlate() throws PlateUnresolvableException {
-        doReturn(PlateDTO.builder().id(1L).wells(List.of(
-                WellDTO.builder().wellType("LC").id(1L).build(),
-                WellDTO.builder().wellType("SAMPLE").id(2L).build(),
-                WellDTO.builder().wellType("SAMPLE").id(3L).build(),
-                WellDTO.builder().wellType("HC").id(3L).build())).build()
-        ).when(plateServiceClient).getPlate(1);
+        doReturn(PlateDTO.builder().id(1L).build()).when(plateServiceClient).getPlate(1);
     }
 
     private void mockProtocol() throws ProtocolUnresolvableException {
