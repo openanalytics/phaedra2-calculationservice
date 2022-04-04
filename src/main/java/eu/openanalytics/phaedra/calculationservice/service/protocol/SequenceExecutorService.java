@@ -24,6 +24,8 @@ import com.fasterxml.jackson.annotation.JsonCreator;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.google.common.primitives.Doubles;
+import com.google.common.primitives.Floats;
 import eu.openanalytics.phaedra.calculationservice.model.CalculationContext;
 import eu.openanalytics.phaedra.calculationservice.model.Feature;
 import eu.openanalytics.phaedra.calculationservice.model.Sequence;
@@ -40,10 +42,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
 
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Objects;
-import java.util.Optional;
+import java.util.*;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Future;
@@ -183,10 +182,12 @@ public class SequenceExecutorService {
             if (output.getStatusCode() == ResponseStatusCode.SUCCESS) {
                 try {
                     OutputWrapper outputValue = objectMapper.readValue(output.getOutput(), OutputWrapper.class);
+                    double[] doubleOutputValue = Arrays.stream(outputValue.output).mapToDouble(o -> (o != "NA") ? Double.parseDouble(o) : Double.NaN).toArray();
+                    float[] floatOutputValue = Floats.toArray(Doubles.asList(doubleOutputValue));
                     var resultData = resultDataServiceClient.addResultData(
                             cctx.getResultSetId(),
                             feature.getId(),
-                            outputValue.output,
+                            floatOutputValue,
                             modelMapper.map(output.getStatusCode()),
                             output.getStatusMessage(),
                             output.getExitCode());
@@ -215,10 +216,10 @@ public class SequenceExecutorService {
 
     private static class OutputWrapper {
 
-        public final float[] output;
+        public final String[] output;
 
         @JsonCreator
-        private OutputWrapper(@JsonProperty(value = "output", required = true) float[] output) {
+        private OutputWrapper(@JsonProperty(value = "output", required = true) String[] output) {
             this.output = output;
         }
     }
