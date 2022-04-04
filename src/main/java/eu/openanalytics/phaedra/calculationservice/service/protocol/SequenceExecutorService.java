@@ -182,8 +182,15 @@ public class SequenceExecutorService {
             if (output.getStatusCode() == ResponseStatusCode.SUCCESS) {
                 try {
                     OutputWrapper outputValue = objectMapper.readValue(output.getOutput(), OutputWrapper.class);
-                    double[] doubleOutputValue = Arrays.stream(outputValue.output).mapToDouble(o -> (o != "NA") ? Double.parseDouble(o) : Double.NaN).toArray();
-                    float[] floatOutputValue = Floats.toArray(Doubles.asList(doubleOutputValue));
+                    float[] floatOutputValue = new float[outputValue.output.length];
+                    for (int i = 0; i < outputValue.output.length; i++) {
+                        try {
+                            floatOutputValue[i] = Float.parseFloat(outputValue.output[i]);
+                        } catch (Exception e) {
+                            floatOutputValue[i] = Float.NaN;
+                        }
+                    }
+
                     var resultData = resultDataServiceClient.addResultData(
                             cctx.getResultSetId(),
                             feature.getId(),
