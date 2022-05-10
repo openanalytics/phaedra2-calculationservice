@@ -110,7 +110,7 @@ public class FeatureStatExecutorTest {
         var featureStat = createFeatureStat(formula);
 
         var feature = new Feature(1L, "Feature1", null, null, "AFormat", FeatureType.CALCULATION, 0,
-                new Formula(1L, "abc_duplicator", null, Category.CALCULATION, "output <- input$abc * 2", ScriptLanguage.R, CalculationScope.WELL, "me", LocalDateTime.now(), "me", LocalDateTime.now()),
+                new Formula(1L, "abc_duplicator", null, Category.CALCULATION, "output <- input$abc * 2", ScriptLanguage.R, CalculationScope.WELL,null,"1.0-1373172818", "me", LocalDateTime.now(), "me", LocalDateTime.now()),
                 List.of(new CalculationInputValue(1L, 1L, "abc", null, "abc")), List.of(featureStat));
 
         var protocol = new Protocol(1L, "TestProtocol", null, true, true, "LC", "HCG",
@@ -157,7 +157,7 @@ public class FeatureStatExecutorTest {
         var featureStat4 = createFeatureStat(formula4, false);
 
         var feature = new Feature(1L, "Feature1", null, null, "AFormat", FeatureType.CALCULATION, 0,
-                new Formula(1L, "abc_duplicator", null, Category.CALCULATION, "output <- input$abc * 2", ScriptLanguage.R, CalculationScope.WELL, "me", LocalDateTime.now(), "me", LocalDateTime.now()),
+                new Formula(1L, "abc_duplicator", null, Category.CALCULATION, "output <- input$abc * 2", ScriptLanguage.R, CalculationScope.WELL,null,"1.0-1373172818", "me", LocalDateTime.now(), "me", LocalDateTime.now()),
                 List.of(new CalculationInputValue(1L, 1L, "abc", null, "abc")), List.of(featureStat1, featureStat2, featureStat3, featureStat4));
 
         var protocol = new Protocol(1L, "TestProtocol", null, true, true, "LC", "HCG",
@@ -231,7 +231,7 @@ public class FeatureStatExecutorTest {
         var cctx = CalculationContext.newInstance(PlateDTO.builder().id(1L).build(), Collections.emptyList(), Protocol.builder().id(1L).build(), 1L, 2L, getWells(), getUniqueWellTypes());
 
         var feature = new Feature(1L, "Feature1", null, null, "AFormat", FeatureType.CALCULATION, 0,
-                new Formula(1L, "abc_duplicator", null, Category.CALCULATION, "output <- input$abc * 2", ScriptLanguage.R, CalculationScope.WELL, "me", LocalDateTime.now(), "me", LocalDateTime.now()),
+                new Formula(1L, "abc_duplicator", null, Category.CALCULATION, "output <- input$abc * 2", ScriptLanguage.R, CalculationScope.WELL,null,"1.0-1373172818", "me", LocalDateTime.now(), "me", LocalDateTime.now()),
                 List.of(new CalculationInputValue(1L, 1L, "abc", null, "abc")), List.of());
 
         var resultData = ResultDataDTO.builder()
@@ -259,7 +259,7 @@ public class FeatureStatExecutorTest {
         var cctx = CalculationContext.newInstance(PlateDTO.builder().id(1L).build(), Collections.emptyList(), Protocol.builder().id(1L).build(), 1L, 2L, getWells(), getUniqueWellTypes());
 
         var feature = new Feature(1L, "Feature1", null, null, "AFormat", FeatureType.CALCULATION, 0,
-                new Formula(1L, "abc_duplicator", null, Category.CALCULATION, "output <- input$abc * 2", ScriptLanguage.R, CalculationScope.WELL, "me", LocalDateTime.now(), "me", LocalDateTime.now()),
+                new Formula(1L, "abc_duplicator", null, Category.CALCULATION, "output <- input$abc * 2", ScriptLanguage.R, CalculationScope.WELL,null,"1.0-1373172818", "me", LocalDateTime.now(), "me", LocalDateTime.now()),
                 List.of(new CalculationInputValue(1L, 1L, "abc", null, "abc")), List.of());
 
         var resultData = ResultDataDTO.builder()
@@ -299,7 +299,7 @@ public class FeatureStatExecutorTest {
         var featureStat2 = createFeatureStat(formula2);
 
         var feature = new Feature(1L, "Feature1", null, null, "AFormat", FeatureType.CALCULATION, 0,
-                new Formula(1L, "abc_duplicator", null, Category.CALCULATION, "output <- input$abc * 2", ScriptLanguage.R, CalculationScope.WELL, "me", LocalDateTime.now(), "me", LocalDateTime.now()),
+                new Formula(1L, "abc_duplicator", null, Category.CALCULATION, "output <- input$abc * 2", ScriptLanguage.R, CalculationScope.WELL,null,"1.0-1373172818", "me", LocalDateTime.now(), "me", LocalDateTime.now()),
                 List.of(new CalculationInputValue(1L, 1L, "abc", null, "abc")), List.of(featureStat1, featureStat2));
 
         var protocol = new Protocol(1L, "TestProtocol", null, true, true, "LC", "HCG",
@@ -352,7 +352,7 @@ public class FeatureStatExecutorTest {
         var featureStat2 = createFeatureStat(formula2);
 
         var feature = new Feature(1L, "Feature1", null, null, "AFormat", FeatureType.CALCULATION, 0,
-                new Formula(1L, "abc_duplicator", null, Category.CALCULATION, "output <- input$abc * 2", ScriptLanguage.R, CalculationScope.WELL, "me", LocalDateTime.now(), "me", LocalDateTime.now()),
+                new Formula(1L, "abc_duplicator", null, Category.CALCULATION, "output <- input$abc * 2", ScriptLanguage.R, CalculationScope.WELL,null,"1.0-1373172818", "me", LocalDateTime.now(), "me", LocalDateTime.now()),
                 List.of(new CalculationInputValue(1L, 1L, "abc", null, "abc")), List.of(featureStat1, featureStat2));
 
         var protocol = new Protocol(1L, "TestProtocol", null, true, true, "LC", "HCG",
@@ -412,7 +412,7 @@ public class FeatureStatExecutorTest {
         var featureStat2 = createFeatureStat(formula2);
 
         var feature = new Feature(1L, "Feature1", null, null, "AFormat", FeatureType.CALCULATION, 0,
-                new Formula(1L, "abc_duplicator", null, Category.CALCULATION, "output <- input$abc * 2", ScriptLanguage.R, CalculationScope.WELL, "me", LocalDateTime.now(), "me", LocalDateTime.now()),
+                new Formula(1L, "abc_duplicator", null, Category.CALCULATION, "output <- input$abc * 2", ScriptLanguage.R, CalculationScope.WELL,null,"1.0-1373172818", "me", LocalDateTime.now(), "me", LocalDateTime.now()),
                 List.of(new CalculationInputValue(1L, 1L, "abc", null, "abc")), List.of(featureStat1, featureStat2));
 
         var protocol = new Protocol(1L, "TestProtocol", null, true, true, "LC", "HCG",
@@ -472,7 +472,7 @@ public class FeatureStatExecutorTest {
         var featureStat2 = createFeatureStat(formula2);
 
         var feature = new Feature(1L, "Feature1", null, null, "AFormat", FeatureType.CALCULATION, 0,
-                new Formula(1L, "abc_duplicator", null, Category.CALCULATION, "output <- input$abc * 2", ScriptLanguage.R, CalculationScope.WELL, "me", LocalDateTime.now(), "me", LocalDateTime.now()),
+                new Formula(1L, "abc_duplicator", null, Category.CALCULATION, "output <- input$abc * 2", ScriptLanguage.R, CalculationScope.WELL,null,"1.0-1373172818", "me", LocalDateTime.now(), "me", LocalDateTime.now()),
                 List.of(new CalculationInputValue(1L, 1L, "abc", null, "abc")), List.of(featureStat1, featureStat2));
 
         var protocol = new Protocol(1L, "TestProtocol", null, true, true, "LC", "HCG",
@@ -534,7 +534,7 @@ public class FeatureStatExecutorTest {
         var featureStat = createFeatureStat(formula);
 
         var feature = new Feature(1L, "Feature1", null, null, "AFormat", FeatureType.CALCULATION, 0,
-                new Formula(1L, "abc_duplicator", null, Category.CALCULATION, "output <- input$abc * 2", ScriptLanguage.R, CalculationScope.WELL, "me", LocalDateTime.now(), "me", LocalDateTime.now()),
+                new Formula(1L, "abc_duplicator", null, Category.CALCULATION, "output <- input$abc * 2", ScriptLanguage.R, CalculationScope.WELL,null,"1.0-1373172818", "me", LocalDateTime.now(), "me", LocalDateTime.now()),
                 List.of(new CalculationInputValue(1L, 1L, "abc", null, "abc")), List.of(featureStat));
 
         var protocol = new Protocol(1L, "TestProtocol", null, true, true, "LC", "HCG",
@@ -576,7 +576,7 @@ public class FeatureStatExecutorTest {
         var featureStat = createFeatureStat(formula, false);
 
         var feature = new Feature(1L, "Feature1", null, null, "AFormat", FeatureType.CALCULATION, 0,
-                new Formula(1L, "abc_duplicator", null, Category.CALCULATION, "output <- input$abc * 2", ScriptLanguage.R, CalculationScope.WELL, "me", LocalDateTime.now(), "me", LocalDateTime.now()),
+                new Formula(1L, "abc_duplicator", null, Category.CALCULATION, "output <- input$abc * 2", ScriptLanguage.R, CalculationScope.WELL,null,"1.0-1373172818", "me", LocalDateTime.now(), "me", LocalDateTime.now()),
                 List.of(new CalculationInputValue(1L, 1L, "abc", null, "abc")), List.of(featureStat));
 
         var protocol = new Protocol(1L, "TestProtocol", null, true, true, "LC", "HCG",
@@ -622,7 +622,7 @@ public class FeatureStatExecutorTest {
         var featureStat2 = createFeatureStat(formula2);
 
         var feature = new Feature(1L, "Feature1", null, null, "AFormat", FeatureType.CALCULATION, 0,
-                new Formula(1L, "abc_duplicator", null, Category.CALCULATION, "output <- input$abc * 2", ScriptLanguage.R, CalculationScope.WELL, "me", LocalDateTime.now(), "me", LocalDateTime.now()),
+                new Formula(1L, "abc_duplicator", null, Category.CALCULATION, "output <- input$abc * 2", ScriptLanguage.R, CalculationScope.WELL,null,"1.0-1373172818", "me", LocalDateTime.now(), "me", LocalDateTime.now()),
                 List.of(new CalculationInputValue(1L, 1L, "abc", null, "abc")), List.of(featureStat1, featureStat2));
 
         var protocol = new Protocol(1L, "TestProtocol", null, true, true, "LC", "HCG",
@@ -682,7 +682,7 @@ public class FeatureStatExecutorTest {
         var featureStat2 = createFeatureStat(formula2);
 
         var feature = new Feature(1L, "Feature1", null, null, "AFormat", FeatureType.CALCULATION, 0,
-                new Formula(1L, "abc_duplicator", null, Category.CALCULATION, "output <- input$abc * 2", ScriptLanguage.R, CalculationScope.WELL, "me", LocalDateTime.now(), "me", LocalDateTime.now()),
+                new Formula(1L, "abc_duplicator", null, Category.CALCULATION, "output <- input$abc * 2", ScriptLanguage.R, CalculationScope.WELL,null,"1.0-1373172818", "me", LocalDateTime.now(), "me", LocalDateTime.now()),
                 List.of(new CalculationInputValue(1L, 1L, "abc", null, "abc")), List.of(featureStat1, featureStat2));
 
         var protocol = new Protocol(1L, "TestProtocol", null, true, true, "LC", "HCG",
@@ -738,7 +738,7 @@ public class FeatureStatExecutorTest {
         var featureStat = createFeatureStat(formula);
 
         var feature = new Feature(1L, "Feature1", null, null, "AFormat", FeatureType.CALCULATION, 0,
-                new Formula(1L, "abc_duplicator", null, Category.CALCULATION, "output <- input$abc * 2", ScriptLanguage.R, CalculationScope.WELL, "me", LocalDateTime.now(), "me", LocalDateTime.now()),
+                new Formula(1L, "abc_duplicator", null, Category.CALCULATION, "output <- input$abc * 2", ScriptLanguage.R, CalculationScope.WELL,null,"1.0-1373172818", "me", LocalDateTime.now(), "me", LocalDateTime.now()),
                 List.of(new CalculationInputValue(1L, 1L, "abc", null, "abc")), List.of(featureStat));
 
         var protocol = new Protocol(1L, "TestProtocol", null, true, true, "LC", "HCG",
@@ -795,7 +795,7 @@ public class FeatureStatExecutorTest {
         var featureStat = createFeatureStat(formula);
 
         var feature = new Feature(1L, "Feature1", null, null, "AFormat", FeatureType.CALCULATION, 0,
-                new Formula(1L, "abc_duplicator", null, Category.CALCULATION, "output <- input$abc * 2", ScriptLanguage.R, CalculationScope.WELL, "me", LocalDateTime.now(), "me", LocalDateTime.now()),
+                new Formula(1L, "abc_duplicator", null, Category.CALCULATION, "output <- input$abc * 2", ScriptLanguage.R, CalculationScope.WELL,null,"1.0-1373172818", "me", LocalDateTime.now(), "me", LocalDateTime.now()),
                 List.of(new CalculationInputValue(1L, 1L, "abc", null, "abc")), List.of(featureStat));
 
         var protocol = new Protocol(1L, "TestProtocol", null, true, true, "LC", "HCG",

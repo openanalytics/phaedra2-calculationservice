@@ -147,7 +147,7 @@ public class ProtocolExecutorTest {
         stubGetProtocol(new Protocol(1L, "TestProtocol", null, true, true, "lc", "hc",
                 new HashMap<>() {{
                     put(0, new Sequence(0, List.of(new Feature(1L, "Feature1", null, null, "AFormat", FeatureType.CALCULATION, 0,
-                            new Formula(1L, "abc_duplicator", null, Category.CALCULATION, formula, ScriptLanguage.R, CalculationScope.WELL, "me", LocalDateTime.now(), "me", LocalDateTime.now()),
+                            new Formula(1L, "abc_duplicator", null, Category.CALCULATION, "output <- input$abc * 2", ScriptLanguage.R, CalculationScope.WELL,null,"1.0-1373172818", "me", LocalDateTime.now(), "me", LocalDateTime.now()),
                             List.of(new CalculationInputValue(1L, 1L, "abc", null, "abc")), Collections.emptyList()))));
                 }}));
 
@@ -180,7 +180,7 @@ public class ProtocolExecutorTest {
         stubGetProtocol(new Protocol(1L, "TestProtocol", null, true, true, "lc", "hc",
                 new HashMap<>() {{
                     put(0, new Sequence(0, List.of(new Feature(1L, "Feature1", null, null, "AFormat", FeatureType.CALCULATION, 0,
-                            new Formula(1L, "abc_duplicator", null, Category.CALCULATION, formula, ScriptLanguage.R, CalculationScope.WELL, "me", LocalDateTime.now(), "me", LocalDateTime.now()),
+                            new Formula(1L, "abc_duplicator", null, Category.CALCULATION, "output <- input$abc * 2", ScriptLanguage.R, CalculationScope.WELL,null,"1.0-1373172818", "me", LocalDateTime.now(), "me", LocalDateTime.now()),
                             List.of(new CalculationInputValue(1L, 1L, "abc", null, "abc")), Collections.emptyList()))));
                 }}));
 
@@ -231,10 +231,10 @@ public class ProtocolExecutorTest {
         stubGetProtocol(new Protocol(1L, "TestProtocol", null, true, true, "lc", "hc",
                 new HashMap<>() {{
                     put(0, new Sequence(0, List.of(new Feature(1L, "Feature1", null, null, "AFormat", FeatureType.CALCULATION, 0,
-                            new Formula(1L, "abc_duplicator", null, Category.CALCULATION, formula1, ScriptLanguage.R, CalculationScope.WELL, "me", LocalDateTime.now(), "me", LocalDateTime.now()),
+                            new Formula(1L, "abc_duplicator", null, Category.CALCULATION, "output <- input$abc * 2", ScriptLanguage.R, CalculationScope.WELL,null,"1.0-1373172818", "me", LocalDateTime.now(), "me", LocalDateTime.now()),
                             List.of(new CalculationInputValue(1L, 1L, "abc", null, "abc")), Collections.emptyList()))));
                     put(1, new Sequence(1, List.of(new Feature(2L, "Feature2", null, null, "AFormat", FeatureType.CALCULATION, 1,
-                            new Formula(2L, "result_duplicator", null, Category.CALCULATION, formula2, ScriptLanguage.R, CalculationScope.WELL, "me", LocalDateTime.now(), "me", LocalDateTime.now()),
+                            new Formula(2L, "result_duplicator", null, Category.CALCULATION, formula2, ScriptLanguage.R, CalculationScope.WELL,null,"1.0-1373172818", "me", LocalDateTime.now(), "me", LocalDateTime.now()),
                             List.of(new CalculationInputValue(2L, 2L, null, 1L, "result")), Collections.emptyList()))));
                 }}));
 
@@ -286,7 +286,7 @@ public class ProtocolExecutorTest {
         stubGetProtocol(new Protocol(1L, "TestProtocol", null, true, true, "lc", "hc",
                 new HashMap<>() {{
                     put(0, new Sequence(0, List.of(new Feature(1L, "Feature1", null, null, "AFormat", FeatureType.CALCULATION, 0,
-                            new Formula(1L, "abc_duplicator", null, Category.CALCULATION, formula1, ScriptLanguage.R, CalculationScope.WELL, "me", LocalDateTime.now(), "me", LocalDateTime.now()),
+                            new Formula(1L, "abc_duplicator", null, Category.CALCULATION, "output <- input$abc * 2", ScriptLanguage.R, CalculationScope.WELL,null,"1.0-1373172818", "me", LocalDateTime.now(), "me", LocalDateTime.now()),
                             List.of(new CalculationInputValue(1L, 1L, "abc", null, "abc"),
                                     new CalculationInputValue(1L, 1L, "xyz", null, "abc")), Collections.emptyList()))));
                 }}));
@@ -329,7 +329,7 @@ public class ProtocolExecutorTest {
         stubGetProtocol(new Protocol(1L, "TestProtocol", null, true, true, "lc", "hc",
                 new HashMap<>() {{
                     put(0, new Sequence(0, List.of(new Feature(1L, "Feature1", null, null, "AFormat", FeatureType.CALCULATION, 0,
-                            new Formula(1L, "abc_duplicator", null, Category.CALCULATION, formula1, ScriptLanguage.R, CalculationScope.WELL, "me", LocalDateTime.now(), "me", LocalDateTime.now()),
+                            new Formula(1L, "abc_duplicator", null, Category.CALCULATION, "output <- input$abc * 2", ScriptLanguage.R, CalculationScope.WELL,null,"1.0-1373172818", "me", LocalDateTime.now(), "me", LocalDateTime.now()),
                             List.of(new CalculationInputValue(1L, 1L, null, null, "abc")), Collections.emptyList()))));
                 }}));
 
@@ -369,7 +369,7 @@ public class ProtocolExecutorTest {
         stubGetProtocol(new Protocol(1L, "TestProtocol", null, true, true, "lc", "hc",
                 new HashMap<>() {{
                     put(0, new Sequence(0, List.of(new Feature(1L, "Feature1", null, null, "AFormat", FeatureType.CALCULATION, 0,
-                            new Formula(1L, "abc_duplicator", null, Category.CALCULATION, formula1, ScriptLanguage.R, CalculationScope.WELL, "me", LocalDateTime.now(), "me", LocalDateTime.now()),
+                            new Formula(1L, "abc_duplicator", null, Category.CALCULATION, "output <- input$abc * 2", ScriptLanguage.R, CalculationScope.WELL,null,"1.0-1373172818", "me", LocalDateTime.now(), "me", LocalDateTime.now()),
                             List.of(new CalculationInputValue(1L, 1L, null, 1L, "abc")), Collections.emptyList()))));
                 }}));
 
@@ -407,7 +407,7 @@ public class ProtocolExecutorTest {
         stubGetProtocol(new Protocol(1L, "TestProtocol", null, true, true, "lc", "hc",
                 new HashMap<>() {{
                     put(1, new Sequence(1, List.of(new Feature(1L, "Feature1", null, null, "AFormat", FeatureType.CALCULATION, 1,
-                            new Formula(1L, "abc_duplicator", null, Category.CALCULATION, "bogus", ScriptLanguage.R, CalculationScope.WELL, "me", LocalDateTime.now(), "me", LocalDateTime.now()),
+                            new Formula(1L, "abc_duplicator", null, Category.CALCULATION, "output <- input$abc * 2", ScriptLanguage.R, CalculationScope.WELL,null,"1.0-1373172818", "me", LocalDateTime.now(), "me", LocalDateTime.now()),
                             List.of(new CalculationInputValue(1L, 1L, "abc", null, "abc")), Collections.emptyList()))));
                 }}));
 
@@ -451,7 +451,7 @@ public class ProtocolExecutorTest {
         stubGetProtocol(new Protocol(1L, "TestProtocol", null, true, true, "lc", "hc",
                 new HashMap<>() {{
                     put(0, new Sequence(0, List.of(new Feature(1L, "Feature1", null, null, "AFormat", FeatureType.CALCULATION, 0,
-                            new Formula(1L, "abc_duplicator", null, Category.CALCULATION, formula, ScriptLanguage.R, CalculationScope.WELL, "me", LocalDateTime.now(), "me", LocalDateTime.now()),
+                            new Formula(1L, "abc_duplicator", null, Category.CALCULATION, formula, ScriptLanguage.R, CalculationScope.WELL,null,"1.0-1373172818", "me", LocalDateTime.now(), "me", LocalDateTime.now()),
                             List.of(new CalculationInputValue(1L, 1L, "abc", null, "abc")), Collections.emptyList()))));
                 }}));
 
@@ -502,7 +502,7 @@ public class ProtocolExecutorTest {
         stubGetProtocol(new Protocol(1L, "TestProtocol", null, true, true, "lc", "hc",
                 new HashMap<>() {{
                     put(0, new Sequence(0, List.of(new Feature(1L, "Feature1", null, null, "AFormat", FeatureType.CALCULATION, 0,
-                            new Formula(1L, "abc_duplicator", null, Category.CALCULATION, formula, ScriptLanguage.R, CalculationScope.WELL, "me", LocalDateTime.now(), "me", LocalDateTime.now()),
+                            new Formula(1L, "abc_duplicator", null, Category.CALCULATION, "output <- input$abc * 2", ScriptLanguage.R, CalculationScope.WELL,null,"1.0-1373172818", "me", LocalDateTime.now(), "me", LocalDateTime.now()),
                             List.of(new CalculationInputValue(1L, 1L, "abc", null, "abc")), Collections.emptyList()))));
                 }}));
 
@@ -551,7 +551,7 @@ public class ProtocolExecutorTest {
         stubGetProtocol(new Protocol(1L, "TestProtocol", null, true, true, "lc", "hc",
                 new HashMap<>() {{
                     put(0, new Sequence(0, List.of(new Feature(1L, "Feature1", null, null, "AFormat", FeatureType.CALCULATION, 0,
-                            new Formula(1L, "abc_duplicator", null, Category.CALCULATION, formula, ScriptLanguage.R, CalculationScope.WELL, "me", LocalDateTime.now(), "me", LocalDateTime.now()),
+                            new Formula(1L, "abc_duplicator", null, Category.CALCULATION, "output <- input$abc * 2", ScriptLanguage.R, CalculationScope.WELL,null,"1.0-1373172818", "me", LocalDateTime.now(), "me", LocalDateTime.now()),
                             List.of(new CalculationInputValue(1L, 1L, "abc", null, "abc")), Collections.emptyList()))));
                 }}));
 
@@ -610,13 +610,13 @@ public class ProtocolExecutorTest {
                 new HashMap<>() {{
                     put(0, new Sequence(0, List.of(
                             new Feature(1L, "Feature1", null, null, "AFormat", FeatureType.CALCULATION, 0,
-                                    new Formula(1L, "abc_duplicator", null, Category.CALCULATION, formula1, ScriptLanguage.R, CalculationScope.WELL, "me", LocalDateTime.now(), "me", LocalDateTime.now()),
+                                    new Formula(1L, "abc_duplicator", null, Category.CALCULATION, "output <- input$abc * 2", ScriptLanguage.R, CalculationScope.WELL,null,"1.0-1373172818", "me", LocalDateTime.now(), "me", LocalDateTime.now()),
                                     List.of(new CalculationInputValue(1L, 1L, "abc", null, "abc")), Collections.emptyList()),
                             new Feature(2L, "Feature2", null, null, "AFormat", FeatureType.CALCULATION, 0,
-                                    new Formula(2L, "abc_times_three", null, Category.CALCULATION, formula2, ScriptLanguage.R, CalculationScope.WELL, "me", LocalDateTime.now(), "me", LocalDateTime.now()),
+                                    new Formula(2L, "abc_times_three", null, Category.CALCULATION, formula2, ScriptLanguage.R, CalculationScope.WELL,null,"1.0-1373172818", "me", LocalDateTime.now(), "me", LocalDateTime.now()),
                                     List.of(new CalculationInputValue(2L, 2L, "abc", null, "abc")), Collections.emptyList()),
                             new Feature(3L, "Feature2", null, null, "AFormat", FeatureType.CALCULATION, 0,
-                                    new Formula(3L, "abc_times_four", null, Category.CALCULATION, formula3, ScriptLanguage.R, CalculationScope.WELL, "me", LocalDateTime.now(), "me", LocalDateTime.now()),
+                                    new Formula(3L, "abc_times_four", null, Category.CALCULATION, formula3, ScriptLanguage.R, CalculationScope.WELL,null,"1.0-1373172818", "me", LocalDateTime.now(), "me", LocalDateTime.now()),
                                     List.of(new CalculationInputValue(3L, 3L, "abc", null, "abc")), Collections.emptyList()))
                     ));
                 }}));
@@ -704,13 +704,13 @@ public class ProtocolExecutorTest {
                 new HashMap<>() {{
                     put(0, new Sequence(0, List.of(
                             new Feature(1L, "Feature1", null, null, "AFormat", FeatureType.CALCULATION, 0,
-                                    new Formula(1L, "abc_duplicator", null, Category.CALCULATION, formula1, ScriptLanguage.R, CalculationScope.WELL, "me", LocalDateTime.now(), "me", LocalDateTime.now()),
+                                    new Formula(1L, "abc_duplicator", null, Category.CALCULATION, "output <- input$abc * 2", ScriptLanguage.R, CalculationScope.WELL,null,"1.0-1373172818", "me", LocalDateTime.now(), "me", LocalDateTime.now()),
                                     List.of(new CalculationInputValue(1L, 1L, "abc", null, "abc")), Collections.emptyList()),
                             new Feature(2L, "Feature2", null, null, "AFormat", FeatureType.CALCULATION, 0,
-                                    new Formula(2L, "abc_times_three", null, Category.CALCULATION, formula2, ScriptLanguage.R, CalculationScope.WELL, "me", LocalDateTime.now(), "me", LocalDateTime.now()),
+                                    new Formula(2L, "abc_times_three", null, Category.CALCULATION, formula2, ScriptLanguage.R, CalculationScope.WELL,null,"1.0-1373172818", "me", LocalDateTime.now(), "me", LocalDateTime.now()),
                                     List.of(new CalculationInputValue(2L, 2L, "abc", null, "abc")), Collections.emptyList()),
                             new Feature(3L, "Feature2", null, null, "AFormat", FeatureType.CALCULATION, 0,
-                                    new Formula(3L, "abc_times_four", null, Category.CALCULATION, formula3, ScriptLanguage.R, CalculationScope.WELL, "me", LocalDateTime.now(), "me", LocalDateTime.now()),
+                                    new Formula(3L, "abc_times_four", null, Category.CALCULATION, formula3, ScriptLanguage.R, CalculationScope.WELL,null,"1.0-1373172818", "me", LocalDateTime.now(), "me", LocalDateTime.now()),
                                     List.of(new CalculationInputValue(3L, 3L, "abc", null, "abc")), Collections.emptyList()))
                     ));
                 }}));
@@ -786,7 +786,7 @@ public class ProtocolExecutorTest {
         stubGetProtocol(new Protocol(1L, "TestProtocol", null, true, true, "lc", "hc",
                 new HashMap<>() {{
                     put(0, new Sequence(0, List.of(new Feature(1L, "Feature1", null, null, "AFormat", FeatureType.CALCULATION, 0,
-                            new Formula(1L, "abc_duplicator", null, Category.CALCULATION, formula, ScriptLanguage.R, CalculationScope.WELL, "me", LocalDateTime.now(), "me", LocalDateTime.now()),
+                            new Formula(1L, "abc_duplicator", null, Category.CALCULATION, "output <- input$abc * 2", ScriptLanguage.R, CalculationScope.WELL,null,"1.0-1373172818", "me", LocalDateTime.now(), "me", LocalDateTime.now()),
                             List.of(new CalculationInputValue(1L, 1L, "abc", null, "abc")), Collections.emptyList()))));
                 }}));
 
@@ -850,7 +850,7 @@ public class ProtocolExecutorTest {
         stubGetProtocol(new Protocol(1L, "TestProtocol", null, true, true, "lc", "hc",
                 new HashMap<>() {{
                     put(0, new Sequence(0, List.of(new Feature(1L, "Feature1", null, null, "AFormat", FeatureType.CALCULATION, 0,
-                            new Formula(1L, "abc_duplicator", null, Category.CALCULATION, formula, ScriptLanguage.R, CalculationScope.WELL, "me", LocalDateTime.now(), "me", LocalDateTime.now()),
+                            new Formula(1L, "abc_duplicator", null, Category.CALCULATION, "output <- input$abc * 2", ScriptLanguage.R, CalculationScope.WELL,null,"1.0-1373172818", "me", LocalDateTime.now(), "me", LocalDateTime.now()),
                             List.of(new CalculationInputValue(1L, 1L, "abc", null, "abc")), Collections.emptyList()))));
                 }}));
 
@@ -905,7 +905,7 @@ public class ProtocolExecutorTest {
         stubGetProtocol(new Protocol(1L, "TestProtocol", null, true, true, "lc", "hc",
                 new HashMap<>() {{
                     put(0, new Sequence(0, List.of(new Feature(1L, "Feature1", null, null, "AFormat", FeatureType.CALCULATION, 0,
-                            new Formula(1L, "abc_duplicator", null, Category.CALCULATION, formula, ScriptLanguage.R, CalculationScope.WELL, "me", LocalDateTime.now(), "me", LocalDateTime.now()),
+                            new Formula(1L, "abc_duplicator", null, Category.CALCULATION, "output <- input$abc * 2", ScriptLanguage.R, CalculationScope.WELL,null,"1.0-1373172818", "me", LocalDateTime.now(), "me", LocalDateTime.now()),
                             List.of(new CalculationInputValue(1L, 1L, "abc", null, "abc")), Collections.emptyList()))));
                 }}));
 
@@ -978,7 +978,7 @@ public class ProtocolExecutorTest {
                 new HashMap<>() {
                     {
                         put(0, new Sequence(0, List.of(new Feature(1L, "Feature1", null, null, "AFormat", FeatureType.CALCULATION, 0,
-                                new Formula(1L, "abc_duplicator", null, Category.CALCULATION, formula, ScriptLanguage.R, CalculationScope.WELL, "me", LocalDateTime.now(), "me", LocalDateTime.now()),
+                                new Formula(1L, "abc_duplicator", null, Category.CALCULATION, "output <- input$abc * 2", ScriptLanguage.R, CalculationScope.WELL,null,"1.0-1373172818", "me", LocalDateTime.now(), "me", LocalDateTime.now()),
                                 List.of(new CalculationInputValue(1L, 1L, "abc", null, "abc")), List.of(featureStat)))));
                     }
                 }));
@@ -1061,7 +1061,7 @@ public class ProtocolExecutorTest {
                 new HashMap<>() {
                     {
                         put(0, new Sequence(0, List.of(new Feature(1L, "Feature1", null, null, "AFormat", FeatureType.CALCULATION, 0,
-                                new Formula(1L, "abc_duplicator", null, Category.CALCULATION, formula, ScriptLanguage.R, CalculationScope.WELL, "me", LocalDateTime.now(), "me", LocalDateTime.now()),
+                                new Formula(1L, "abc_duplicator", null, Category.CALCULATION, "output <- input$abc * 2", ScriptLanguage.R, CalculationScope.WELL,null,"1.0-1373172818", "me", LocalDateTime.now(), "me", LocalDateTime.now()),
                                 List.of(new CalculationInputValue(1L, 1L, "abc", null, "abc")), List.of(featureStat)))));
                     }
                 }));
@@ -1124,7 +1124,7 @@ public class ProtocolExecutorTest {
         stubGetProtocol(new Protocol(1L, "TestProtocol", null, true, true, "lc", "hc",
                 new HashMap<>() {{
                     put(0, new Sequence(0, List.of(new Feature(1L, "Feature1", null, null, "AFormat", FeatureType.CALCULATION, 0,
-                            new Formula(1L, "abc_duplicator", null, Category.CALCULATION, formula, ScriptLanguage.R, CalculationScope.WELL, "me", LocalDateTime.now(), "me", LocalDateTime.now()),
+                            new Formula(1L, "abc_duplicator", null, Category.CALCULATION, "output <- input$abc * 2", ScriptLanguage.R, CalculationScope.WELL,null,"1.0-1373172818", "me", LocalDateTime.now(), "me", LocalDateTime.now()),
                             List.of(new CalculationInputValue(1L, 1L, "abc", null, "abc")), Collections.emptyList()))));
                 }}));
 
@@ -1183,7 +1183,7 @@ public class ProtocolExecutorTest {
         stubGetProtocol(new Protocol(1L, "TestProtocol", null, true, true, "lc", "hc",
                 new HashMap<>() {{
                     put(0, new Sequence(0, List.of(new Feature(1L, "Feature1", null, null, "AFormat", FeatureType.CALCULATION, 0,
-                            new Formula(1L, "abc_duplicator", null, Category.CALCULATION, formula, ScriptLanguage.R, CalculationScope.WELL, "me", LocalDateTime.now(), "me", LocalDateTime.now()),
+                            new Formula(1L, "abc_duplicator", null, Category.CALCULATION, "output <- input$abc * 2", ScriptLanguage.R, CalculationScope.WELL,null,"1.0-1373172818", "me", LocalDateTime.now(), "me", LocalDateTime.now()),
                             List.of(new CalculationInputValue(1L, 1L, "abc", null, "abc")), Collections.emptyList()))));
                 }}));
 

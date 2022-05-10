@@ -46,5 +46,15 @@
             </column>
         </createTable>
     </changeSet>
+    <changeSet  id="2"  author="smarien">
+        <addColumn  tableName="formula">
+            <column  name="previous_version"  type="text"/>
+        </addColumn>
+        <addColumn  tableName="formula">
+            <column  name="version_number"  type="text">
+                <constraints nullable="false"/>
+            </column>
+        </addColumn>
+    </changeSet>
 
 </databaseChangeLog>
