@@ -148,10 +148,10 @@ public class CalculationStatusService {
         // 1. get resultSet
         final var resultSet = resultDataServiceClient.getResultSet(resultSetId);
         final var protocol = protocolInfoCollector.getProtocol(resultSet.getProtocolId());
-        final var plate = plateServiceClient.getPlate(resultSet.getPlateId());
-
+        final var wells = plateServiceClient.getWells(resultSet.getPlateId());
+        
         // 2. determine number of unique wellTypes
-        final var welltypesSorted = plate.getWells().stream().map(WellDTO::getWellType).toList();
+        final var welltypesSorted = wells.stream().map(WellDTO::getWellType).toList();
         final var uniqueWelltypes = new LinkedHashSet<>(welltypesSorted);
         final var numWelltypes = uniqueWelltypes.size();
 

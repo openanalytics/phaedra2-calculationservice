@@ -36,7 +36,7 @@ import java.util.Collections;
 import java.util.List;
 import java.util.Optional;
 
-import static eu.openanalytics.phaedra.calculationservice.service.protocol.ProtocolLogger.log;
+import static eu.openanalytics.phaedra.calculationservice.service.protocol.ProtocolLogger.logMsg;
 
 public class ErrorCollector {
 
@@ -100,20 +100,21 @@ public class ErrorCollector {
                         .exceptionClassName(e.getClass().getSimpleName())
                         .exceptionMessage(e.getMessage());
                 if (exception.isPresent()) {
-                    log(logger, cctx, "Multiple exception provided to errorCollector:handleError");
+                    logMsg(logger, cctx,"Multiple exception provided to errorCollector:handleError");
                 }
                 exception = Optional.of(e);
             } else {
-                log(logger, cctx, "Unrecognized contextObject passed to errorCollector:handleError");
+                logMsg(logger, cctx, "Unrecognized contextObject passed to errorCollector:handleError");
             }
         }
 
         var error = errorBuilder.build();
         errors.add(error);
+        
         if (exception.isPresent()) {
-            log(logger, cctx, "Error added to ErrorCollector" + error.toString(), exception);
+            logMsg(logger, cctx, "Error added to ErrorCollector" + error.toString(), exception.get());
         } else {
-            log(logger, cctx, "Error added to ErrorCollector" + error.toString());
+            logMsg(logger, cctx, "Error added to ErrorCollector" + error);
         }
     }
 

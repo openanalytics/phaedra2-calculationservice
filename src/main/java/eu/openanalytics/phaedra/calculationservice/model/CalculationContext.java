@@ -20,18 +20,19 @@
  */
 package eu.openanalytics.phaedra.calculationservice.model;
 
+import java.util.LinkedHashSet;
+import java.util.List;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.Future;
+
 import eu.openanalytics.phaedra.calculationservice.service.protocol.ErrorCollector;
 import eu.openanalytics.phaedra.plateservice.dto.PlateDTO;
+import eu.openanalytics.phaedra.plateservice.dto.WellDTO;
 import lombok.AccessLevel;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NonNull;
 import lombok.Setter;
-
-import java.util.LinkedHashSet;
-import java.util.List;
-import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.Future;
 
 @Data
 @AllArgsConstructor(access = AccessLevel.PRIVATE)
@@ -41,6 +42,9 @@ public class CalculationContext {
     @NonNull
     PlateDTO plate;
 
+    @NonNull
+    List<WellDTO> wells;
+    
     @NonNull
     Protocol protocol;
 
@@ -64,13 +68,14 @@ public class CalculationContext {
     ConcurrentHashMap<Feature, Future<Boolean>> computedStatsForFeature;
 
     public static CalculationContext newInstance(PlateDTO plate,
-                                          Protocol protocol,
-                                          Long resultSetId,
-                                          Long measId,
-                                          List<String> welltypesSorted,
-                                          LinkedHashSet<String> uniqueWelltypes
+    		List<WellDTO> wells,
+            Protocol protocol,
+            Long resultSetId,
+            Long measId,
+            List<String> welltypesSorted,
+            LinkedHashSet<String> uniqueWelltypes
     ) {
-        var res = new CalculationContext(plate, protocol, resultSetId, measId,
+        var res = new CalculationContext(plate, wells, protocol, resultSetId, measId,
                 null, welltypesSorted, uniqueWelltypes, uniqueWelltypes.size(),
                 new ConcurrentHashMap<>());
         res.errorCollector = new ErrorCollector(res);

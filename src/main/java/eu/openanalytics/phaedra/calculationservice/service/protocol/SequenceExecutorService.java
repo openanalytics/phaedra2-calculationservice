@@ -24,6 +24,8 @@ import com.fasterxml.jackson.annotation.JsonCreator;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.google.common.primitives.Doubles;
+import com.google.common.primitives.Floats;
 import eu.openanalytics.phaedra.calculationservice.model.CalculationContext;
 import eu.openanalytics.phaedra.calculationservice.model.Feature;
 import eu.openanalytics.phaedra.calculationservice.model.Sequence;
@@ -40,10 +42,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
 
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Objects;
-import java.util.Optional;
+import java.util.*;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Future;
@@ -106,13 +105,17 @@ public class SequenceExecutorService {
         }
 
         // 5. save the output
-        for (var calculation : calculations) {
-            var resultData = saveOutput(cctx, calculation);
-            if (resultData.isPresent() && resultData.get().getStatusCode() == StatusCode.SUCCESS) {
-                // E. trigger calculation of FeatureStats for the features in this Sequence
-                cctx.getComputedStatsForFeature().put(calculation.getFeature(), executorService.submit(() -> featureStatExecutor.executeFeatureStat(cctx, calculation.getFeature(), resultData.get())));
-            } else {
-                sequenceSuccess.failed();
+       for (var calculation : calculations) {
+        	try {
+        		var resultData = saveOutput(cctx, calculation);
+        		if (resultData.isPresent() && resultData.get().getStatusCode() == StatusCode.SUCCESS) {
+        			// E. trigger calculation of FeatureStats for the features in this Sequence
+        			cctx.getComputedStatsForFeature().put(calculation.getFeature(), executorService.submit(() -> featureStatExecutor.executeFeatureStat(cctx, calculation.getFeature(), resultData.get())));
+        		} else {
+        			sequenceSuccess.failed();
+        		}
+            } catch (Throwable e) {
+                cctx.getErrorCollector().handleError("executing sequence => saving output", e, calculation.getFeature(), calculation.getFeature().getFormula());
             }
         }
 
@@ -179,10 +182,19 @@ public class SequenceExecutorService {
             if (output.getStatusCode() == ResponseStatusCode.SUCCESS) {
                 try {
                     OutputWrapper outputValue = objectMapper.readValue(output.getOutput(), OutputWrapper.class);
+                    float[] floatOutputValue = new float[outputValue.output.length];
+                    for (int i = 0; i < outputValue.output.length; i++) {
+                        try {
+                            floatOutputValue[i] = Float.parseFloat(outputValue.output[i]);
+                        } catch (Exception e) {
+                            floatOutputValue[i] = Float.NaN;
+                        }
+                    }
+
                     var resultData = resultDataServiceClient.addResultData(
                             cctx.getResultSetId(),
                             feature.getId(),
-                            outputValue.output,
+                            floatOutputValue,
                             modelMapper.map(output.getStatusCode()),
                             output.getStatusMessage(),
                             output.getExitCode());
@@ -211,10 +223,10 @@ public class SequenceExecutorService {
 
     private static class OutputWrapper {
 
-        public final float[] output;
+        public final String[] output;
 
         @JsonCreator
-        private OutputWrapper(@JsonProperty(value = "output", required = true) float[] output) {
+        private OutputWrapper(@JsonProperty(value = "output", required = true) String[] output) {
             this.output = output;
         }
     }

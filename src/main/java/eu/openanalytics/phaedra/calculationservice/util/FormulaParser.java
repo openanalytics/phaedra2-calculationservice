@@ -44,8 +44,10 @@ public class FormulaParser {
     		String bodyToParse = formula;
     		Matcher matcher = R_INPUT_PATTERN.matcher(bodyToParse);
     		while (matcher.matches()) {
-    			names.add(matcher.group(1));
-//    			System.out.println("Match found at " + matcher.start() + " - " + matcher.end(1) + ": " + matcher.group(1));
+    			String inputName = matcher.group(1);
+    			if (!CalculationInputHelper.isReservedInputName(inputName)) {
+    				names.add(inputName);
+    			}
     			bodyToParse = bodyToParse.substring(matcher.end(1));
     			matcher = R_INPUT_PATTERN.matcher(bodyToParse);
     		}

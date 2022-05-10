@@ -44,7 +44,7 @@ import java.util.concurrent.SynchronousQueue;
 import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
 
-import static eu.openanalytics.phaedra.calculationservice.service.protocol.ProtocolLogger.log;
+import static eu.openanalytics.phaedra.calculationservice.service.protocol.ProtocolLogger.logMsg;
 
 @Service
 public class ProtocolExecutorService {
@@ -77,7 +77,13 @@ public class ProtocolExecutorService {
         // submit execution to the ThreadPool/ExecutorService and return a future
         var resultSetIdFuture = new CompletableFuture<Long>();
         return new ProtocolExecution(resultSetIdFuture, executorService.submit(() -> {
-            return executeProtocol(resultSetIdFuture, protocolId, plateId, measId, authToken);
+            try {
+                return executeProtocol(resultSetIdFuture, protocolId, plateId, measId, authToken);
+            } catch (Throwable ex) {
+                // print the stack strace. Since the future may never be awaited, we may not see the error otherwise
+                ex.printStackTrace();
+                throw ex;
+            }
         }));
     }
 
@@ -86,15 +92,16 @@ public class ProtocolExecutorService {
         logger.info("Preparing new calculation");
         final var protocol = protocolInfoCollector.getProtocol(protocolId, authToken);
         final var plate = plateServiceClient.getPlate(plateId, authToken);
-        final var welltypesSorted = plate.getWells().stream().map(WellDTO::getWellType).toList();
+        final var wells = plateServiceClient.getWells(plateId, authToken);
+        final var welltypesSorted = wells.stream().map(WellDTO::getWellType).toList();
         final var uniqueWelltypes = new LinkedHashSet<>(welltypesSorted);
 
         // 2. create CalculationContext
         final var resultSet = resultDataServiceClient.createResultDataSet(protocolId, plateId, measId);
         resultSetIdFuture.complete(resultSet.getId());
-        final var cctx = CalculationContext.newInstance(plate, protocol, resultSet.getId(), measId, welltypesSorted, uniqueWelltypes);
+        final var cctx = CalculationContext.newInstance(plate, wells, protocol, resultSet.getId(), measId, welltypesSorted, uniqueWelltypes);
 
-        log(logger, cctx, "Starting calculation");
+        logMsg(logger, cctx,  "Starting calculation");
 
         // 3. sequentially execute every sequence
         for (var seq = 0; seq < protocol.getSequences().size(); seq++) {
@@ -114,7 +121,7 @@ public class ProtocolExecutorService {
             // 5. no errors -> continue processing sequences
         }
 
-        log(logger, cctx, "Waiting for FeatureStats to finish");
+        logMsg(logger, cctx, "Waiting for FeatureStats to finish");
 
         // 6. wait for FeatureStats to be calculated
         // we can wait for all featureStats (of all sequences) here since nothing in the protocol depends on them
@@ -134,15 +141,15 @@ public class ProtocolExecutorService {
 
         // 7. check for errors
         if (cctx.getErrorCollector().hasError()) {
-            return saveError(resultSet, cctx.getErrorCollector());
+            return saveError(resultSet, cctx.getErrorCollector(), authToken);
         }
 
         // 8. set ResultData status
-        return saveSuccess(resultSet, cctx);
+        return saveSuccess(resultSet, cctx, authToken);
     }
 
     private ResultSetDTO saveSuccess(ResultSetDTO resultSet, CalculationContext calculationContext, String... authToken) throws ResultSetUnresolvableException, PlateUnresolvableException {
-        log(logger, calculationContext, "Calculation finished: SUCCESS");
+        logMsg(logger, calculationContext, "Calculation finished: SUCCESS");
         ResultSetDTO resultSetDTO = resultDataServiceClient.completeResultDataSet(resultSet.getId(), StatusCode.SUCCESS, new ArrayList<>(), "");
         plateServiceClient.updatePlateCalculationStatus(resultSetDTO, authToken);
         return resultSetDTO;
