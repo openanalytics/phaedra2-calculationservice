@@ -97,7 +97,7 @@ public class ProtocolExecutorService {
         final var uniqueWelltypes = new LinkedHashSet<>(welltypesSorted);
 
         // 2. create CalculationContext
-        final var resultSet = resultDataServiceClient.createResultDataSet(protocolId, plateId, measId);
+        final var resultSet = resultDataServiceClient.createResultDataSet(protocolId, plateId, measId, authToken);
         resultSetIdFuture.complete(resultSet.getId());
         final var cctx = CalculationContext.newInstance(plate, wells, protocol, resultSet.getId(), measId, welltypesSorted, uniqueWelltypes);
 

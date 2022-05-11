@@ -73,8 +73,9 @@ public class CalculationController {
     }
 
     @GetMapping("/status")
-    public ResponseEntity<CalculationStatus> status(@RequestParam(value = "resultSetId") int resultSetId) throws ResultSetUnresolvableException, ResultDataUnresolvableException, ResultFeatureStatUnresolvableException, ProtocolUnresolvableException, PlateUnresolvableException {
-        return new ResponseEntity(calculationStatusService.getStatus(resultSetId), HttpStatus.OK);
+    public ResponseEntity<CalculationStatus> status(@RequestHeader(value = HttpHeaders.AUTHORIZATION, required = false) String authorisationToken,
+                                                    @RequestParam(value = "resultSetId") int resultSetId) throws ResultSetUnresolvableException, ResultDataUnresolvableException, ResultFeatureStatUnresolvableException, ProtocolUnresolvableException, PlateUnresolvableException {
+        return new ResponseEntity(calculationStatusService.getStatus(resultSetId, authorisationToken), HttpStatus.OK);
     }
 
 }

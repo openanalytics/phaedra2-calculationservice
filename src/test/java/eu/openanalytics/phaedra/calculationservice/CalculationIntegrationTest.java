@@ -95,7 +95,7 @@ public class CalculationIntegrationTest extends AbstractIntegrationTest {
     public void statusTestSuccess() throws Exception {
         when(calculationStatusService.getStatus(20L)).thenReturn(new CalculationStatus(new CalculationStatus.CalculationComplexityDTO(1,1,1,1,1),StatusCode.SUCCESS,new ArrayList<>(), new HashMap<>()));
         var calculationController = new CalculationController(protocolExecutorService, calculationStatusService, tokenService);
-        var res = calculationController.status(20);
+        var res = calculationController.status(null,20);
         Assertions.assertEquals(new CalculationStatus(new CalculationStatus.CalculationComplexityDTO(1,1,1,1,1),StatusCode.SUCCESS,new ArrayList<>(), new HashMap<>()),res.getBody());
         Assertions.assertEquals(HttpStatus.OK, res.getStatusCode());
     }
@@ -104,7 +104,7 @@ public class CalculationIntegrationTest extends AbstractIntegrationTest {
     public void statusTestScheduled() throws Exception {
         when(calculationStatusService.getStatus(20L)).thenReturn(new CalculationStatus(new CalculationStatus.CalculationComplexityDTO(1,1,1,1,1),StatusCode.SCHEDULED,new ArrayList<>(), new HashMap<>()));
         var calculationController = new CalculationController(protocolExecutorService, calculationStatusService, tokenService);
-        var res = calculationController.status(20);
+        var res = calculationController.status(null,20);
         Assertions.assertEquals(new CalculationStatus(new CalculationStatus.CalculationComplexityDTO(1,1,1,1,1),StatusCode.SCHEDULED,new ArrayList<>(), new HashMap<>()),res.getBody());
         Assertions.assertEquals(HttpStatus.OK, res.getStatusCode());
     }
@@ -113,7 +113,7 @@ public class CalculationIntegrationTest extends AbstractIntegrationTest {
     public void statusTestFailure() throws Exception {
         when(calculationStatusService.getStatus(20L)).thenReturn(new CalculationStatus(new CalculationStatus.CalculationComplexityDTO(1,1,1,1,1),StatusCode.FAILURE,new ArrayList<>(), new HashMap<>()));
         var calculationController = new CalculationController(protocolExecutorService, calculationStatusService, tokenService);
-        var res = calculationController.status(20);
+        var res = calculationController.status(null,20);
         Assertions.assertEquals(new CalculationStatus(new CalculationStatus.CalculationComplexityDTO(1,1,1,1,1),StatusCode.FAILURE,new ArrayList<>(), new HashMap<>()),res.getBody());
         Assertions.assertEquals(HttpStatus.OK, res.getStatusCode());
     }
