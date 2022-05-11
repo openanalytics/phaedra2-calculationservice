@@ -60,7 +60,7 @@
         </update>
     </changeSet>
     <changeSet id="4" author="sberberovic">
-        <addNotNullConstraint tableName="farmula" columnName="version_number"/>
+        <addNotNullConstraint tableName="formula" columnName="version_number"/>
     </changeSet>
 
 </databaseChangeLog>
