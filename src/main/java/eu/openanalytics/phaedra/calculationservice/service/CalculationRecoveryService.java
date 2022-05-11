@@ -52,26 +52,26 @@ public class CalculationRecoveryService {
 
     //TODO: Enable this ASAP
 //    @EventListener(ApplicationReadyEvent.class)
-//    public void recoverCalculations() throws ResultSetUnresolvableException, ExecutionException, InterruptedException {
-//        var startTime = LocalDateTime.now().minus(MAX_RECOVER_TIME);
-//        var resultSets = resultDataServiceClient
-//                .getResultSet(StatusCode.SCHEDULED)
-//                .stream().filter(it -> it.getExecutionStartTimeStamp().isAfter(startTime))
-//                .toList();
-//
-//        logger.info("Found {} calculation to retry", resultSets.size());
-//
-//        for (var resultSet : resultSets) {
-//            var r = protocolExecutorService.execute(resultSet.getProtocolId(), resultSet.getPlateId(), resultSet.getMeasId());
-//            var newResultSetId = r.resultSetId().get();
-//            var error = ErrorDTO.builder()
-//                    .timestamp(LocalDateTime.now())
-//                    .description("Calculation re-scheduled because CalculationService was restarted")
-//                    .newResultSetId(newResultSetId)
-//                    .build();
-//            resultDataServiceClient.completeResultDataSet(resultSet.getId(), StatusCode.FAILURE,
-//                    List.of(error), error.toString());
-//        }
-//
-//    }
+    public void recoverCalculations() throws ResultSetUnresolvableException, ExecutionException, InterruptedException {
+        var startTime = LocalDateTime.now().minus(MAX_RECOVER_TIME);
+        var resultSets = resultDataServiceClient
+                .getResultSet(StatusCode.SCHEDULED)
+                .stream().filter(it -> it.getExecutionStartTimeStamp().isAfter(startTime))
+                .toList();
+
+        logger.info("Found {} calculation to retry", resultSets.size());
+
+        for (var resultSet : resultSets) {
+            var r = protocolExecutorService.execute(resultSet.getProtocolId(), resultSet.getPlateId(), resultSet.getMeasId());
+            var newResultSetId = r.resultSetId().get();
+            var error = ErrorDTO.builder()
+                    .timestamp(LocalDateTime.now())
+                    .description("Calculation re-scheduled because CalculationService was restarted")
+                    .newResultSetId(newResultSetId)
+                    .build();
+            resultDataServiceClient.completeResultDataSet(resultSet.getId(), StatusCode.FAILURE,
+                    List.of(error), error.toString());
+        }
+
+    }
 }
