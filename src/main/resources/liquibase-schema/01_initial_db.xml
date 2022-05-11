@@ -51,10 +51,16 @@
             <column  name="previous_version"  type="text"/>
         </addColumn>
         <addColumn  tableName="formula">
-            <column  name="version_number"  type="text">
-                <constraints nullable="false"/>
-            </column>
+            <column  name="version_number"  type="text"/>
         </addColumn>
+    </changeSet>
+    <changeSet id="3" author="sberberovic">
+        <update tableName="formula">
+            <column name="version_number" value="1.0.0"/>
+        </update>
+    </changeSet>
+    <changeSet id="4" author="sberberovic">
+        <addNotNullConstraint tableName="farmula" columnName="version_number"/>
     </changeSet>
 
 </databaseChangeLog>
