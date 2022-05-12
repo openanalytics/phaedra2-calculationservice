@@ -73,7 +73,7 @@ public class FeatureStatExecutor {
         this.modelMapper = modelMapper;
     }
 
-    public Boolean executeFeatureStat(CalculationContext cctx, Feature feature, ResultDataDTO resultData) {
+    public Boolean executeFeatureStat(CalculationContext cctx, Feature feature, ResultDataDTO resultData, String... authToken) {
         if (!Objects.equals(resultData.getFeatureId(), feature.getId())) {
             cctx.getErrorCollector().handleError("Skipping calculating FeatureStats because FeatureId does not match the FeatureId of the ResultData", feature);
             return false;
@@ -149,7 +149,7 @@ public class FeatureStatExecutor {
 
         // 6. store output
         try {
-            resultDataServiceClient.createResultFeatureStats(cctx.getResultSetId(), resultFeatureStats);
+            resultDataServiceClient.createResultFeatureStats(cctx.getResultSetId(), resultFeatureStats, authToken);
         } catch (ResultFeatureStatUnresolvableException e) {
             cctx.getErrorCollector().handleError("executing featureStat => processing output => saving resultdata", e, feature);
             success.failed();

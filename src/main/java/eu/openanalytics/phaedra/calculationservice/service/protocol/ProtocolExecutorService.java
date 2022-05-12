@@ -110,7 +110,7 @@ public class ProtocolExecutorService {
                 cctx.getErrorCollector().handleError("executing protocol => missing sequence", seq);
                 return saveError(resultSet, cctx.getErrorCollector());
             }
-            var success = sequenceExecutorService.executeSequence(cctx, executorService, currentSequence);
+            var success = sequenceExecutorService.executeSequence(cctx, executorService, currentSequence, authToken);
 
             // 4. check for errors
             if (!success) {
@@ -150,14 +150,14 @@ public class ProtocolExecutorService {
 
     private ResultSetDTO saveSuccess(ResultSetDTO resultSet, CalculationContext calculationContext, String... authToken) throws ResultSetUnresolvableException, PlateUnresolvableException {
         logMsg(logger, calculationContext, "Calculation finished: SUCCESS");
-        ResultSetDTO resultSetDTO = resultDataServiceClient.completeResultDataSet(resultSet.getId(), StatusCode.SUCCESS, new ArrayList<>(), "");
+        ResultSetDTO resultSetDTO = resultDataServiceClient.completeResultDataSet(resultSet.getId(), StatusCode.SUCCESS, new ArrayList<>(), "", authToken);
         plateServiceClient.updatePlateCalculationStatus(resultSetDTO, authToken);
         return resultSetDTO;
     }
 
     private ResultSetDTO saveError(ResultSetDTO resultSet, ErrorCollector errorCollector, String... authToken) throws ResultSetUnresolvableException, PlateUnresolvableException {
         logger.warn("Protocol failed with errorDescription\n" + errorCollector.getErrorDescription());
-        ResultSetDTO resultSetDTO = resultDataServiceClient.completeResultDataSet(resultSet.getId(), StatusCode.FAILURE, errorCollector.getErrors(), errorCollector.getErrorDescription());
+        ResultSetDTO resultSetDTO = resultDataServiceClient.completeResultDataSet(resultSet.getId(), StatusCode.FAILURE, errorCollector.getErrors(), errorCollector.getErrorDescription(), authToken);
         plateServiceClient.updatePlateCalculationStatus(resultSetDTO, authToken);
         return resultSetDTO;
     }

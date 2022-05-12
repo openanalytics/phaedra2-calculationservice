@@ -68,7 +68,7 @@ public class SequenceExecutorService {
         this.featureStatExecutor = featureStatExecutor;
     }
 
-    public boolean executeSequence(CalculationContext cctx, ExecutorService executorService, Sequence currentSequence) {
+    public boolean executeSequence(CalculationContext cctx, ExecutorService executorService, Sequence currentSequence, String... authToken) {
         var sequenceSuccess = new SuccessTracker<Void>();
         log(logger, cctx, "[S=%s] Executing sequence", currentSequence.getSequenceNumber());
 
@@ -79,7 +79,7 @@ public class SequenceExecutorService {
         for (int attempt = 1; true; attempt++) {
             log(logger, cctx, "[S=%s] Attempt %s to calculate [%s of %s] features", currentSequence.getSequenceNumber(), attempt, featuresToCalculate.size(), featureCount);
 
-            var currentAttempt = calculateFeatures(cctx, executorService, currentSequence, featuresToCalculate);
+            var currentAttempt = calculateFeatures(cctx, executorService, currentSequence, featuresToCalculate, authToken);
             sequenceSuccess.failedIfStepFailed(currentAttempt); // sequence is failed if the current attempt failed
 
             if (!currentAttempt.isSuccess() || attempt == MAX_ATTEMPTS) {
@@ -107,10 +107,10 @@ public class SequenceExecutorService {
         // 5. save the output
        for (var calculation : calculations) {
         	try {
-        		var resultData = saveOutput(cctx, calculation);
+        		var resultData = saveOutput(cctx, calculation, authToken);
         		if (resultData.isPresent() && resultData.get().getStatusCode() == StatusCode.SUCCESS) {
         			// E. trigger calculation of FeatureStats for the features in this Sequence
-        			cctx.getComputedStatsForFeature().put(calculation.getFeature(), executorService.submit(() -> featureStatExecutor.executeFeatureStat(cctx, calculation.getFeature(), resultData.get())));
+        			cctx.getComputedStatsForFeature().put(calculation.getFeature(), executorService.submit(() -> featureStatExecutor.executeFeatureStat(cctx, calculation.getFeature(), resultData.get(), authToken)));
         		} else {
         			sequenceSuccess.failed();
         		}
@@ -123,14 +123,14 @@ public class SequenceExecutorService {
         return sequenceSuccess.isSuccess();
     }
 
-    public SuccessTracker<ArrayList<FeatureCalculation>> calculateFeatures(CalculationContext cctx, ExecutorService executorService, Sequence currentSequence, List<Feature> features) {
+    public SuccessTracker<ArrayList<FeatureCalculation>> calculateFeatures(CalculationContext cctx, ExecutorService executorService, Sequence currentSequence, List<Feature> features, String... authToken) {
         // A. asynchronously create inputs and submit them to the ScriptEngine
         var calculations = new ArrayList<FeatureCalculation>();
         var success = new SuccessTracker<ArrayList<FeatureCalculation>>();
 
         for (var feature : features) {
             calculations.add(new FeatureCalculation(feature, executorService.submit(() ->
-                    featureExecutorService.executeFeature(cctx, feature, currentSequence.getSequenceNumber()))));
+                    featureExecutorService.executeFeature(cctx, feature, currentSequence.getSequenceNumber(), authToken))));
         }
 
         // B. wait (block !) for execution to be sent to the ScriptEngine
@@ -172,7 +172,7 @@ public class SequenceExecutorService {
         return success;
     }
 
-    public Optional<ResultDataDTO> saveOutput(CalculationContext cctx, FeatureCalculation calculation) {
+    public Optional<ResultDataDTO> saveOutput(CalculationContext cctx, FeatureCalculation calculation, String... authToken) {
         if (calculation.getOutput().isEmpty()) {
             return Optional.empty();
         }
@@ -197,7 +197,8 @@ public class SequenceExecutorService {
                             floatOutputValue,
                             modelMapper.map(output.getStatusCode()),
                             output.getStatusMessage(),
-                            output.getExitCode());
+                            output.getExitCode(),
+                            authToken);
 
                     return Optional.of(resultData);
                 } catch (JsonProcessingException e) {
@@ -210,7 +211,8 @@ public class SequenceExecutorService {
                         new float[]{},
                         modelMapper.map(output.getStatusCode()),
                         output.getStatusMessage(),
-                        output.getExitCode());
+                        output.getExitCode(),
+                        authToken);
 
                 cctx.getErrorCollector().handleError(String.format("executing sequence => processing output => output indicates error [%s]", output.getStatusCode()), output, feature, feature.getFormula());
                 return Optional.of(resultData);
