@@ -119,7 +119,7 @@ public class CalculationService {
 
     @Bean
     public OpenAPI customOpenAPI() {
-        Server server = new Server().url(servletContext.getContextPath()).description("Default Server URL");
+        Server server = new Server().url(environment.getProperty("API_URL")).description("Default Server URL");
         return new OpenAPI().addServersItem(server);
     }
 
