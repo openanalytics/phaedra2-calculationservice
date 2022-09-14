@@ -144,11 +144,11 @@ public class CalculationStatusService {
      * @throws ProtocolUnresolvableException
      * @throws PlateUnresolvableException
      */
-    public CalculationStatus getStatus(long resultSetId, String...authToken) throws ResultDataUnresolvableException, ResultSetUnresolvableException, ResultFeatureStatUnresolvableException, ProtocolUnresolvableException, PlateUnresolvableException {
+    public CalculationStatus getStatus(long resultSetId) throws ResultDataUnresolvableException, ResultSetUnresolvableException, ResultFeatureStatUnresolvableException, ProtocolUnresolvableException, PlateUnresolvableException {
         // 1. get resultSet
-        final var resultSet = resultDataServiceClient.getResultSet(resultSetId, authToken);
-        final var protocol = protocolInfoCollector.getProtocol(resultSet.getProtocolId(), authToken);
-        final var wells = plateServiceClient.getWells(resultSet.getPlateId(), authToken);
+        final var resultSet = resultDataServiceClient.getResultSet(resultSetId);
+        final var protocol = protocolInfoCollector.getProtocol(resultSet.getProtocolId());
+        final var wells = plateServiceClient.getWells(resultSet.getPlateId());
 
         // 2. determine number of unique wellTypes
         final var welltypesSorted = wells.stream().map(WellDTO::getWellType).toList();
@@ -159,11 +159,11 @@ public class CalculationStatusService {
         final var complexity = getComplexity(protocol, numWelltypes);
 
         // 4. get ResultData
-        final var resultData = resultDataServiceClient.getResultData(resultSetId, authToken);
+        final var resultData = resultDataServiceClient.getResultData(resultSetId);
         final var resultDataByFeature = resultData.stream().collect(Collectors.toMap(ResultDataDTO::getFeatureId, it -> it));
 
         // 5. get ResultFeatureStat
-        final var resultFeatures = resultDataServiceClient.getResultFeatureStat(resultSetId, authToken);
+        final var resultFeatures = resultDataServiceClient.getResultFeatureStat(resultSetId);
         final var resultFeaturesByFeature = resultFeatures.stream().collect(Collectors.groupingBy(ResultFeatureStatDTO::getFeatureId, Collectors.toList()));
 
         // 6. calculate sequence status

@@ -20,10 +20,26 @@
  */
 package eu.openanalytics.phaedra.calculationservice.service.featurestat;
 
+import static eu.openanalytics.phaedra.calculationservice.CalculationService.JAVASTAT_FAST_LANE;
+import static eu.openanalytics.phaedra.calculationservice.service.protocol.ProtocolLogger.log;
+
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.Objects;
+import java.util.Optional;
+import java.util.concurrent.ExecutionException;
+
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.springframework.stereotype.Service;
+
 import com.fasterxml.jackson.annotation.JsonCreator;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
+
 import eu.openanalytics.phaedra.calculationservice.enumeration.Category;
 import eu.openanalytics.phaedra.calculationservice.enumeration.ScriptLanguage;
 import eu.openanalytics.phaedra.calculationservice.model.CalculationContext;
@@ -39,20 +55,6 @@ import eu.openanalytics.phaedra.resultdataservice.enumeration.StatusCode;
 import eu.openanalytics.phaedra.scriptengine.client.ScriptEngineClient;
 import eu.openanalytics.phaedra.scriptengine.client.model.ScriptExecution;
 import eu.openanalytics.phaedra.scriptengine.dto.ScriptExecutionOutputDTO;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-import org.springframework.stereotype.Service;
-
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.Objects;
-import java.util.Optional;
-import java.util.concurrent.ExecutionException;
-
-import static eu.openanalytics.phaedra.calculationservice.CalculationService.JAVASTAT_FAST_LANE;
-import static eu.openanalytics.phaedra.calculationservice.service.protocol.ProtocolLogger.log;
 
 @Service
 public class FeatureStatExecutor {
@@ -73,7 +75,8 @@ public class FeatureStatExecutor {
         this.modelMapper = modelMapper;
     }
 
-    public Boolean executeFeatureStat(CalculationContext cctx, Feature feature, ResultDataDTO resultData, String... authToken) {
+    public Boolean executeFeatureStat(CalculationContext cctx, Feature feature, ResultDataDTO resultData) {
+    	
         if (!Objects.equals(resultData.getFeatureId(), feature.getId())) {
             cctx.getErrorCollector().handleError("Skipping calculating FeatureStats because FeatureId does not match the FeatureId of the ResultData", feature);
             return false;
@@ -149,7 +152,7 @@ public class FeatureStatExecutor {
 
         // 6. store output
         try {
-            resultDataServiceClient.createResultFeatureStats(cctx.getResultSetId(), resultFeatureStats, authToken);
+            resultDataServiceClient.createResultFeatureStats(cctx.getResultSetId(), resultFeatureStats);
         } catch (ResultFeatureStatUnresolvableException e) {
             cctx.getErrorCollector().handleError("executing featureStat => processing output => saving resultdata", e, feature);
             success.failed();

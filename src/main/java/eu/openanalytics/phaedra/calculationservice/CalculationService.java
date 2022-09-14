@@ -20,18 +20,10 @@
  */
 package eu.openanalytics.phaedra.calculationservice;
 
-import eu.openanalytics.phaedra.measurementservice.client.config.MeasurementServiceClientAutoConfiguration;
-import eu.openanalytics.phaedra.plateservice.client.config.PlateServiceClientAutoConfiguration;
-import eu.openanalytics.phaedra.protocolservice.client.config.ProtocolServiceClientAutoConfiguration;
-import eu.openanalytics.phaedra.resultdataservice.client.config.ResultDataServiceClientAutoConfiguration;
-import eu.openanalytics.phaedra.scriptengine.client.config.ScriptEngineClientAutoConfiguration;
-import eu.openanalytics.phaedra.scriptengine.client.config.ScriptEngineClientConfiguration;
-import eu.openanalytics.phaedra.scriptengine.client.model.TargetRuntime;
-import eu.openanalytics.phaedra.util.PhaedraRestTemplate;
-import eu.openanalytics.phaedra.util.jdbc.JDBCUtils;
-import io.swagger.v3.oas.models.OpenAPI;
-import io.swagger.v3.oas.models.servers.Server;
-import liquibase.integration.spring.SpringLiquibase;
+import java.time.Clock;
+
+import javax.sql.DataSource;
+
 import org.apache.commons.lang3.StringUtils;
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
@@ -43,14 +35,30 @@ import org.springframework.context.annotation.Import;
 import org.springframework.core.env.Environment;
 import org.springframework.jdbc.datasource.DriverManagerDataSource;
 import org.springframework.scheduling.annotation.EnableScheduling;
+import org.springframework.security.config.annotation.web.builders.HttpSecurity;
+import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
+import org.springframework.security.web.SecurityFilterChain;
 
-import javax.servlet.ServletContext;
-import javax.sql.DataSource;
-import java.time.Clock;
+import eu.openanalytics.phaedra.measurementservice.client.config.MeasurementServiceClientAutoConfiguration;
+import eu.openanalytics.phaedra.plateservice.client.config.PlateServiceClientAutoConfiguration;
+import eu.openanalytics.phaedra.protocolservice.client.config.ProtocolServiceClientAutoConfiguration;
+import eu.openanalytics.phaedra.resultdataservice.client.config.ResultDataServiceClientAutoConfiguration;
+import eu.openanalytics.phaedra.scriptengine.client.config.ScriptEngineClientAutoConfiguration;
+import eu.openanalytics.phaedra.scriptengine.client.config.ScriptEngineClientConfiguration;
+import eu.openanalytics.phaedra.scriptengine.client.model.TargetRuntime;
+import eu.openanalytics.phaedra.util.PhaedraRestTemplate;
+import eu.openanalytics.phaedra.util.auth.AuthenticationConfigHelper;
+import eu.openanalytics.phaedra.util.auth.AuthorizationServiceFactory;
+import eu.openanalytics.phaedra.util.auth.IAuthorizationService;
+import eu.openanalytics.phaedra.util.jdbc.JDBCUtils;
+import io.swagger.v3.oas.models.OpenAPI;
+import io.swagger.v3.oas.models.servers.Server;
+import liquibase.integration.spring.SpringLiquibase;
 
 @SpringBootApplication(exclude = SecurityAutoConfiguration.class)
 @EnableDiscoveryClient
 @EnableScheduling
+@EnableWebSecurity
 @Import({ScriptEngineClientAutoConfiguration.class,
         ProtocolServiceClientAutoConfiguration.class,
         ResultDataServiceClientAutoConfiguration.class,
@@ -58,11 +66,9 @@ import java.time.Clock;
         MeasurementServiceClientAutoConfiguration.class})
 public class CalculationService {
 
-    private final ServletContext servletContext;
     private final Environment environment;
 
-    public CalculationService(ServletContext servletContext, Environment environment) {
-        this.servletContext = servletContext;
+    public CalculationService(Environment environment) {
         this.environment = environment;
     }
 
@@ -139,4 +145,14 @@ public class CalculationService {
     public Clock clock() {
         return Clock.systemDefaultZone();
     }
+    
+	@Bean
+	public IAuthorizationService authService() {
+		return AuthorizationServiceFactory.create();
+	}
+
+	@Bean
+	public SecurityFilterChain httpSecurity(HttpSecurity http) throws Exception {
+		return AuthenticationConfigHelper.configure(http);
+	}
 }

@@ -31,13 +31,11 @@ import java.util.List;
 import java.util.concurrent.CompletableFuture;
 
 import org.junit.jupiter.api.Assertions;
-import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
 import org.mockito.ArgumentCaptor;
 
 import eu.openanalytics.phaedra.calculationservice.service.CalculationRecoveryService;
-import eu.openanalytics.phaedra.calculationservice.service.TokenService;
 import eu.openanalytics.phaedra.calculationservice.service.protocol.ProtocolExecutorService;
 import eu.openanalytics.phaedra.resultdataservice.client.ResultDataServiceClient;
 import eu.openanalytics.phaedra.resultdataservice.dto.ErrorDTO;
@@ -47,19 +45,11 @@ import eu.openanalytics.phaedra.resultdataservice.enumeration.StatusCode;
 @Disabled
 public class CalculationRecoveryTest {
 
-    static TokenService tokenService;
-
-
-    @BeforeAll
-    static void init() {
-        tokenService = new TokenService();
-    }
-
     @Test
     public void simpleTest() throws Exception {
         var resultDataServiceClient = mock(ResultDataServiceClient.class);
         var protocolExecutorService = mock(ProtocolExecutorService.class);
-        var calculationRecoveryService = new CalculationRecoveryService(resultDataServiceClient, protocolExecutorService, tokenService);
+        var calculationRecoveryService = new CalculationRecoveryService(resultDataServiceClient, protocolExecutorService);
 
         when(resultDataServiceClient.getResultSet(StatusCode.SCHEDULED)).thenReturn(List.of(
                 // this ResultSet is too old and should not be retried

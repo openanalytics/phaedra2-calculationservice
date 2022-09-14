@@ -73,12 +73,12 @@ public class ProtocolExecutorService {
 
     public record ProtocolExecution(CompletableFuture<Long> resultSetId, Future<ResultSetDTO> resultSet) {};
 
-    public ProtocolExecution execute(long protocolId, long plateId, long measId, String...authToken) {
+    public ProtocolExecution execute(long protocolId, long plateId, long measId) {
         // submit execution to the ThreadPool/ExecutorService and return a future
         var resultSetIdFuture = new CompletableFuture<Long>();
         return new ProtocolExecution(resultSetIdFuture, executorService.submit(() -> {
             try {
-                return executeProtocol(resultSetIdFuture, protocolId, plateId, measId, authToken);
+                return executeProtocol(resultSetIdFuture, protocolId, plateId, measId);
             } catch (Throwable ex) {
                 // print the stack strace. Since the future may never be awaited, we may not see the error otherwise
                 ex.printStackTrace();
@@ -87,17 +87,17 @@ public class ProtocolExecutorService {
         }));
     }
 
-    public ResultSetDTO executeProtocol(CompletableFuture<Long> resultSetIdFuture, long protocolId, long plateId, long measId, String... authToken) throws ProtocolUnresolvableException, ResultSetUnresolvableException, PlateUnresolvableException {
+    public ResultSetDTO executeProtocol(CompletableFuture<Long> resultSetIdFuture, long protocolId, long plateId, long measId) throws ProtocolUnresolvableException, ResultSetUnresolvableException, PlateUnresolvableException {
         // 1. get protocol
         logger.info("Preparing new calculation");
-        final var protocol = protocolInfoCollector.getProtocol(protocolId, authToken);
-        final var plate = plateServiceClient.getPlate(plateId, authToken);
-        final var wells = plateServiceClient.getWells(plateId, authToken);
+        final var protocol = protocolInfoCollector.getProtocol(protocolId);
+        final var plate = plateServiceClient.getPlate(plateId);
+        final var wells = plateServiceClient.getWells(plateId);
         final var welltypesSorted = wells.stream().map(WellDTO::getWellType).toList();
         final var uniqueWelltypes = new LinkedHashSet<>(welltypesSorted);
 
         // 2. create CalculationContext
-        final var resultSet = resultDataServiceClient.createResultDataSet(protocolId, plateId, measId, authToken);
+        final var resultSet = resultDataServiceClient.createResultDataSet(protocolId, plateId, measId);
         resultSetIdFuture.complete(resultSet.getId());
         final var cctx = CalculationContext.newInstance(plate, wells, protocol, resultSet.getId(), measId, welltypesSorted, uniqueWelltypes);
 
@@ -110,7 +110,7 @@ public class ProtocolExecutorService {
                 cctx.getErrorCollector().handleError("executing protocol => missing sequence", seq);
                 return saveError(resultSet, cctx.getErrorCollector());
             }
-            var success = sequenceExecutorService.executeSequence(cctx, executorService, currentSequence, authToken);
+            var success = sequenceExecutorService.executeSequence(cctx, executorService, currentSequence);
 
             // 4. check for errors
             if (!success) {
@@ -141,24 +141,24 @@ public class ProtocolExecutorService {
 
         // 7. check for errors
         if (cctx.getErrorCollector().hasError()) {
-            return saveError(resultSet, cctx.getErrorCollector(), authToken);
+            return saveError(resultSet, cctx.getErrorCollector());
         }
 
         // 8. set ResultData status
-        return saveSuccess(resultSet, cctx, authToken);
+        return saveSuccess(resultSet, cctx);
     }
 
-    private ResultSetDTO saveSuccess(ResultSetDTO resultSet, CalculationContext calculationContext, String... authToken) throws ResultSetUnresolvableException, PlateUnresolvableException {
+    private ResultSetDTO saveSuccess(ResultSetDTO resultSet, CalculationContext calculationContext) throws ResultSetUnresolvableException, PlateUnresolvableException {
         logMsg(logger, calculationContext, "Calculation finished: SUCCESS");
-        ResultSetDTO resultSetDTO = resultDataServiceClient.completeResultDataSet(resultSet.getId(), StatusCode.SUCCESS, new ArrayList<>(), "", authToken);
-        plateServiceClient.updatePlateCalculationStatus(resultSetDTO, authToken);
+        ResultSetDTO resultSetDTO = resultDataServiceClient.completeResultDataSet(resultSet.getId(), StatusCode.SUCCESS, new ArrayList<>(), "");
+        plateServiceClient.updatePlateCalculationStatus(resultSetDTO);
         return resultSetDTO;
     }
 
-    private ResultSetDTO saveError(ResultSetDTO resultSet, ErrorCollector errorCollector, String... authToken) throws ResultSetUnresolvableException, PlateUnresolvableException {
+    private ResultSetDTO saveError(ResultSetDTO resultSet, ErrorCollector errorCollector) throws ResultSetUnresolvableException, PlateUnresolvableException {
         logger.warn("Protocol failed with errorDescription\n" + errorCollector.getErrorDescription());
-        ResultSetDTO resultSetDTO = resultDataServiceClient.completeResultDataSet(resultSet.getId(), StatusCode.FAILURE, errorCollector.getErrors(), errorCollector.getErrorDescription(), authToken);
-        plateServiceClient.updatePlateCalculationStatus(resultSetDTO, authToken);
+        ResultSetDTO resultSetDTO = resultDataServiceClient.completeResultDataSet(resultSet.getId(), StatusCode.FAILURE, errorCollector.getErrors(), errorCollector.getErrorDescription());
+        plateServiceClient.updatePlateCalculationStatus(resultSetDTO);
         return resultSetDTO;
     }
 

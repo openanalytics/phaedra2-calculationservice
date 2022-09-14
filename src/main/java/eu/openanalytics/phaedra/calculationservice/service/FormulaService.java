@@ -23,7 +23,6 @@ package eu.openanalytics.phaedra.calculationservice.service;
 
 import java.time.Clock;
 import java.time.LocalDateTime;
-import java.time.ZoneId;
 import java.time.format.DateTimeFormatter;
 import java.util.List;
 import java.util.Map;
@@ -38,6 +37,7 @@ import eu.openanalytics.phaedra.calculationservice.exception.FormulaNotFoundExce
 import eu.openanalytics.phaedra.calculationservice.model.Formula;
 import eu.openanalytics.phaedra.calculationservice.repository.FormulaRepository;
 import eu.openanalytics.phaedra.calculationservice.util.FormulaParser;
+import eu.openanalytics.phaedra.util.auth.IAuthorizationService;
 
 @Service
 public class FormulaService {
@@ -45,11 +45,13 @@ public class FormulaService {
     private final FormulaRepository formulaRepository;
     private final ModelMapper modelMapper;
     private final Clock clock;
+    private final IAuthorizationService authService;
 
-    public FormulaService(FormulaRepository formulaRepository, ModelMapper modelMapper, Clock clock) {
+    public FormulaService(FormulaRepository formulaRepository, ModelMapper modelMapper, Clock clock, IAuthorizationService authService) {
         this.formulaRepository = formulaRepository;
         this.modelMapper = modelMapper;
         this.clock = clock;
+        this.authService = authService;
     }
 
     public FormulaDTO createFormula(FormulaDTO formulaDTO) {
@@ -57,7 +59,7 @@ public class FormulaService {
         DateTimeFormatter dateTimeFormatter = DateTimeFormatter.ofPattern("yyyyMMdd.hhmmss");
         var formula = modelMapper.map(formulaDTO)
                 .versionNumber(formulaDTO.getVersionNumber()+"-"+date.format(dateTimeFormatter))
-                .createdBy("Anonymous") //TODO fill in createdBy
+                .createdBy(authService.getCurrentPrincipalName())
                 .createdOn(date)
                 .build();
 
@@ -75,7 +77,7 @@ public class FormulaService {
         Formula updatedFormula = modelMapper.map(formulaDTO, previousFormula)
                 .id(null) //To create new formula
                 .versionNumber(formulaDTO.getVersionNumber()+"-"+date.format(dateTimeFormatter))
-                .updatedBy("Anonymous") //TODO fill in updatedBy
+                .updatedBy(authService.getCurrentPrincipalName())
                 .updatedOn(date)
                 .build();
         return save(updatedFormula);

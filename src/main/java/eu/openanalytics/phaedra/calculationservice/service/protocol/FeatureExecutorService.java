@@ -58,9 +58,9 @@ public class FeatureExecutorService {
     }
 
 
-    public Optional<ScriptExecution> executeFeature(CalculationContext cctx, Feature feature, long currentSequence, String... authToken) {
+    public Optional<ScriptExecution> executeFeature(CalculationContext cctx, Feature feature, long currentSequence) {
         try {
-            var inputVariables = collectVariablesForFeature(cctx, feature, currentSequence, authToken);
+            var inputVariables = collectVariablesForFeature(cctx, feature, currentSequence);
             if (inputVariables.isEmpty()) {
                 return Optional.empty();
             }
@@ -89,7 +89,7 @@ public class FeatureExecutorService {
         return Optional.empty();
     }
 
-    private Optional<HashMap<String, Object>> collectVariablesForFeature(CalculationContext cctx, Feature feature, long currentSequence, String... authToken) {
+    private Optional<HashMap<String, Object>> collectVariablesForFeature(CalculationContext cctx, Feature feature, long currentSequence) {
         var inputVariables = new HashMap<String, Object>();
 
         for (var civ : feature.getCalculationInputValues()) {
@@ -105,7 +105,7 @@ public class FeatureExecutorService {
                         cctx.getErrorCollector().handleError("executing sequence => executing feature => collecting variables for feature => retrieving measurement => trying to get feature in sequence 0", feature, feature.getFormula(), civ);
                         return Optional.empty();
                     }
-                    inputVariables.put(civ.getVariableName(), resultDataServiceClient.getResultData(cctx.getResultSetId(), civ.getSourceFeatureId(), authToken).getValues());
+                    inputVariables.put(civ.getVariableName(), resultDataServiceClient.getResultData(cctx.getResultSetId(), civ.getSourceFeatureId()).getValues());
                 } else if (civ.getSourceMeasColName() != null) {
                     inputVariables.put(civ.getVariableName(), measurementServiceClient.getWellData(cctx.getMeasId(), civ.getSourceMeasColName()));
                 } else {

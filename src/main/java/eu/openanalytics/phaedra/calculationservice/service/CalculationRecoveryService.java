@@ -20,21 +20,20 @@
  */
 package eu.openanalytics.phaedra.calculationservice.service;
 
+import java.time.Duration;
+import java.time.LocalDateTime;
+import java.util.List;
+import java.util.concurrent.ExecutionException;
+
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.springframework.stereotype.Service;
+
 import eu.openanalytics.phaedra.calculationservice.service.protocol.ProtocolExecutorService;
 import eu.openanalytics.phaedra.resultdataservice.client.ResultDataServiceClient;
 import eu.openanalytics.phaedra.resultdataservice.client.exception.ResultSetUnresolvableException;
 import eu.openanalytics.phaedra.resultdataservice.dto.ErrorDTO;
 import eu.openanalytics.phaedra.resultdataservice.enumeration.StatusCode;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-import org.springframework.boot.context.event.ApplicationReadyEvent;
-import org.springframework.context.event.EventListener;
-import org.springframework.stereotype.Service;
-
-import java.time.Duration;
-import java.time.LocalDateTime;
-import java.util.List;
-import java.util.concurrent.ExecutionException;
 
 @Service
 public class CalculationRecoveryService {
@@ -45,7 +44,7 @@ public class CalculationRecoveryService {
 
     private static final Duration MAX_RECOVER_TIME = Duration.ofHours(2);
 
-    public CalculationRecoveryService(ResultDataServiceClient resultDataServiceClient, ProtocolExecutorService protocolExecutorService, TokenService tokenService) {
+    public CalculationRecoveryService(ResultDataServiceClient resultDataServiceClient, ProtocolExecutorService protocolExecutorService) {
         this.resultDataServiceClient = resultDataServiceClient;
         this.protocolExecutorService = protocolExecutorService;
     }

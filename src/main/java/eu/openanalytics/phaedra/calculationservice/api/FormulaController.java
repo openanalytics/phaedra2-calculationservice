@@ -44,11 +44,9 @@ import eu.openanalytics.phaedra.calculationservice.service.FormulaService;
 import eu.openanalytics.phaedra.util.exceptionhandling.HttpMessageNotReadableExceptionHandler;
 import eu.openanalytics.phaedra.util.exceptionhandling.MethodArgumentNotValidExceptionHandler;
 import eu.openanalytics.phaedra.util.exceptionhandling.UserVisibleExceptionHandler;
-import lombok.extern.slf4j.Slf4j;
 
 @RestController
 @RequestMapping("/formulas")
-@Slf4j
 @Validated
 public class FormulaController implements MethodArgumentNotValidExceptionHandler, HttpMessageNotReadableExceptionHandler, UserVisibleExceptionHandler {
 
