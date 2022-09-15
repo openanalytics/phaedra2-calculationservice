@@ -1,3 +1,5 @@
+keycloak-base-url: http://keycloak:8080
+
 server:
   servlet:
     context-path: /phaedra/calculation-service
@@ -9,6 +11,24 @@ spring:
       enabled: false
   application:
     name: phaedra-calculation-service
+  security:
+    oauth2:
+      client:
+        registration:
+          keycloak:
+            provider: keycloak
+#            client-id: phaedra2-calculation-service
+#            client-secret: ???
+            authorization-grant-type: client_credentials
+        provider:
+          keycloak:
+            authorization-uri: ${keycloak-base-url}/auth/realms/phaedra2/protocol/openid-connect/auth
+            token-uri: ${keycloak-base-url}/auth/realms/phaedra2/protocol/openid-connect/token
+            user-info-uri: ${keycloak-base-url}/auth/realms/phaedra2/protocol/openid-connect/userinfo
+            jwk-set-uri: ${keycloak-base-url}/auth/realms/phaedra2/protocol/openid-connect/certs
+      resourceserver:
+        jwt:
+          jwk-set-uri: ${keycloak-base-url}/auth/realms/phaedra2/protocol/openid-connect/certs
 
 eureka:
   client:
