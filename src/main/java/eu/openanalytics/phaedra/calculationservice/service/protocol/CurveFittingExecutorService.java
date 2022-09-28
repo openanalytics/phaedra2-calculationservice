@@ -5,7 +5,6 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.common.util.concurrent.ThreadFactoryBuilder;
 import eu.openanalytics.curvedataservice.dto.CurveDTO;
 import eu.openanalytics.phaedra.calculationservice.model.CurveFittingContext;
-import eu.openanalytics.phaedra.measurementservice.client.MeasurementServiceClient;
 import eu.openanalytics.phaedra.plateservice.client.PlateServiceClient;
 import eu.openanalytics.phaedra.plateservice.client.exception.PlateUnresolvableException;
 import eu.openanalytics.phaedra.plateservice.dto.WellSubstanceDTO;
@@ -36,24 +35,17 @@ import static eu.openanalytics.phaedra.calculationservice.CalculationService.R_F
 @Service
 public class CurveFittingExecutorService {
     private final ScriptEngineClient scriptEngineClient;
-    private final MeasurementServiceClient measurementServiceClient;
     private final ResultDataServiceClient resultDataServiceClient;
     private final ThreadPoolExecutor executorService;
-    private final SequenceExecutorService sequenceExecutorService;
-    private final ProtocolInfoCollector protocolInfoCollector;
     private final PlateServiceClient plateServiceClient;
     private final ProtocolServiceClient protocolServiceClient;
     private final ObjectMapper objectMapper = new ObjectMapper(); // TODO thread-safe?
     private final Logger logger = LoggerFactory.getLogger(getClass());
 
-    public CurveFittingExecutorService(ScriptEngineClient scriptEngineClient, MeasurementServiceClient measurementServiceClient,
-                                       ResultDataServiceClient resultDataServiceClient, SequenceExecutorService sequenceExecutorService,
-                                       ProtocolInfoCollector protocolInfoCollector, PlateServiceClient plateServiceClient, ProtocolServiceClient protocolServiceClient) {
+    public CurveFittingExecutorService(ScriptEngineClient scriptEngineClient, ResultDataServiceClient resultDataServiceClient,
+                                       PlateServiceClient plateServiceClient, ProtocolServiceClient protocolServiceClient) {
         this.scriptEngineClient = scriptEngineClient;
-        this.measurementServiceClient = measurementServiceClient;
         this.resultDataServiceClient = resultDataServiceClient;
-        this.sequenceExecutorService = sequenceExecutorService;
-        this.protocolInfoCollector = protocolInfoCollector;
         this.plateServiceClient = plateServiceClient;
         this.protocolServiceClient = protocolServiceClient;
 
