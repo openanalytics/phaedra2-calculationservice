@@ -28,7 +28,6 @@ import eu.openanalytics.phaedra.resultdataservice.dto.ErrorDTO;
 import eu.openanalytics.phaedra.resultdataservice.dto.ResultDataDTO;
 import eu.openanalytics.phaedra.resultdataservice.dto.ResultFeatureStatDTO;
 import eu.openanalytics.phaedra.resultdataservice.dto.ResultSetDTO;
-import eu.openanalytics.phaedra.resultdataservice.enumeration.StatusCode;
 
 import java.time.LocalDateTime;
 import java.util.ArrayList;

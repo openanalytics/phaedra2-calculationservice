@@ -89,6 +89,24 @@ public class FeatureExecutorService {
         return Optional.empty();
     }
 
+//    public Optional<ScriptExecution> executeFeatureCurveFitting(CalculationContext cctx, Feature feature, long currentSequence) {
+//        try {
+//            var inputValues = collectCurveFittingInputValuesForFeature(cctx, feature, currentSequence);
+//
+//        } catch (JsonProcessingException e) {
+//            // this error will probably never occur, see: https://stackoverflow.com/q/26716020/1393103 for examples where it does
+//            cctx.getErrorCollector().handleError("executing feature => writing input variables and request", e, feature, feature.getFormula());
+//        }
+//        return Optional.empty();
+//    }
+
+//    private Optional<HashMap<String, Object>> collectCurveFittingInputValuesForFeature(CalculationContext cctx, long resultDataId, Feature feature, long currentSequence) {
+//        var drcInputValues = new HashMap<String, Object>();
+//        resultDataServiceClient.getResultData(resultDataId, feature.getId());
+//
+//        return Optional.of(drcInputValues);
+//    }
+
     private Optional<HashMap<String, Object>> collectVariablesForFeature(CalculationContext cctx, Feature feature, long currentSequence) {
         var inputVariables = new HashMap<String, Object>();
 

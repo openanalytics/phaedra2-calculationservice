@@ -121,6 +121,9 @@ public class ProtocolExecutorService {
             // 5. no errors -> continue processing sequences
         }
 
+        // 4. execute curve fitting features
+
+
         logMsg(logger, cctx, "Waiting for FeatureStats to finish");
 
         // 6. wait for FeatureStats to be calculated

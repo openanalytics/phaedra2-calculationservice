@@ -31,3 +31,4 @@ hs_err_pid*
 /.project
 /.classpath
 application.yml
+/phaedra2-calculationservice.iml
