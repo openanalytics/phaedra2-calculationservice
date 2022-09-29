@@ -25,6 +25,7 @@ import eu.openanalytics.phaedra.calculationservice.service.protocol.CurveFitting
 import eu.openanalytics.phaedra.calculationservice.service.status.CalculationStatusService;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
@@ -44,7 +45,7 @@ public class CurveFittingController {
         this.curveFittingExecutorService = curveFittingExecutorService;
         this.calculationStatusService = calculationStatusService;
     }
-
+    @PostMapping("/curvefit")
     public ResponseEntity<Long> fitCurve(@RequestBody CurveFittingRequestDTO curveFittingRequestDTO,
                                          @RequestParam(value = "timeout", required = false) Long timeout) throws ExecutionException, InterruptedException {
         var future = curveFittingExecutorService.execute(
