@@ -20,6 +20,7 @@
  */
 package eu.openanalytics.phaedra.calculationservice.api;
 
+import eu.openanalytics.curvedataservice.dto.CurveDTO;
 import eu.openanalytics.phaedra.calculationservice.dto.CurveFittingRequestDTO;
 import eu.openanalytics.phaedra.calculationservice.service.protocol.CurveFittingExecutorService;
 import eu.openanalytics.phaedra.calculationservice.service.status.CalculationStatusService;
@@ -30,6 +31,7 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
+import java.util.List;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
@@ -46,8 +48,8 @@ public class CurveFittingController {
         this.calculationStatusService = calculationStatusService;
     }
     @PostMapping("/curvefit")
-    public ResponseEntity<Long> fitCurve(@RequestBody CurveFittingRequestDTO curveFittingRequestDTO,
-                                         @RequestParam(value = "timeout", required = false) Long timeout) throws ExecutionException, InterruptedException {
+    public ResponseEntity<List<CurveDTO>> fitCurve(@RequestBody CurveFittingRequestDTO curveFittingRequestDTO,
+                                                   @RequestParam(value = "timeout", required = false) Long timeout) throws ExecutionException, InterruptedException {
         var future = curveFittingExecutorService.execute(
                 curveFittingRequestDTO.getProtocolId(),
                 curveFittingRequestDTO.getPlateId(),
@@ -55,12 +57,12 @@ public class CurveFittingController {
                 curveFittingRequestDTO.getMeasId());
         if (timeout != null) {
             try {
-                future.curve().get(timeout, TimeUnit.MILLISECONDS);
+                future.plateCurves().get(timeout, TimeUnit.MILLISECONDS);
             } catch (TimeoutException ex) {
 
             }
         }
 
-        return new ResponseEntity<>(future.curveId().get(), HttpStatus.CREATED);
+        return new ResponseEntity<>(future.plateCurves().get(), HttpStatus.CREATED);
     }
 }

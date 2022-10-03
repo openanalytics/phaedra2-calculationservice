@@ -10,4 +10,13 @@ spec:
      image: 196229073436.dkr.ecr.eu-west-1.amazonaws.com/openanalytics/phaedra2-build-container:latest
      securityContext:
         privileged: true
+     resources:
+       requests:
+         ephemeral-storage: "16Gi"
+         memory: "2Gi"
+         cpu: "1.0"
+       limits:
+         ephemeral-storage: "16Gi"
+         memory: "2Gi"
+         cpu: "1.0"
 

@@ -25,6 +25,8 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.common.util.concurrent.ThreadFactoryBuilder;
 import eu.openanalytics.curvedataservice.dto.CurveDTO;
 import eu.openanalytics.phaedra.calculationservice.model.CurveFittingContext;
+import eu.openanalytics.phaedra.curvedataservice.client.CurveDataServiceClient;
+import eu.openanalytics.phaedra.curvedataservice.client.exception.CurveUnresolvedException;
 import eu.openanalytics.phaedra.plateservice.client.PlateServiceClient;
 import eu.openanalytics.phaedra.plateservice.client.exception.PlateUnresolvableException;
 import eu.openanalytics.phaedra.plateservice.dto.WellSubstanceDTO;
@@ -59,21 +61,24 @@ public class CurveFittingExecutorService {
     private final ThreadPoolExecutor executorService;
     private final PlateServiceClient plateServiceClient;
     private final ProtocolServiceClient protocolServiceClient;
+    private final CurveDataServiceClient curveDataServiceClient;
     private final ObjectMapper objectMapper = new ObjectMapper(); // TODO thread-safe?
     private final Logger logger = LoggerFactory.getLogger(getClass());
 
     public CurveFittingExecutorService(ScriptEngineClient scriptEngineClient, ResultDataServiceClient resultDataServiceClient,
-                                       PlateServiceClient plateServiceClient, ProtocolServiceClient protocolServiceClient) {
+                                       PlateServiceClient plateServiceClient, ProtocolServiceClient protocolServiceClient,
+                                       CurveDataServiceClient curveDataServiceClient) {
         this.scriptEngineClient = scriptEngineClient;
         this.resultDataServiceClient = resultDataServiceClient;
         this.plateServiceClient = plateServiceClient;
         this.protocolServiceClient = protocolServiceClient;
+        this.curveDataServiceClient = curveDataServiceClient;
 
         var threadFactory = new ThreadFactoryBuilder().setNameFormat("protocol-exec-%s").build();
         this.executorService = new ThreadPoolExecutor(8, 1024, 60L, TimeUnit.SECONDS, new SynchronousQueue<>(), threadFactory);
     }
 
-    public record CurveFittingExecution(CompletableFuture<Long> curveId, Future<CurveDTO> curve) {};
+    public record CurveFittingExecution(CompletableFuture<Long> curveId, Future<List<CurveDTO>> plateCurves) {};
 
     public CurveFittingExecution execute(long protocolId, long plateId, long resultSetId, long measId) {
         // submit execution to the ThreadPool/ExecutorService and return a future
@@ -90,7 +95,7 @@ public class CurveFittingExecutorService {
         }));
     }
 
-    private CurveDTO executeCurveFitting(CompletableFuture<Long> curveIdFuture, long protocolId, long plateId, long resultSetId, long measId) throws ProtocolUnresolvableException, ResultSetUnresolvableException, PlateUnresolvableException {
+    private List<CurveDTO> executeCurveFitting(CompletableFuture<Long> curveIdFuture, long protocolId, long plateId, long resultSetId, long measId) throws ProtocolUnresolvableException, ResultSetUnresolvableException, PlateUnresolvableException, CurveUnresolvedException {
         var plate  = plateServiceClient.getPlate(plateId);
         var wells = plateServiceClient.getWells(plateId);
 
@@ -121,13 +126,17 @@ public class CurveFittingExecutorService {
 
         var cfCtx = CurveFittingContext.newInstance(plate, wells, wellSubstances, wellSubstancesUnique, curveFeatures, resultSetId);
 
+        List<CurveDTO> results = new ArrayList<>();
         for (Object[] o : curvesToFit) {
             String substance = (String) o[0];
             long featureId = (long) o[1];
-            fitCurve(cfCtx, substance, featureId);
+            logger.info("Fit curve for substance %s and featureId %s", substance, featureId);
+            Optional<ScriptExecution> execution = fitCurve(cfCtx, substance, featureId);
+            if (execution.isPresent())
+                results.add(curveDataServiceClient.createNewCurve(substance, plateId, protocolId, featureId, resultSetId));
         }
 
-        return new CurveDTO(null, protocolId, plateId, resultSetId);
+        return results;
     }
 
     public Optional<ScriptExecution> fitCurve(CurveFittingContext cfCtx, String substanceName, long featureId) {
