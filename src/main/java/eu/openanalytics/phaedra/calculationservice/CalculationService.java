@@ -24,6 +24,8 @@ import java.time.Clock;
 
 import javax.sql.DataSource;
 
+import eu.openanalytics.phaedra.curvedataservice.client.config.CurveDataServiceClientAutoConfiguration;
+import eu.openanalytics.phaedra.metadataservice.client.config.MetadataServiceClientAutoConfiguration;
 import org.apache.commons.lang3.StringUtils;
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
@@ -63,6 +65,8 @@ import liquibase.integration.spring.SpringLiquibase;
 @Import({ScriptEngineClientAutoConfiguration.class,
         ProtocolServiceClientAutoConfiguration.class,
         ResultDataServiceClientAutoConfiguration.class,
+        CurveDataServiceClientAutoConfiguration.class,
+        MetadataServiceClientAutoConfiguration.class,
         PlateServiceClientAutoConfiguration.class,
         MeasurementServiceClientAutoConfiguration.class})
 public class CalculationService {
@@ -146,12 +150,12 @@ public class CalculationService {
     public Clock clock() {
         return Clock.systemDefaultZone();
     }
-    
+
     @Bean
     public ClientCredentialsTokenGenerator ccTokenGenerator(ClientRegistrationRepository clientRegistrationRepository) {
     	return new ClientCredentialsTokenGenerator("keycloak", clientRegistrationRepository);
     }
-    
+
 	@Bean
 	public IAuthorizationService authService(ClientCredentialsTokenGenerator ccTokenGenerator) {
 		return AuthorizationServiceFactory.create(ccTokenGenerator);
