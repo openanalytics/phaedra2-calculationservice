@@ -104,7 +104,10 @@ public class CurveFittingExecutorService {
         var wells = plateServiceClient.getWells(plateId);
 
         var protocolFeatures = protocolServiceClient.getFeaturesOfProtocol(protocolId);
-        var curveFeatures = protocolFeatures.stream().filter(pf -> !pf.getDrcModel().getInputParameters().isEmpty()).collect(Collectors.toList());
+        logger.info("Number of feature within protocol " + protocolId + " : " + protocolFeatures.size());
+
+        var curveFeatures = protocolFeatures.stream().filter(pf -> pf.getDrcModel().getInputParameters().isEmpty()).collect(Collectors.toList());
+        logger.info("Number of feature with curve fitting models: " + curveFeatures.size());
 
         if (CollectionUtils.isEmpty(curveFeatures))
             return null; //TODO: Return a proper error
@@ -117,6 +120,7 @@ public class CurveFittingExecutorService {
                 .stream()
                 .distinct()
                 .collect(Collectors.toList());
+        logger.info("Number of unique substances for plate " + plate + " is " + wellSubstancesUnique.size());
 
         if (CollectionUtils.isEmpty(wellSubstancesUnique))
             return null; //TODO: Return a proper error
@@ -127,6 +131,7 @@ public class CurveFittingExecutorService {
                 curvesToFit.add(new Object[] { wellSubstance, feature.getId() });
             }
         }
+        logger.info("Number of curve to be fitted: " + curvesToFit.size());
 
         var cfCtx = CurveFittingContext.newInstance(plate, wells, wellSubstances, wellSubstancesUnique, curveFeatures, resultSetId);
 
