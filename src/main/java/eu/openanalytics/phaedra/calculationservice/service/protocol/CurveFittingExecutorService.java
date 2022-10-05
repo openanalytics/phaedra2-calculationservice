@@ -100,7 +100,7 @@ public class CurveFittingExecutorService {
         var wells = plateServiceClient.getWells(plateId);
 
         var protocolFeatures = protocolServiceClient.getFeaturesOfProtocol(protocolId);
-        var curveFeatures = protocolFeatures.stream().filter(pf -> pf.getDrcModel() != null).collect(Collectors.toList());
+        var curveFeatures = protocolFeatures.stream().filter(pf -> pf.getDrcModel().getInputParameters().isEmpty()).collect(Collectors.toList());
 
         if (CollectionUtils.isEmpty(curveFeatures))
             return null; //TODO: Return a proper error
@@ -147,7 +147,7 @@ public class CurveFittingExecutorService {
 
             double[] values = new double[wells.size()];
             double[] concs = new double[wells.size()];
-            boolean[] accepts = new boolean[wells.size()];
+            double[] accepts = new double[wells.size()];
 
             for (int i = 0; i < wells.size(); i++) {
                 // Set the well substance concentration value
@@ -155,7 +155,7 @@ public class CurveFittingExecutorService {
                 concs[i] = Precision.round(-Math.log10(conc), 3);
 
                 // Set the well accept value (true or false)
-                accepts[i] = wells.get(i).getStatus().getCode() >= 0 && cfCtx.getPlate().getValidationStatus().getCode() >= 0 && cfCtx.getPlate().getApprovalStatus().getCode() >= 0;
+                accepts[i] = (wells.get(i).getStatus().getCode() >= 0 && cfCtx.getPlate().getValidationStatus().getCode() >= 0 && cfCtx.getPlate().getApprovalStatus().getCode() >= 0) ? 1 : 0;
 
                 // Set the well feature value
                 var valueIndex = WellNumberUtils.getWellNr(wells.get(i).getRow(), wells.get(i).getColumn(), cfCtx.getPlate().getColumns()) - 1;
@@ -164,9 +164,9 @@ public class CurveFittingExecutorService {
 
             var inputVariables = new HashMap<String, Object>();
 
-            inputVariables.put("doses", List.of(concs));
-            inputVariables.put("responses", List.of(values));
-            inputVariables.put("accepts", List.of(accepts));
+            inputVariables.put("doses", concs);
+            inputVariables.put("responses", values);
+            inputVariables.put("accepts", accepts);
 
             var script = "library(receptor2)\n" +
                     "\n" +
@@ -187,8 +187,6 @@ public class CurveFittingExecutorService {
                     ")\n" +
                     "\n" +
                     "output <- value$dataPredict2Plot";
-
-
 
             var execution = scriptEngineClient.newScriptExecution(
                     R_FAST_LANE,
