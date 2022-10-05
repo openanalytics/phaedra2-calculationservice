@@ -104,7 +104,7 @@ public class CurveFittingExecutorService {
         var wells = plateServiceClient.getWells(plateId);
 
         var protocolFeatures = protocolServiceClient.getFeaturesOfProtocol(protocolId);
-        var curveFeatures = protocolFeatures.stream().filter(pf -> pf.getDrcModel().getInputParameters().isEmpty()).collect(Collectors.toList());
+        var curveFeatures = protocolFeatures.stream().filter(pf -> !pf.getDrcModel().getInputParameters().isEmpty()).collect(Collectors.toList());
 
         if (CollectionUtils.isEmpty(curveFeatures))
             return null; //TODO: Return a proper error
