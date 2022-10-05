@@ -32,15 +32,20 @@ import java.util.concurrent.Future;
 public class FeatureCurvFitting {
 
     private final Future<Optional<ScriptExecution>> scriptExecutionFuture;
-    private final Feature feature;
+//    private final Feature feature;
+
+    private final String substance;
+    private final Long featureId;
 
     private Optional<ScriptExecution> scriptExecution = Optional.empty();
     private Optional<ScriptExecutionOutputDTO> output = Optional.empty();
 
-    public FeatureCurvFitting(Feature feature, Future<Optional<ScriptExecution>> scriptExecutionFuture) {
-        Objects.requireNonNull(feature, "Feature cannot be null");
+    public FeatureCurvFitting(String substance, Long featureId, Future<Optional<ScriptExecution>> scriptExecutionFuture) {
+        Objects.requireNonNull(substance, "Substance name cannot be null");
+        Objects.requireNonNull(featureId, "Feature id cannot be null");
         Objects.requireNonNull(scriptExecutionFuture, "scriptExecutionFuture cannot be null");
-        this.feature = feature;
+        this.substance = substance;
+        this.featureId = featureId;
         this.scriptExecutionFuture = scriptExecutionFuture;
     }
 
@@ -54,8 +59,12 @@ public class FeatureCurvFitting {
         }
     }
 
-    public Feature getFeature() {
-        return feature;
+    public String getSubstance() {
+        return substance;
+    }
+
+    public Long getFeatureId() {
+        return featureId;
     }
 
     public Optional<ScriptExecutionOutputDTO> getOutput() {

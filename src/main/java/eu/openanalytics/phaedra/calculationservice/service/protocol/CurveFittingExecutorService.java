@@ -20,11 +20,14 @@
  */
 package eu.openanalytics.phaedra.calculationservice.service.protocol;
 
+import com.fasterxml.jackson.annotation.JsonCreator;
+import com.fasterxml.jackson.annotation.JsonProperty;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.common.util.concurrent.ThreadFactoryBuilder;
 import eu.openanalytics.curvedataservice.dto.CurveDTO;
 import eu.openanalytics.phaedra.calculationservice.model.CurveFittingContext;
+import eu.openanalytics.phaedra.calculationservice.model.SuccessTracker;
 import eu.openanalytics.phaedra.curvedataservice.client.CurveDataServiceClient;
 import eu.openanalytics.phaedra.curvedataservice.client.exception.CurveUnresolvedException;
 import eu.openanalytics.phaedra.plateservice.client.PlateServiceClient;
@@ -38,9 +41,9 @@ import eu.openanalytics.phaedra.resultdataservice.client.exception.ResultDataUnr
 import eu.openanalytics.phaedra.resultdataservice.client.exception.ResultSetUnresolvableException;
 import eu.openanalytics.phaedra.scriptengine.client.ScriptEngineClient;
 import eu.openanalytics.phaedra.scriptengine.client.model.ScriptExecution;
-import eu.openanalytics.phaedra.scriptengine.dto.ScriptExecutionOutputDTO;
 import eu.openanalytics.phaedra.util.WellNumberUtils;
 import org.apache.commons.collections4.CollectionUtils;
+import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.math3.util.Precision;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -127,30 +130,48 @@ public class CurveFittingExecutorService {
 
         var cfCtx = CurveFittingContext.newInstance(plate, wells, wellSubstances, wellSubstancesUnique, curveFeatures, resultSetId);
 
+        var curveFittings = new ArrayList<FeatureCurvFitting>();
+        var success = new SuccessTracker<ArrayList<FeatureCurvFitting>>();
+
         List<CurveDTO> results = new ArrayList<>();
         for (Object[] o : curvesToFit) {
             String substance = (String) o[0];
             long featureId = (long) o[1];
-            logger.info("Fit curve for substance %s and featureId %s", substance, featureId);
-            Optional<ScriptExecution> execution = fitCurve(cfCtx, substance, featureId);
-            if (execution.isPresent()) {
-                CurveDTO curveDTO = curveDataServiceClient.createNewCurve(substance, plateId, protocolId, featureId, resultSetId);
-                try {
-                    ScriptExecutionOutputDTO outputDTO = execution.get().getOutput().get();
-                    if (outputDTO.getOutput() != null) {
-                        logger.info("Output is " + outputDTO.getOutput());
-                    } else {
-                        logger.info("Not output is created!!");
-                    }
-                } catch (InterruptedException e) {
-                    throw new RuntimeException(e);
-                } catch (ExecutionException e) {
-                    throw new RuntimeException(e);
-                }
+
+            curveFittings.add(new FeatureCurvFitting(substance, featureId, executorService.submit(() -> fitCurve(cfCtx, substance, featureId))));
+        }
+
+        for (var curveFit : curveFittings) {
+            try {
+                curveFit.waitForExecution();
+            } catch (ExecutionException e) {
+                success.failed();
+            } catch (InterruptedException e) {
+                success.failed();
+            } catch (Throwable e) {
+                success.failed();
+            }
+        }
+
+        for (var curvFit : curveFittings) {
+            try {
+                curvFit.waitForOutput();
+            } catch (ExecutionException e) {
+                success.failed();
+            } catch (InterruptedException e) {
+                success.failed();
+            } catch (Throwable e) {
+                success.failed();
+            }
+        }
+
+        success.setResult(curveFittings);
+        for (var curveFit : curveFittings) {
+            Optional<DataPredict2Plot> dataPredict2Plot = getOutputData(cfCtx, curveFit);
+            if  (dataPredict2Plot.isPresent()) {
+                CurveDTO curveDTO = curveDataServiceClient.createNewCurve(curveFit.getSubstance(), plateId, protocolId, curveFit.getFeatureId(), resultSetId, dataPredict2Plot.get().dose, dataPredict2Plot.get().Prediction);
                 results.add(curveDTO);
             }
-
-
         }
 
         return results;
@@ -215,11 +236,60 @@ public class CurveFittingExecutorService {
 
             return Optional.of(execution);
         } catch (JsonProcessingException e) {
-            // this error will probably never occur, see: https://stackoverflow.com/q/26716020/1393103 for examples where it does
-//            cctx.getErrorCollector().handleError("executing feature => writing input variables and request", e, feature, feature.getFormula());
         } catch (ResultDataUnresolvableException e) {
             throw new RuntimeException(e);
         }
         return Optional.empty();
     }
+
+    public Optional<DataPredict2Plot> getOutputData(CurveFittingContext cfCtx, FeatureCurvFitting curvFitting) {
+        if (curvFitting.getOutput().isEmpty()) {
+            return Optional.empty();
+        }
+
+        var output = curvFitting.getOutput().get();
+        try {
+            OutputWrapper outputValue = objectMapper.readValue(output.getOutput(), OutputWrapper.class);
+            if (StringUtils.isNotBlank(outputValue.output)) {
+                var dataPredict2Plot = objectMapper.readValue(outputValue.output, DataPredict2Plot.class);
+                if (dataPredict2Plot != null) {
+                    return Optional.of(dataPredict2Plot);
+                }
+            }
+
+        } catch (JsonProcessingException e) {
+            //TODO: set error message
+        }
+        return Optional.empty();
+    }
+
+    private static class OutputWrapper {
+
+        public final String output;
+
+        @JsonCreator
+        private OutputWrapper(@JsonProperty(value = "output", required = true) String output) {
+            this.output = output;
+        }
+    }
+
+    private static class DataPredict2Plot {
+
+        public double[] dose;
+        public double[] Prediction;
+        public double[] Lower;
+        public double[] Upper;
+
+        @JsonCreator
+        private DataPredict2Plot(@JsonProperty(value = "dose", required = true) double[] dose,
+                                 @JsonProperty(value = "dose", required = true) double[] Prediction,
+                                 @JsonProperty(value = "dose", required = true) double[] Lower,
+                                 @JsonProperty(value = "dose", required = true) double[] Upper) {
+            this.dose = dose;
+            this.Prediction = Prediction;
+            this.Lower = Lower;
+            this.Upper = Upper;
+        }
+    }
+
 }
