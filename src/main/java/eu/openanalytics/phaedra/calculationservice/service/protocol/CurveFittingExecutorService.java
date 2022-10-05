@@ -38,6 +38,7 @@ import eu.openanalytics.phaedra.resultdataservice.client.exception.ResultDataUnr
 import eu.openanalytics.phaedra.resultdataservice.client.exception.ResultSetUnresolvableException;
 import eu.openanalytics.phaedra.scriptengine.client.ScriptEngineClient;
 import eu.openanalytics.phaedra.scriptengine.client.model.ScriptExecution;
+import eu.openanalytics.phaedra.scriptengine.dto.ScriptExecutionOutputDTO;
 import eu.openanalytics.phaedra.util.WellNumberUtils;
 import org.apache.commons.collections4.CollectionUtils;
 import org.apache.commons.math3.util.Precision;
@@ -132,8 +133,24 @@ public class CurveFittingExecutorService {
             long featureId = (long) o[1];
             logger.info("Fit curve for substance %s and featureId %s", substance, featureId);
             Optional<ScriptExecution> execution = fitCurve(cfCtx, substance, featureId);
-            if (execution.isPresent())
-                results.add(curveDataServiceClient.createNewCurve(substance, plateId, protocolId, featureId, resultSetId));
+            if (execution.isPresent()) {
+                CurveDTO curveDTO = curveDataServiceClient.createNewCurve(substance, plateId, protocolId, featureId, resultSetId);
+                try {
+                    ScriptExecutionOutputDTO outputDTO = execution.get().getOutput().get();
+                    if (outputDTO.getOutput() != null) {
+                        logger.info("Output is " + outputDTO.getOutput());
+                    } else {
+                        logger.info("Not output is created!!");
+                    }
+                } catch (InterruptedException e) {
+                    throw new RuntimeException(e);
+                } catch (ExecutionException e) {
+                    throw new RuntimeException(e);
+                }
+                results.add(curveDTO);
+            }
+
+
         }
 
         return results;
