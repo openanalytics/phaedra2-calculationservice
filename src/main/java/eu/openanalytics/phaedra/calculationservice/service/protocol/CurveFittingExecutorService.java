@@ -106,7 +106,7 @@ public class CurveFittingExecutorService {
         var protocolFeatures = protocolServiceClient.getFeaturesOfProtocol(protocolId);
         logger.info("Number of feature within protocol " + protocolId + " : " + protocolFeatures.size());
 
-        var curveFeatures = protocolFeatures.stream().filter(pf -> pf.getDrcModel() != null).collect(Collectors.toList());
+        var curveFeatures = protocolFeatures.stream().filter(pf -> pf.getDrcModel() == null).collect(Collectors.toList());
         logger.info("Number of feature with curve fitting models: " + curveFeatures.size());
 
         if (CollectionUtils.isEmpty(curveFeatures))
