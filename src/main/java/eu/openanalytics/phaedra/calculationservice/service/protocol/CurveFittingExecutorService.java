@@ -142,8 +142,9 @@ public class CurveFittingExecutorService {
         for (Object[] o : curvesToFit) {
             String substance = (String) o[0];
             long featureId = (long) o[1];
-
+            logger.info("Creating a FeatureCurveFitting for substance %s and featureId %s", substance, String.valueOf(featureId));
             curveFittings.add(new FeatureCurvFitting(substance, featureId, executorService.submit(() -> fitCurve(cfCtx, substance, featureId))));
+            logger.info("Nr of FeatureCurveFittings created %s", String.valueOf(curveFittings.size()));
         }
 
         for (var curveFit : curveFittings) {
@@ -184,6 +185,7 @@ public class CurveFittingExecutorService {
 
     public Optional<ScriptExecution> fitCurve(CurveFittingContext cfCtx, String substanceName, long featureId) {
         try {
+            logger.info("Fitting curve for substance %s and featureId %s", substanceName, featureId);
             var wells = cfCtx.getWells().stream().filter(w -> w.getWellSubstance().getName().equals(substanceName)).collect(Collectors.toList());
             var curveSettings = cfCtx.getCurveFeatures().stream().filter(f -> f.getId() == featureId).findFirst();
             var featureResult = resultDataServiceClient.getResultData(cfCtx.getResultSetId(), featureId);
