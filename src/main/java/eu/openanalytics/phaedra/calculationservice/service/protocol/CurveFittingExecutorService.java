@@ -23,6 +23,7 @@ package eu.openanalytics.phaedra.calculationservice.service.protocol;
 import com.fasterxml.jackson.annotation.JsonCreator;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.JsonMappingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.common.util.concurrent.ThreadFactoryBuilder;
 import eu.openanalytics.curvedataservice.dto.CurveDTO;
@@ -151,12 +152,18 @@ public class CurveFittingExecutorService {
                     ScriptExecutionOutputDTO outputDTO = execution.get().getOutput().get();
                     if (outputDTO.getOutput() != null) {
                         logger.info("Output is " + outputDTO.getOutput());
+                        DataPredict2Plot predict2Plot = objectMapper.readValue(outputDTO.getOutput(), DataPredict2Plot.class);
+                        curveDTO = curveDTO.withPlotDoseData(predict2Plot.dose).withPlotPredictionData(predict2Plot.Prediction);
                     } else {
                         logger.info("Not output is created!!");
                     }
                 } catch (InterruptedException e) {
                     throw new RuntimeException(e);
                 } catch (ExecutionException e) {
+                    throw new RuntimeException(e);
+                } catch (JsonMappingException e) {
+                    throw new RuntimeException(e);
+                } catch (JsonProcessingException e) {
                     throw new RuntimeException(e);
                 }
                 results.add(curveDTO);
@@ -172,9 +179,11 @@ public class CurveFittingExecutorService {
             var wells = cfCtx.getWells().stream()
                     .filter(w -> w.getWellSubstance() != null && w.getWellSubstance().getName().equals(substanceName))
                     .collect(Collectors.toList());
-            var curveSettings = cfCtx.getCurveFeatures().stream()
+            var drcModelDTO = cfCtx.getCurveFeatures().stream()
                     .filter(f -> f.getId() == featureId)
-                    .findFirst();
+                    .findFirst()
+                    .map(f -> f.getDrcModel());
+
             var featureResult = resultDataServiceClient.getResultData(cfCtx.getResultSetId(), featureId);
 
             double[] values = new double[wells.size()];
@@ -200,6 +209,8 @@ public class CurveFittingExecutorService {
             inputVariables.put("responses", values);
             inputVariables.put("accepts", accepts);
 
+            var slope  = drcModelDTO.isPresent() ? drcModelDTO.get().getSlope() : "ascending";
+
             var script = "library(receptor2)\n" +
                     "\n" +
                     "dose <- input$doses\n" +
@@ -215,7 +226,7 @@ public class CurveFittingExecutorService {
                     "\tconfLevel = 0.95,\n" +
                     "\trobustMethod = 'tukey',\n" +
                     "\tresponseName = 'Effect',\n" +
-                    "\tslope = \"descending\"\n" +
+                    "\tslope = \""+ slope +"\"\n" +
                     ")\n" +
                     "\n" +
                     "output <- value$dataPredict2Plot";
