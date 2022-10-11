@@ -20,20 +20,7 @@
  */
 package eu.openanalytics.phaedra.calculationservice.service.protocol;
 
-import com.google.common.util.concurrent.ThreadFactoryBuilder;
-import eu.openanalytics.phaedra.calculationservice.model.CalculationContext;
-import eu.openanalytics.phaedra.calculationservice.model.Sequence;
-import eu.openanalytics.phaedra.plateservice.client.PlateServiceClient;
-import eu.openanalytics.phaedra.plateservice.client.exception.PlateUnresolvableException;
-import eu.openanalytics.phaedra.plateservice.dto.WellDTO;
-import eu.openanalytics.phaedra.protocolservice.client.exception.ProtocolUnresolvableException;
-import eu.openanalytics.phaedra.resultdataservice.client.ResultDataServiceClient;
-import eu.openanalytics.phaedra.resultdataservice.client.exception.ResultSetUnresolvableException;
-import eu.openanalytics.phaedra.resultdataservice.dto.ResultSetDTO;
-import eu.openanalytics.phaedra.resultdataservice.enumeration.StatusCode;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-import org.springframework.stereotype.Service;
+import static eu.openanalytics.phaedra.calculationservice.service.protocol.ProtocolLogger.logMsg;
 
 import java.util.ArrayList;
 import java.util.LinkedHashSet;
@@ -44,7 +31,23 @@ import java.util.concurrent.SynchronousQueue;
 import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
 
-import static eu.openanalytics.phaedra.calculationservice.service.protocol.ProtocolLogger.logMsg;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.springframework.stereotype.Service;
+
+import com.google.common.util.concurrent.ThreadFactoryBuilder;
+
+import eu.openanalytics.phaedra.calculationservice.model.CalculationContext;
+import eu.openanalytics.phaedra.calculationservice.model.Sequence;
+import eu.openanalytics.phaedra.plateservice.client.PlateServiceClient;
+import eu.openanalytics.phaedra.plateservice.client.exception.PlateUnresolvableException;
+import eu.openanalytics.phaedra.plateservice.dto.WellDTO;
+import eu.openanalytics.phaedra.plateservice.enumartion.CalculationStatus;
+import eu.openanalytics.phaedra.protocolservice.client.exception.ProtocolUnresolvableException;
+import eu.openanalytics.phaedra.resultdataservice.client.ResultDataServiceClient;
+import eu.openanalytics.phaedra.resultdataservice.client.exception.ResultSetUnresolvableException;
+import eu.openanalytics.phaedra.resultdataservice.dto.ResultSetDTO;
+import eu.openanalytics.phaedra.resultdataservice.enumeration.StatusCode;
 
 @Service
 public class ProtocolExecutorService {
@@ -102,6 +105,7 @@ public class ProtocolExecutorService {
         final var cctx = CalculationContext.newInstance(plate, wells, protocol, resultSet.getId(), measId, welltypesSorted, uniqueWelltypes);
 
         logMsg(logger, cctx,  "Starting calculation");
+        plateServiceClient.updatePlateCalculationStatus(plateId, CalculationStatus.CALCULATION_IN_PROGRESS, null);
 
         // 3. sequentially execute every sequence
         for (var seq = 0; seq < protocol.getSequences().size(); seq++) {
@@ -154,14 +158,14 @@ public class ProtocolExecutorService {
     private ResultSetDTO saveSuccess(ResultSetDTO resultSet, CalculationContext calculationContext) throws ResultSetUnresolvableException, PlateUnresolvableException {
         logMsg(logger, calculationContext, "Calculation finished: SUCCESS");
         ResultSetDTO resultSetDTO = resultDataServiceClient.completeResultDataSet(resultSet.getId(), StatusCode.SUCCESS, new ArrayList<>(), "");
-        plateServiceClient.updatePlateCalculationStatus(resultSetDTO);
+        plateServiceClient.updatePlateCalculationStatus(resultSetDTO.getPlateId(), CalculationStatus.CALCULATION_OK, null);
         return resultSetDTO;
     }
 
     private ResultSetDTO saveError(ResultSetDTO resultSet, ErrorCollector errorCollector) throws ResultSetUnresolvableException, PlateUnresolvableException {
         logger.warn("Protocol failed with errorDescription\n" + errorCollector.getErrorDescription());
         ResultSetDTO resultSetDTO = resultDataServiceClient.completeResultDataSet(resultSet.getId(), StatusCode.FAILURE, errorCollector.getErrors(), errorCollector.getErrorDescription());
-        plateServiceClient.updatePlateCalculationStatus(resultSetDTO);
+        plateServiceClient.updatePlateCalculationStatus(resultSetDTO.getPlateId(), CalculationStatus.CALCULATION_ERROR, resultSetDTO.getErrorsText());
         return resultSetDTO;
     }
 
