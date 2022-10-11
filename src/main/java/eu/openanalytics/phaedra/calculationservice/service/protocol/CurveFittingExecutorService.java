@@ -143,7 +143,7 @@ public class CurveFittingExecutorService {
         for (Object[] o : curvesToFit) {
             String substance = (String) o[0];
             long featureId = (long) o[1];
-            logger.info("Fit curve for substance %s and featureId %s", substance, featureId);
+            logger.info("Fit curve for substance " + substance + " and featureId " + featureId);
             Optional<ScriptExecution> execution = fitCurve(cfCtx, substance, featureId);
             if (execution.isPresent()) {
                 CurveDTO curveDTO = curveDataServiceClient.createNewCurve(substance, plateId, protocolId, featureId, resultSetId);
@@ -168,9 +168,13 @@ public class CurveFittingExecutorService {
 
     public Optional<ScriptExecution> fitCurve(CurveFittingContext cfCtx, String substanceName, long featureId) {
         try {
-            logger.info("Fitting curve for substance %s and featureId %s", substanceName, featureId);
-            var wells = cfCtx.getWells().stream().filter(w -> w.getWellSubstance().getName().equals(substanceName)).collect(Collectors.toList());
-            var curveSettings = cfCtx.getCurveFeatures().stream().filter(f -> f.getId() == featureId).findFirst();
+            logger.info("Fitting curve for substance " + substanceName + " and featureId " + featureId);
+            var wells = cfCtx.getWells().stream()
+                    .filter(w -> w.getWellSubstance() != null && w.getWellSubstance().getName().equals(substanceName))
+                    .collect(Collectors.toList());
+            var curveSettings = cfCtx.getCurveFeatures().stream()
+                    .filter(f -> f.getId() == featureId)
+                    .findFirst();
             var featureResult = resultDataServiceClient.getResultData(cfCtx.getResultSetId(), featureId);
 
             double[] values = new double[wells.size()];
