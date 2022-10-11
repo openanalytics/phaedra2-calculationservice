@@ -41,6 +41,7 @@ import eu.openanalytics.phaedra.resultdataservice.client.exception.ResultDataUnr
 import eu.openanalytics.phaedra.resultdataservice.client.exception.ResultSetUnresolvableException;
 import eu.openanalytics.phaedra.scriptengine.client.ScriptEngineClient;
 import eu.openanalytics.phaedra.scriptengine.client.model.ScriptExecution;
+import eu.openanalytics.phaedra.scriptengine.dto.ScriptExecutionOutputDTO;
 import eu.openanalytics.phaedra.util.WellNumberUtils;
 import org.apache.commons.collections4.CollectionUtils;
 import org.apache.commons.lang3.StringUtils;
@@ -142,40 +143,22 @@ public class CurveFittingExecutorService {
         for (Object[] o : curvesToFit) {
             String substance = (String) o[0];
             long featureId = (long) o[1];
-            logger.info("Creating a FeatureCurveFitting for substance %s and featureId %s", substance, String.valueOf(featureId));
-            curveFittings.add(new FeatureCurvFitting(substance, featureId, executorService.submit(() -> fitCurve(cfCtx, substance, featureId))));
-            logger.info("Nr of FeatureCurveFittings created %s", String.valueOf(curveFittings.size()));
-        }
-
-        for (var curveFit : curveFittings) {
-            try {
-                curveFit.waitForExecution();
-            } catch (ExecutionException e) {
-                success.failed();
-            } catch (InterruptedException e) {
-                success.failed();
-            } catch (Throwable e) {
-                success.failed();
-            }
-        }
-
-        for (var curvFit : curveFittings) {
-            try {
-                curvFit.waitForOutput();
-            } catch (ExecutionException e) {
-                success.failed();
-            } catch (InterruptedException e) {
-                success.failed();
-            } catch (Throwable e) {
-                success.failed();
-            }
-        }
-
-        success.setResult(curveFittings);
-        for (var curveFit : curveFittings) {
-            Optional<DataPredict2Plot> dataPredict2Plot = getOutputData(cfCtx, curveFit);
-            if  (dataPredict2Plot.isPresent()) {
-                CurveDTO curveDTO = curveDataServiceClient.createNewCurve(curveFit.getSubstance(), plateId, protocolId, curveFit.getFeatureId(), resultSetId, dataPredict2Plot.get().dose, dataPredict2Plot.get().Prediction);
+            logger.info("Fit curve for substance %s and featureId %s", substance, featureId);
+            Optional<ScriptExecution> execution = fitCurve(cfCtx, substance, featureId);
+            if (execution.isPresent()) {
+                CurveDTO curveDTO = curveDataServiceClient.createNewCurve(substance, plateId, protocolId, featureId, resultSetId);
+                try {
+                    ScriptExecutionOutputDTO outputDTO = execution.get().getOutput().get();
+                    if (outputDTO.getOutput() != null) {
+                        logger.info("Output is " + outputDTO.getOutput());
+                    } else {
+                        logger.info("Not output is created!!");
+                    }
+                } catch (InterruptedException e) {
+                    throw new RuntimeException(e);
+                } catch (ExecutionException e) {
+                    throw new RuntimeException(e);
+                }
                 results.add(curveDTO);
             }
         }
