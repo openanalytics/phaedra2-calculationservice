@@ -152,8 +152,8 @@ public class CurveFittingExecutorService {
                     if (StringUtils.isNotBlank(outputDTO.getOutput())) {
                         logger.info("Output is " + outputDTO.getOutput());
                         CurveDTO curveDTO = curveDataServiceClient.createNewCurve(substance, plateId, protocolId, featureId, resultSetId);
-                        DataPredict2Plot predict2Plot = objectMapper.readValue(outputDTO.getOutput(), DataPredict2Plot.class);
-                        curveDTO = curveDTO.withPlotDoseData(predict2Plot.dose).withPlotPredictionData(predict2Plot.Prediction);
+                        DRCOutput drcOutput = objectMapper.readValue(outputDTO.getOutput(), DRCOutput.class);
+                        curveDTO = curveDTO.withPlotDoseData(drcOutput.output.dose).withPlotPredictionData(drcOutput.output.prediction);
                         results.add(curveDTO);
                     } else {
                         logger.info("Not output is created!!");
@@ -282,22 +282,30 @@ public class CurveFittingExecutorService {
         }
     }
 
+    private static class DRCOutput {
+        public DataPredict2Plot output;
+
+        @JsonCreator
+        private DRCOutput(@JsonProperty(value = "output", required = true) DataPredict2Plot output) {
+            this.output = output;
+        }
+    }
     private static class DataPredict2Plot {
 
         public double[] dose;
-        public double[] Prediction;
-        public double[] Lower;
-        public double[] Upper;
+        public double[] prediction;
+        public double[] lower;
+        public double[] upper;
 
         @JsonCreator
         private DataPredict2Plot(@JsonProperty(value = "dose", required = true) double[] dose,
-                                 @JsonProperty(value = "dose", required = true) double[] Prediction,
-                                 @JsonProperty(value = "dose", required = true) double[] Lower,
-                                 @JsonProperty(value = "dose", required = true) double[] Upper) {
+                                 @JsonProperty(value = "Prediction", required = true) double[] prediction,
+                                 @JsonProperty(value = "Lower", required = true) double[] lower,
+                                 @JsonProperty(value = "Upper", required = true) double[] upper) {
             this.dose = dose;
-            this.Prediction = Prediction;
-            this.Lower = Lower;
-            this.Upper = Upper;
+            this.prediction = prediction;
+            this.lower = lower;
+            this.upper = upper;
         }
     }
 
