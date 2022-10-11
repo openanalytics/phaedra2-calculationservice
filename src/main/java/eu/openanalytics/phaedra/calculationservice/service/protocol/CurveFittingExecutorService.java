@@ -147,26 +147,30 @@ public class CurveFittingExecutorService {
             logger.info("Fit curve for substance " + substance + " and featureId " + featureId);
             Optional<ScriptExecution> execution = fitCurve(cfCtx, substance, featureId);
             if (execution.isPresent()) {
-                CurveDTO curveDTO = curveDataServiceClient.createNewCurve(substance, plateId, protocolId, featureId, resultSetId);
                 try {
                     ScriptExecutionOutputDTO outputDTO = execution.get().getOutput().get();
-                    if (outputDTO.getOutput() != null) {
+                    if (StringUtils.isNotBlank(outputDTO.getOutput())) {
                         logger.info("Output is " + outputDTO.getOutput());
+                        CurveDTO curveDTO = curveDataServiceClient.createNewCurve(substance, plateId, protocolId, featureId, resultSetId);
                         DataPredict2Plot predict2Plot = objectMapper.readValue(outputDTO.getOutput(), DataPredict2Plot.class);
                         curveDTO = curveDTO.withPlotDoseData(predict2Plot.dose).withPlotPredictionData(predict2Plot.Prediction);
+                        results.add(curveDTO);
                     } else {
                         logger.info("Not output is created!!");
                     }
                 } catch (InterruptedException e) {
-                    throw new RuntimeException(e);
+                    //TODO: Process error correctly
+                    logger.error("No curve is created due to " + e.getMessage());
                 } catch (ExecutionException e) {
-                    throw new RuntimeException(e);
+                    //TODO: Process error correctly
+                    logger.error("No curve is created due to " + e.getMessage());
                 } catch (JsonMappingException e) {
-                    throw new RuntimeException(e);
+                    //TODO: Process error correctly
+                    logger.error("No curve is created due to " + e.getMessage());
                 } catch (JsonProcessingException e) {
-                    throw new RuntimeException(e);
+                    //TODO: Process error correctly
+                    logger.error("No curve is created due to " + e.getMessage());
                 }
-                results.add(curveDTO);
             }
         }
 
