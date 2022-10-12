@@ -296,16 +296,16 @@ public class CurveFittingExecutorService {
     }
     private static class DataPredict2Plot {
 
-        public double[] dose;
-        public double[] prediction;
-        public double[] lower;
-        public double[] upper;
+        public float[] dose;
+        public float[] prediction;
+        public float[] lower;
+        public float[] upper;
 
         @JsonCreator
-        private DataPredict2Plot(@JsonProperty(value = "dose", required = true) double[] dose,
-                                 @JsonProperty(value = "Prediction", required = true) double[] prediction,
-                                 @JsonProperty(value = "Lower", required = true) double[] lower,
-                                 @JsonProperty(value = "Upper", required = true) double[] upper) {
+        private DataPredict2Plot(@JsonProperty(value = "dose", required = true) float[] dose,
+                                 @JsonProperty(value = "Prediction", required = true) float[] prediction,
+                                 @JsonProperty(value = "Lower", required = true) float[] lower,
+                                 @JsonProperty(value = "Upper", required = true) float[] upper) {
             this.dose = dose;
             this.prediction = prediction;
             this.lower = lower;
