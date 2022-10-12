@@ -151,13 +151,14 @@ public class CurveFittingExecutorService {
                     ScriptExecutionOutputDTO outputDTO = execution.get().getOutput().get();
                     if (StringUtils.isNotBlank(outputDTO.getOutput())) {
                         logger.info("Output is " + outputDTO.getOutput());
-                        CurveDTO curveDTO = curveDataServiceClient.createNewCurve(substance, plateId, protocolId, featureId, resultSetId);
+//                        CurveDTO curveDTO = curveDataServiceClient.createNewCurve(substance, plateId, protocolId, featureId, resultSetId);
 
                         DRCOutput drcOutput = objectMapper.readValue(outputDTO.getOutput(), DRCOutput.class);
-                        if (drcOutput.output != null)
-                            curveDTO = curveDTO.withPlotDoseData(drcOutput.output.dose).withPlotPredictionData(drcOutput.output.prediction);
-
-                        results.add(curveDTO);
+                        if (drcOutput.output != null) {
+                            CurveDTO curveDTO = curveDataServiceClient.createNewCurve(substance, plateId, protocolId, featureId, resultSetId, drcOutput.output.dose, drcOutput.output.prediction);
+//                            curveDTO = curveDTO.withPlotDoseData(drcOutput.output.dose).withPlotPredictionData(drcOutput.output.prediction);
+                            results.add(curveDTO);
+                        }
                     } else {
                         logger.info("Not output is created!!");
                     }
