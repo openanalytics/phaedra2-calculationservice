@@ -33,6 +33,7 @@ import java.util.concurrent.TimeUnit;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.kafka.core.KafkaTemplate;
 import org.springframework.stereotype.Service;
 
 import com.google.common.util.concurrent.ThreadFactoryBuilder;
@@ -60,15 +61,18 @@ public class ProtocolExecutorService {
 
     private final Logger logger = LoggerFactory.getLogger(getClass());
 
+    private final KafkaTemplate<String, String> kafkaTemplate;
+
     public ThreadPoolExecutor getExecutorService() {
         return executorService;
     }
 
-    public ProtocolExecutorService(ResultDataServiceClient resultDataServiceClient, SequenceExecutorService sequenceExecutorService, ProtocolInfoCollector protocolInfoCollector, PlateServiceClient plateServiceClient) {
+    public ProtocolExecutorService(ResultDataServiceClient resultDataServiceClient, SequenceExecutorService sequenceExecutorService, ProtocolInfoCollector protocolInfoCollector, PlateServiceClient plateServiceClient, KafkaTemplate<String, String> kafkaTemplate) {
         this.resultDataServiceClient = resultDataServiceClient;
         this.sequenceExecutorService = sequenceExecutorService;
         this.protocolInfoCollector = protocolInfoCollector;
         this.plateServiceClient = plateServiceClient;
+        this.kafkaTemplate = kafkaTemplate;
 
         var threadFactory = new ThreadFactoryBuilder().setNameFormat("protocol-exec-%s").build();
         executorService = new ThreadPoolExecutor(8, 1024, 60L, TimeUnit.SECONDS, new SynchronousQueue<>(), threadFactory);
@@ -106,6 +110,7 @@ public class ProtocolExecutorService {
 
         logMsg(logger, cctx,  "Starting calculation");
         plateServiceClient.updatePlateCalculationStatus(plateId, CalculationStatus.CALCULATION_IN_PROGRESS, null);
+         kafkaTemplate.send("calculations", "Update plateId " + plateId + "calculation status to " + CalculationStatus.CALCULATION_IN_PROGRESS.name());
 
         // 3. sequentially execute every sequence
         for (var seq = 0; seq < protocol.getSequences().size(); seq++) {
@@ -148,16 +153,19 @@ public class ProtocolExecutorService {
 
         // 7. check for errors
         if (cctx.getErrorCollector().hasError()) {
+            // TODO: kafkaTemplate.send() calculation failed with error messages + resultsetId
             return saveError(resultSet, cctx.getErrorCollector());
         }
 
         // 8. set ResultData status
+        // TODO: kafkaTemplate.send() calculation success with resultsetId
         return saveSuccess(resultSet, cctx);
     }
 
     private ResultSetDTO saveSuccess(ResultSetDTO resultSet, CalculationContext calculationContext) throws ResultSetUnresolvableException, PlateUnresolvableException {
         logMsg(logger, calculationContext, "Calculation finished: SUCCESS");
         ResultSetDTO resultSetDTO = resultDataServiceClient.completeResultDataSet(resultSet.getId(), StatusCode.SUCCESS, new ArrayList<>(), "");
+        // TODO: replace by plate-service consumer
         plateServiceClient.updatePlateCalculationStatus(resultSetDTO.getPlateId(), CalculationStatus.CALCULATION_OK, null);
         return resultSetDTO;
     }
@@ -165,6 +173,7 @@ public class ProtocolExecutorService {
     private ResultSetDTO saveError(ResultSetDTO resultSet, ErrorCollector errorCollector) throws ResultSetUnresolvableException, PlateUnresolvableException {
         logger.warn("Protocol failed with errorDescription\n" + errorCollector.getErrorDescription());
         ResultSetDTO resultSetDTO = resultDataServiceClient.completeResultDataSet(resultSet.getId(), StatusCode.FAILURE, errorCollector.getErrors(), errorCollector.getErrorDescription());
+        // TODO: replace by plate-service consumer
         plateServiceClient.updatePlateCalculationStatus(resultSetDTO.getPlateId(), CalculationStatus.CALCULATION_ERROR, resultSetDTO.getErrorsText());
         return resultSetDTO;
     }

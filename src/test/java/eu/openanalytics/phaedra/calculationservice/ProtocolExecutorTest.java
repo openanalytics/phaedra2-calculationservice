@@ -87,6 +87,7 @@ import eu.openanalytics.phaedra.scriptengine.client.model.ScriptExecution;
 import eu.openanalytics.phaedra.scriptengine.client.model.TargetRuntime;
 import eu.openanalytics.phaedra.scriptengine.dto.ResponseStatusCode;
 import eu.openanalytics.phaedra.scriptengine.dto.ScriptExecutionOutputDTO;
+import org.springframework.kafka.core.KafkaTemplate;
 
 @Disabled
 @MockitoSettings(strictness = Strictness.STRICT_STUBS)
@@ -111,6 +112,8 @@ public class ProtocolExecutorTest {
     private SequenceExecutorService sequenceExecutorService;
     private ProtocolExecutorService protocolExecutorService;
     private ProtocolInfoCollector protocolInfoCollector;
+
+    private KafkaTemplate<String, String> kafkaTemplate;
     private final ModelMapper modelMapper = new ModelMapper();
 
     @BeforeEach
@@ -121,10 +124,11 @@ public class ProtocolExecutorTest {
         scriptEngineClient = mockUnimplemented(ScriptEngineClient.class);
         plateServiceClient = mockUnimplemented(PlateServiceClient.class);
         featureStatExecutorService = mockUnimplemented(FeatureStatExecutor.class);
+        kafkaTemplate = mockUnimplemented(KafkaTemplate.class);
         featureExecutorService = new FeatureExecutorService(scriptEngineClient, measurementServiceClient, resultDataServiceClient);
         sequenceExecutorService = new SequenceExecutorService(resultDataServiceClient, featureExecutorService, modelMapper, featureStatExecutorService);
-        protocolExecutorService = new ProtocolExecutorService(resultDataServiceClient, sequenceExecutorService, protocolInfoCollector, plateServiceClient);
-        
+        protocolExecutorService = new ProtocolExecutorService(resultDataServiceClient, sequenceExecutorService, protocolInfoCollector, plateServiceClient, kafkaTemplate);
+
         doReturn(PlateDTO.builder().id(1L).rows(1).columns(4).build()).when(plateServiceClient).getPlate(anyLong());
         doReturn(List.of(
                 WellDTO.builder().wellType("LC").id(1L).row(1).column(1).build(),
@@ -132,7 +136,7 @@ public class ProtocolExecutorTest {
                 WellDTO.builder().wellType("SAMPLE").id(3L).row(1).column(3).build(),
                 WellDTO.builder().wellType("HC").id(4L).row(1).column(4).build()
         )).when(plateServiceClient).getWells(anyLong());
-        
+
         doReturn(PlateDTO.builder().id(1L).rows(1).columns(4).build()).when(plateServiceClient).updatePlateCalculationStatus(
         		anyLong(), any(CalculationStatus.class), any(String.class));
     }
@@ -221,7 +225,7 @@ public class ProtocolExecutorTest {
         var mockResultDataServiceClient = mockUnimplemented(ResultDataServiceClient.class);
         featureExecutorService = new FeatureExecutorService(scriptEngineClient, measurementServiceClient, mockResultDataServiceClient);
         sequenceExecutorService = new SequenceExecutorService(resultDataServiceClient, featureExecutorService, modelMapper, featureStatExecutorService);
-        protocolExecutorService = new ProtocolExecutorService(resultDataServiceClient, sequenceExecutorService, protocolInfoCollector, plateServiceClient);
+        protocolExecutorService = new ProtocolExecutorService(resultDataServiceClient, sequenceExecutorService, protocolInfoCollector, plateServiceClient, kafkaTemplate);
         var formula1 = "output <- input$abc * 2";
         var input = new ScriptExecution(new TargetRuntime("R", "fast-lane", "v1"), formula1,
                 "{\"abc\":[1.0,2.0,3.0,5.0,8.0]}",
@@ -1132,7 +1136,7 @@ public class ProtocolExecutorTest {
         stubGetWellData(4L, "abc", new float[]{1.0f, 2.0f, 3.0f, 5.0f, 8.0f});
 
         doReturn(input, input2, input3).when(scriptEngineClient).newScriptExecution(eq(R_FAST_LANE), eq(input.getScriptExecutionInput().getScript()), any(String.class));
-        
+
         // attempt 1
         stubExecute(input);
         input.getOutput().complete(new ScriptExecutionOutputDTO(input.getScriptExecutionInput().getId(), "", ResponseStatusCode.WORKER_INTERNAL_ERROR, "Internal worker error", 0));
@@ -1191,7 +1195,7 @@ public class ProtocolExecutorTest {
         stubGetWellData(4L, "abc", new float[]{1.0f, 2.0f, 3.0f, 5.0f, 8.0f});
 
         doReturn(input, input2, input3).when(scriptEngineClient).newScriptExecution(eq(R_FAST_LANE), eq(input.getScriptExecutionInput().getScript()), any(String.class));
-        
+
         // attempt 1
         stubExecute(input);
         input.getOutput().complete(new ScriptExecutionOutputDTO(input.getScriptExecutionInput().getId(), "", ResponseStatusCode.WORKER_INTERNAL_ERROR, "Internal worker error", 0));

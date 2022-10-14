@@ -24,8 +24,10 @@ import java.util.concurrent.ExecutionException;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
 
+import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.kafka.core.KafkaTemplate;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
@@ -43,19 +45,17 @@ import eu.openanalytics.phaedra.resultdataservice.client.exception.ResultFeature
 import eu.openanalytics.phaedra.resultdataservice.client.exception.ResultSetUnresolvableException;
 
 @RestController
+@RequiredArgsConstructor
 public class CalculationController {
 
     private final ProtocolExecutorService protocolExecutorService;
     private final CalculationStatusService calculationStatusService;
 
-    public CalculationController(ProtocolExecutorService protocolExecutorService, CalculationStatusService calculationStatusService) {
-        this.protocolExecutorService = protocolExecutorService;
-        this.calculationStatusService = calculationStatusService;
-    }
-
+    private final KafkaTemplate<String, Object> kafkaTemplate;
     @PostMapping("/calculation")
     public ResponseEntity<Long> calculate(@RequestBody CalculationRequestDTO calculationRequestDTO,
                                           @RequestParam(value = "timeout", required = false) Long timeout) throws ExecutionException, InterruptedException {
+        kafkaTemplate.send("calculations", calculationRequestDTO);
         var future = protocolExecutorService.execute(
                 calculationRequestDTO.getProtocolId(),
                 calculationRequestDTO.getPlateId(),

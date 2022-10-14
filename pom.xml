@@ -35,6 +35,16 @@
             <artifactId>spring-cloud-starter-kubernetes-fabric8</artifactId>
         </dependency>
 
+        <!-- Apache kafka dependencies-->
+        <dependency>
+            <groupId>org.apache.kafka</groupId>
+            <artifactId>kafka-streams</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>org.springframework.kafka</groupId>
+            <artifactId>spring-kafka</artifactId>
+        </dependency>
+
         <!-- Development and Test tools -->
         <dependency>
             <groupId>org.springframework.boot</groupId>

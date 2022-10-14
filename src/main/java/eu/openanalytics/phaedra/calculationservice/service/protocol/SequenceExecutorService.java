@@ -194,6 +194,7 @@ public class SequenceExecutorService {
                         }
                     }
 
+
                     var resultData = resultDataServiceClient.addResultData(
                             cctx.getResultSetId(),
                             feature.getId(),

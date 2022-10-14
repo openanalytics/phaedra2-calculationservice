@@ -35,6 +35,7 @@ import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Import;
 import org.springframework.core.env.Environment;
 import org.springframework.jdbc.datasource.DriverManagerDataSource;
+import org.springframework.kafka.annotation.EnableKafka;
 import org.springframework.scheduling.annotation.EnableScheduling;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
@@ -62,6 +63,7 @@ import liquibase.integration.spring.SpringLiquibase;
 @EnableDiscoveryClient
 @EnableScheduling
 @EnableWebSecurity
+@EnableKafka
 @Import({ScriptEngineClientAutoConfiguration.class,
         ProtocolServiceClientAutoConfiguration.class,
         ResultDataServiceClientAutoConfiguration.class,
