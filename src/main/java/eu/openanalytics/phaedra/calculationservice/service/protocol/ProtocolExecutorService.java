@@ -117,7 +117,7 @@ public class ProtocolExecutorService {
             Sequence currentSequence = protocol.getSequences().get(seq);
             if (currentSequence == null) {
                 cctx.getErrorCollector().handleError("executing protocol => missing sequence", seq);
-                return saveError(resultSet, cctx.getErrorCollector());
+                return saveError(resultSet, cctx, cctx.getErrorCollector());
             }
             var success = sequenceExecutorService.executeSequence(cctx, executorService, currentSequence);
 
@@ -154,7 +154,7 @@ public class ProtocolExecutorService {
         // 7. check for errors
         if (cctx.getErrorCollector().hasError()) {
             // TODO: kafkaTemplate.send() calculation failed with error messages + resultsetId
-            return saveError(resultSet, cctx.getErrorCollector());
+            return saveError(resultSet, cctx, cctx.getErrorCollector());
         }
 
         // 8. set ResultData status
@@ -165,15 +165,15 @@ public class ProtocolExecutorService {
     private ResultSetDTO saveSuccess(ResultSetDTO resultSet, CalculationContext calculationContext) throws ResultSetUnresolvableException, PlateUnresolvableException {
         logMsg(logger, calculationContext, "Calculation finished: SUCCESS");
         ResultSetDTO resultSetDTO = resultDataServiceClient.completeResultDataSet(resultSet.getId(), StatusCode.SUCCESS, new ArrayList<>(), "");
-        // TODO: replace by plate-service consumer
+        kafkaTemplate.send("calculations", "Plate calculation for plateId " + calculationContext.getPlate().getId() + " finished successfully!");
         plateServiceClient.updatePlateCalculationStatus(resultSetDTO.getPlateId(), CalculationStatus.CALCULATION_OK, null);
         return resultSetDTO;
     }
 
-    private ResultSetDTO saveError(ResultSetDTO resultSet, ErrorCollector errorCollector) throws ResultSetUnresolvableException, PlateUnresolvableException {
+    private ResultSetDTO saveError(ResultSetDTO resultSet, CalculationContext calculationContext, ErrorCollector errorCollector) throws ResultSetUnresolvableException, PlateUnresolvableException {
         logger.warn("Protocol failed with errorDescription\n" + errorCollector.getErrorDescription());
         ResultSetDTO resultSetDTO = resultDataServiceClient.completeResultDataSet(resultSet.getId(), StatusCode.FAILURE, errorCollector.getErrors(), errorCollector.getErrorDescription());
-        // TODO: replace by plate-service consumer
+        kafkaTemplate.send("calculations", "Plate calculation for plateId " + calculationContext.getPlate().getId() + " failed with error " + errorCollector.getErrorDescription());
         plateServiceClient.updatePlateCalculationStatus(resultSetDTO.getPlateId(), CalculationStatus.CALCULATION_ERROR, resultSetDTO.getErrorsText());
         return resultSetDTO;
     }
