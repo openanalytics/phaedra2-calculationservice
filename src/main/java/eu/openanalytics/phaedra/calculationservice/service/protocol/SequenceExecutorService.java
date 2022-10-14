@@ -32,6 +32,7 @@ import java.util.concurrent.Future;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.kafka.core.KafkaTemplate;
 import org.springframework.stereotype.Service;
 
 import com.fasterxml.jackson.annotation.JsonCreator;
@@ -62,13 +63,17 @@ public class SequenceExecutorService {
     private final FeatureStatExecutor featureStatExecutor; // TODO remove deps?
     private final Logger logger = LoggerFactory.getLogger(getClass());
 
+    private final KafkaTemplate<String, Object> kafkaTemplate;
+
     private final static int MAX_ATTEMPTS = 3;
 
-    public SequenceExecutorService(ResultDataServiceClient resultDataServiceClient, FeatureExecutorService featureExecutorService, ModelMapper modelMapper, FeatureStatExecutor featureStatExecutor) {
+    public SequenceExecutorService(ResultDataServiceClient resultDataServiceClient, FeatureExecutorService featureExecutorService,
+                                   ModelMapper modelMapper, FeatureStatExecutor featureStatExecutor, KafkaTemplate<String, Object> kafkaTemplate) {
         this.resultDataServiceClient = resultDataServiceClient;
         this.featureExecutorService = featureExecutorService;
         this.modelMapper = modelMapper;
         this.featureStatExecutor = featureStatExecutor;
+        this.kafkaTemplate = kafkaTemplate;
     }
 
     public boolean executeSequence(CalculationContext cctx, ExecutorService executorService, Sequence currentSequence) {
@@ -215,6 +220,8 @@ public class SequenceExecutorService {
                         modelMapper.map(output.getStatusCode()),
                         output.getStatusMessage(),
                         output.getExitCode());
+
+                kafkaTemplate.send("curvedata-topic", resultData);
 
                 cctx.getErrorCollector().handleError(String.format("executing sequence => processing output => output indicates error [%s]", output.getStatusCode()), output, feature, feature.getFormula());
                 return Optional.of(resultData);

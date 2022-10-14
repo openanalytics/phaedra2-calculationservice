@@ -61,13 +61,13 @@ public class ProtocolExecutorService {
 
     private final Logger logger = LoggerFactory.getLogger(getClass());
 
-    private final KafkaTemplate<String, String> kafkaTemplate;
+    private final KafkaTemplate<String, Object> kafkaTemplate;
 
     public ThreadPoolExecutor getExecutorService() {
         return executorService;
     }
 
-    public ProtocolExecutorService(ResultDataServiceClient resultDataServiceClient, SequenceExecutorService sequenceExecutorService, ProtocolInfoCollector protocolInfoCollector, PlateServiceClient plateServiceClient, KafkaTemplate<String, String> kafkaTemplate) {
+    public ProtocolExecutorService(ResultDataServiceClient resultDataServiceClient, SequenceExecutorService sequenceExecutorService, ProtocolInfoCollector protocolInfoCollector, PlateServiceClient plateServiceClient, KafkaTemplate<String, Object> kafkaTemplate) {
         this.resultDataServiceClient = resultDataServiceClient;
         this.sequenceExecutorService = sequenceExecutorService;
         this.protocolInfoCollector = protocolInfoCollector;

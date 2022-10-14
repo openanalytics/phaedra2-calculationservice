@@ -42,12 +42,15 @@ import eu.openanalytics.phaedra.calculationservice.service.status.CalculationSta
 import eu.openanalytics.phaedra.calculationservice.support.AbstractIntegrationTest;
 import eu.openanalytics.phaedra.resultdataservice.dto.ResultSetDTO;
 import eu.openanalytics.phaedra.resultdataservice.enumeration.StatusCode;
+import org.springframework.kafka.core.KafkaTemplate;
 
 @Disabled
 public class CalculationIntegrationTest extends AbstractIntegrationTest {
 
     private static final ProtocolExecutorService protocolExecutorService = mock(ProtocolExecutorService.class);
     private static final CalculationStatusService calculationStatusService = mock(CalculationStatusService.class);
+
+    private static final KafkaTemplate kafkaTemplate = mock(KafkaTemplate.class);
 
     @Test
     public void calculateTestNoTimeout() throws Exception {
@@ -56,7 +59,7 @@ public class CalculationIntegrationTest extends AbstractIntegrationTest {
         var f2 = new CompletableFuture<ResultSetDTO>();
         f2.complete(new ResultSetDTO(45L, 1L, 1L, 1L, LocalDateTime.now(), LocalDateTime.now(), StatusCode.SUCCESS, new ArrayList<>(),"error"));
         when(protocolExecutorService.execute(anyLong(),anyLong(),anyLong())).thenReturn(new ProtocolExecutorService.ProtocolExecution(f1, f2));
-        var calculationController = new CalculationController(protocolExecutorService, calculationStatusService);
+        var calculationController = new CalculationController(protocolExecutorService, calculationStatusService, kafkaTemplate);
         var calculationRequestDTO = CalculationRequestDTO.builder().protocolId(1L).plateId(1L).measId(1L).build();
         var res = calculationController.calculate(calculationRequestDTO, 1000L);
 
@@ -71,7 +74,7 @@ public class CalculationIntegrationTest extends AbstractIntegrationTest {
         var f2 = new CompletableFuture<ResultSetDTO>();
         f2.complete(new ResultSetDTO(45L, 1L, 1L, 1L, LocalDateTime.now(), LocalDateTime.now(), StatusCode.SUCCESS, new ArrayList<>(),"error"));
         when(protocolExecutorService.execute(anyLong(),anyLong(),anyLong())).thenReturn(new ProtocolExecutorService.ProtocolExecution(f1, f2));
-        var calculationController = new CalculationController(protocolExecutorService, calculationStatusService);
+        var calculationController = new CalculationController(protocolExecutorService, calculationStatusService, kafkaTemplate);
         var calculationRequestDTO = CalculationRequestDTO.builder().protocolId(1L).plateId(1L).measId(1L).build();
 
         var res = calculationController.calculate(calculationRequestDTO, 1000L);
@@ -83,7 +86,7 @@ public class CalculationIntegrationTest extends AbstractIntegrationTest {
     @Test
     public void statusTestSuccess() throws Exception {
         when(calculationStatusService.getStatus(20L)).thenReturn(new CalculationStatus(new CalculationStatus.CalculationComplexityDTO(1,1,1,1,1),StatusCode.SUCCESS,new ArrayList<>(), new HashMap<>()));
-        var calculationController = new CalculationController(protocolExecutorService, calculationStatusService);
+        var calculationController = new CalculationController(protocolExecutorService, calculationStatusService, kafkaTemplate);
         var res = calculationController.status(20);
         Assertions.assertEquals(new CalculationStatus(new CalculationStatus.CalculationComplexityDTO(1,1,1,1,1),StatusCode.SUCCESS,new ArrayList<>(), new HashMap<>()),res.getBody());
         Assertions.assertEquals(HttpStatus.OK, res.getStatusCode());
@@ -92,7 +95,7 @@ public class CalculationIntegrationTest extends AbstractIntegrationTest {
     @Test
     public void statusTestScheduled() throws Exception {
         when(calculationStatusService.getStatus(20L)).thenReturn(new CalculationStatus(new CalculationStatus.CalculationComplexityDTO(1,1,1,1,1),StatusCode.SCHEDULED,new ArrayList<>(), new HashMap<>()));
-        var calculationController = new CalculationController(protocolExecutorService, calculationStatusService);
+        var calculationController = new CalculationController(protocolExecutorService, calculationStatusService, kafkaTemplate);
         var res = calculationController.status(20);
         Assertions.assertEquals(new CalculationStatus(new CalculationStatus.CalculationComplexityDTO(1,1,1,1,1),StatusCode.SCHEDULED,new ArrayList<>(), new HashMap<>()),res.getBody());
         Assertions.assertEquals(HttpStatus.OK, res.getStatusCode());
@@ -101,7 +104,7 @@ public class CalculationIntegrationTest extends AbstractIntegrationTest {
     @Test
     public void statusTestFailure() throws Exception {
         when(calculationStatusService.getStatus(20L)).thenReturn(new CalculationStatus(new CalculationStatus.CalculationComplexityDTO(1,1,1,1,1),StatusCode.FAILURE,new ArrayList<>(), new HashMap<>()));
-        var calculationController = new CalculationController(protocolExecutorService, calculationStatusService);
+        var calculationController = new CalculationController(protocolExecutorService, calculationStatusService, kafkaTemplate);
         var res = calculationController.status(20);
         Assertions.assertEquals(new CalculationStatus(new CalculationStatus.CalculationComplexityDTO(1,1,1,1,1),StatusCode.FAILURE,new ArrayList<>(), new HashMap<>()),res.getBody());
         Assertions.assertEquals(HttpStatus.OK, res.getStatusCode());
