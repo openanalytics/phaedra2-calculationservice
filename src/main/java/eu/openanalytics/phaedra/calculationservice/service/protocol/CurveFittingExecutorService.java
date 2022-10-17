@@ -49,12 +49,10 @@ import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.math3.util.Precision;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.kafka.core.KafkaTemplate;
 import org.springframework.stereotype.Service;
 
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Optional;
+import java.util.*;
 import java.util.concurrent.*;
 import java.util.stream.Collectors;
 
@@ -68,17 +66,20 @@ public class CurveFittingExecutorService {
     private final PlateServiceClient plateServiceClient;
     private final ProtocolServiceClient protocolServiceClient;
     private final CurveDataServiceClient curveDataServiceClient;
+
+    private final KafkaTemplate<String, Object> kafkaTemplate;
     private final ObjectMapper objectMapper = new ObjectMapper(); // TODO thread-safe?
     private final Logger logger = LoggerFactory.getLogger(getClass());
 
     public CurveFittingExecutorService(ScriptEngineClient scriptEngineClient, ResultDataServiceClient resultDataServiceClient,
                                        PlateServiceClient plateServiceClient, ProtocolServiceClient protocolServiceClient,
-                                       CurveDataServiceClient curveDataServiceClient) {
+                                       CurveDataServiceClient curveDataServiceClient, KafkaTemplate<String, Object> kafkaTemplate) {
         this.scriptEngineClient = scriptEngineClient;
         this.resultDataServiceClient = resultDataServiceClient;
         this.plateServiceClient = plateServiceClient;
         this.protocolServiceClient = protocolServiceClient;
         this.curveDataServiceClient = curveDataServiceClient;
+        this.kafkaTemplate = kafkaTemplate;
 
         var threadFactory = new ThreadFactoryBuilder().setNameFormat("protocol-exec-%s").build();
         this.executorService = new ThreadPoolExecutor(8, 1024, 60L, TimeUnit.SECONDS, new SynchronousQueue<>(), threadFactory);
@@ -151,13 +152,12 @@ public class CurveFittingExecutorService {
                     ScriptExecutionOutputDTO outputDTO = execution.get().getOutput().get();
                     if (StringUtils.isNotBlank(outputDTO.getOutput())) {
                         logger.info("Output is " + outputDTO.getOutput());
-//                        CurveDTO curveDTO = curveDataServiceClient.createNewCurve(substance, plateId, protocolId, featureId, resultSetId);
 
                         DRCOutput drcOutput = objectMapper.readValue(outputDTO.getOutput(), DRCOutput.class);
                         if (drcOutput.output != null) {
-                            CurveDTO curveDTO = curveDataServiceClient.createNewCurve(substance, plateId, protocolId, featureId, resultSetId, drcOutput.output.dose, drcOutput.output.prediction);
-//                            curveDTO = curveDTO.withPlotDoseData(drcOutput.output.dose).withPlotPredictionData(drcOutput.output.prediction);
-                            results.add(curveDTO);
+                            createNewCurve(substance, plateId, protocolId, featureId, resultSetId, drcOutput.output.dose, drcOutput.output.prediction);
+//                            CurveDTO curveDTO = curveDataServiceClient.createNewCurve(substance, plateId, protocolId, featureId, resultSetId, drcOutput.output.dose, drcOutput.output.prediction);
+//                            results.add(curveDTO);
                         }
                     } else {
                         logger.info("Not output is created!!");
@@ -179,6 +179,21 @@ public class CurveFittingExecutorService {
         }
 
         return results;
+    }
+
+    public void createNewCurve(String substance, Long plateId, Long protocolId, Long featureId, Long resultSetId, float[] dose, float[] prediction) {
+        CurveDTO curveDTO = CurveDTO.builder()
+                .substanceName(substance)
+                .plateId(plateId)
+                .protocolId(protocolId)
+                .featureId(featureId)
+                .resultSetId(resultSetId)
+                .fitDate(new Date())
+                .version("0.0.1")
+                .plotDoseData(dose)
+                .plotPredictionData(prediction)
+                .build();
+        kafkaTemplate.send("curvedata-topic", "createCurve", curveDTO);
     }
 
     public Optional<ScriptExecution> fitCurve(CurveFittingContext cfCtx, String substanceName, long featureId) {
