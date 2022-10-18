@@ -55,7 +55,6 @@ public class CalculationController {
     @PostMapping("/calculation")
     public ResponseEntity<Long> calculate(@RequestBody CalculationRequestDTO calculationRequestDTO,
                                           @RequestParam(value = "timeout", required = false) Long timeout) throws ExecutionException, InterruptedException {
-        kafkaTemplate.send("calculations", calculationRequestDTO);
         var future = protocolExecutorService.execute(
                 calculationRequestDTO.getProtocolId(),
                 calculationRequestDTO.getPlateId(),
