@@ -155,7 +155,6 @@ public class CurveFittingExecutorService {
                         DRCOutput drcOutput = objectMapper.readValue(outputDTO.getOutput(), DRCOutput.class);
                         if (drcOutput.output != null) {
                             createNewCurve(drcInput, drcOutput);
-//                            createNewCurve(substance, plateId, protocolId, featureId, resultSetId, drcOutput.output.dose, drcOutput.output.prediction);
                         }
                     } else {
                         logger.info("Not output is created!!");
@@ -187,6 +186,7 @@ public class CurveFittingExecutorService {
                 .featureId(drcInput.getFeatureId())
                 .resultSetId(drcInput.getResultSetId())
                 .wells(drcInput.getWells())
+                .wellConcentrations(drcInput.getConcs())
                 .featureValues(drcInput.getValues())
                 .fitDate(new Date())
                 .version("0.0.1")
@@ -195,21 +195,6 @@ public class CurveFittingExecutorService {
                 .build();
         kafkaTemplate.send("curvedata-topic", "createCurve", curveDTO);
     }
-
-//    public void createNewCurve(String substance, Long plateId, Long protocolId, Long featureId, Long resultSetId, float[] dose, float[] prediction) {
-//        CurveDTO curveDTO = CurveDTO.builder()
-//                .substanceName(substance)
-//                .plateId(plateId)
-//                .protocolId(protocolId)
-//                .featureId(featureId)
-//                .resultSetId(resultSetId)
-//                .fitDate(new Date())
-//                .version("0.0.1")
-//                .plotDoseData(dose)
-//                .plotPredictionData(prediction)
-//                .build();
-//        kafkaTemplate.send("curvedata-topic", "createCurve", curveDTO);
-//    }
 
     private DRCInputDTO collectDRCIntpuData(CurveFittingContext cfCtx, String substanceName, long featureId) {
         try {
@@ -265,35 +250,8 @@ public class CurveFittingExecutorService {
     public Optional<ScriptExecution> fitCurve(DRCInputDTO inputDTO) {
         try {
             logger.info("Fitting curve for substance " + inputDTO.getSubstance() + " and featureId " + inputDTO.getFeatureId());
-//            var wells = cfCtx.getWells().stream()
-//                    .filter(w -> w.getWellSubstance() != null && w.getWellSubstance().getName().equals(substanceName))
-//                    .collect(Collectors.toList());
-//            var drcModelDTO = cfCtx.getCurveFeatures().stream()
-//                    .filter(f -> f.getId() == featureId)
-//                    .findFirst()
-//                    .map(f -> f.getDrcModel());
-//
-//            var featureResult = resultDataServiceClient.getResultData(cfCtx.getResultSetId(), featureId);
-//
-//            double[] values = new double[wells.size()];
-//            double[] concs = new double[wells.size()];
-//            double[] accepts = new double[wells.size()];
-//
-//            for (int i = 0; i < wells.size(); i++) {
-//                // Set the well substance concentration value
-//                double conc = wells.get(i).getWellSubstance().getConcentration();
-//                concs[i] = Precision.round(-Math.log10(conc), 3);
-//
-//                // Set the well accept value (true or false)
-//                accepts[i] = (wells.get(i).getStatus().getCode() >= 0 && cfCtx.getPlate().getValidationStatus().getCode() >= 0 && cfCtx.getPlate().getApprovalStatus().getCode() >= 0) ? 1 : 0;
-//
-//                // Set the well feature value
-//                var valueIndex = WellNumberUtils.getWellNr(wells.get(i).getRow(), wells.get(i).getColumn(), cfCtx.getPlate().getColumns()) - 1;
-//                values[i] = featureResult.getValues()[valueIndex];
-//            }
 
             var inputVariables = new HashMap<String, Object>();
-
             inputVariables.put("doses", inputDTO.getConcs());
             inputVariables.put("responses", inputDTO.getValues());
             inputVariables.put("accepts", inputDTO.getAccepts());
