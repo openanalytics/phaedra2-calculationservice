@@ -53,13 +53,16 @@ public class CurveFittingContext {
     @NonNull
     Long resultSetId;
 
+    @NonNull
+    Long protocolId;
+
     public static CurveFittingContext newInstance(PlateDTO plate,
                                                   List<WellDTO> wells,
-                                                 List<WellSubstanceDTO> wellSubstances,
-                                                 List<String> uniqueSubstances,
-                                                 List<FeatureDTO> curveFeatures,
-                                                 Long resultSetId) {
-        var res = new CurveFittingContext(plate, wells, wellSubstances, uniqueSubstances, curveFeatures, resultSetId);
-        return res;
+                                                  List<WellSubstanceDTO> wellSubstances,
+                                                  List<String> uniqueSubstances,
+                                                  List<FeatureDTO> curveFeatures,
+                                                  Long resultSetId, Long protocolId) {
+        CurveFittingContext curveFittingContext = new CurveFittingContext(plate, wells, wellSubstances, uniqueSubstances, curveFeatures, resultSetId, protocolId);
+        return curveFittingContext;
     }
 }

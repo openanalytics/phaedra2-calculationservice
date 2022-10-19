@@ -103,7 +103,6 @@ public class ProtocolExecutorService {
         final var cctx = CalculationContext.newInstance(plate, wells, protocol, resultSet.getId(), measId, welltypesSorted, uniqueWelltypes);
 
         logMsg(logger, cctx,  "Starting calculation");
-//        plateServiceClient.updatePlateCalculationStatus(plateId, CalculationStatus.CALCULATION_IN_PROGRESS, null);
         updatePlateCalculationStatus(plateId, CalculationStatus.CALCULATION_IN_PROGRESS);
 
         // 3. sequentially execute every sequence
@@ -160,8 +159,6 @@ public class ProtocolExecutorService {
         logMsg(logger, calculationContext, "Calculation finished: SUCCESS");
         ResultSetDTO resultSetDTO = resultDataServiceClient.completeResultDataSet(resultSet.getId(), StatusCode.SUCCESS, new ArrayList<>(), "");
         updatePlateCalculationStatus(resultSet.getPlateId(), CalculationStatus.CALCULATION_OK);
-//        kafkaTemplate.send("calculations", "Plate calculation for plateId " + calculationContext.getPlate().getId() + " finished successfully!");
-//        plateServiceClient.updatePlateCalculationStatus(resultSetDTO.getPlateId(), CalculationStatus.CALCULATION_OK, null);
         return resultSetDTO;
     }
 
@@ -169,11 +166,10 @@ public class ProtocolExecutorService {
         logger.warn("Protocol failed with errorDescription\n" + errorCollector.getErrorDescription());
         ResultSetDTO resultSetDTO = resultDataServiceClient.completeResultDataSet(resultSet.getId(), StatusCode.FAILURE, errorCollector.getErrors(), errorCollector.getErrorDescription());
         updatePlateCalculationStatus(resultSet.getPlateId(), CalculationStatus.CALCULATION_ERROR);
-//        kafkaTemplate.send("calculations", "Plate calculation for plateId " + calculationContext.getPlate().getId() + " failed with error " + errorCollector.getErrorDescription());
-//        plateServiceClient.updatePlateCalculationStatus(resultSetDTO.getPlateId(), CalculationStatus.CALCULATION_ERROR, resultSetDTO.getErrorsText());
         return resultSetDTO;
     }
 
+    // TODO: Secure kafka producer
     private void updatePlateCalculationStatus(Long plateId, CalculationStatus calculationStatus) {
         // Update plate calculation status through an Apache Kafka topic
         logger.info("Set plate calculation status to " + calculationStatus.name() + " for plateId " + plateId);
