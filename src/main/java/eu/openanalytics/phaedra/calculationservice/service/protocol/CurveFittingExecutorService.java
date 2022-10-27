@@ -289,6 +289,7 @@ public class CurveFittingExecutorService {
                     "\tslope = \""+ slope +"\"\n" +
                     ")\n" +
                     "\n" +
+                    "output <- NULL\n" +
                     "output$pIC50toReport <- value$pIC50toReport\n" +
                     "output$validpIC50 <- value$validpIC50\n" +
                     "output$rangeResults$eMin <- value$rangeResults[c(\"eMin\"),]\n" +
