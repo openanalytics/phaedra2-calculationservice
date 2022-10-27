@@ -29,8 +29,6 @@ import com.google.common.util.concurrent.ThreadFactoryBuilder;
 import eu.openanalytics.curvedataservice.dto.CurveDTO;
 import eu.openanalytics.phaedra.calculationservice.dto.DRCInputDTO;
 import eu.openanalytics.phaedra.calculationservice.model.CurveFittingContext;
-import eu.openanalytics.phaedra.calculationservice.model.SuccessTracker;
-import eu.openanalytics.phaedra.curvedataservice.client.CurveDataServiceClient;
 import eu.openanalytics.phaedra.curvedataservice.client.exception.CurveUnresolvedException;
 import eu.openanalytics.phaedra.plateservice.client.PlateServiceClient;
 import eu.openanalytics.phaedra.plateservice.client.exception.PlateUnresolvableException;
@@ -152,9 +150,9 @@ public class CurveFittingExecutorService {
                     if (StringUtils.isNotBlank(outputDTO.getOutput())) {
                         logger.info("Output is " + outputDTO.getOutput());
 
-                        DRCOutput drcOutput = objectMapper.readValue(outputDTO.getOutput(), DRCOutput.class);
-                        if (drcOutput.output != null) {
-                            createNewCurve(drcInput, drcOutput);
+                        OutputWrapper outputWrapper = objectMapper.readValue(outputDTO.getOutput(), OutputWrapper.class);
+                        if (outputWrapper.output != null) {
+                            createNewCurve(drcInput, outputWrapper.output);
                         }
                     } else {
                         logger.info("Not output is created!!");
@@ -178,7 +176,7 @@ public class CurveFittingExecutorService {
         return results;
     }
 
-    public void createNewCurve(DRCInputDTO drcInput, DRCOutput drcOutput) {
+    public void createNewCurve(DRCInputDTO drcInput, DRCOutputDTO drcOutput) {
         CurveDTO curveDTO = CurveDTO.builder()
                 .substanceName(drcInput.getSubstance())
                 .plateId(drcInput.getPlateId())
@@ -190,8 +188,24 @@ public class CurveFittingExecutorService {
                 .featureValues(drcInput.getValues())
                 .fitDate(new Date())
                 .version("0.0.1")
-                .plotDoseData(drcOutput.output.dose)
-                .plotPredictionData(drcOutput.output.prediction)
+                .plotDoseData(drcOutput.dataPredict2Plot.dose)
+                .plotPredictionData(drcOutput.dataPredict2Plot.prediction)
+                .weights(drcOutput.weights)
+                .pIC50(drcOutput.pIC50toReport)
+                .pIC50StdErr(drcOutput.validpIC50.stdError)
+                .eMax(drcOutput.rangeResults.eMax.response)
+                .eMin(drcOutput.rangeResults.eMin.response)
+                .eMaxConc(drcOutput.rangeResults.eMax.dose)
+                .eMinConc(drcOutput.rangeResults.eMin.dose)
+                .pIC20(StringUtils.isNumeric(drcOutput.validpIC20.estimate) ? Float.parseFloat(drcOutput.validpIC20.estimate) : null)
+                .pIC80(StringUtils.isNumeric(drcOutput.validpIC80.estimate) ? Float.parseFloat(drcOutput.validpIC80.estimate) : null)
+                .slope(drcOutput.modelCoefs.slope.estimate)
+                .bottom(drcOutput.modelCoefs.bottom.estimate)
+                .top(drcOutput.modelCoefs.top.estimate)
+                .slopeLowerCI(drcOutput.modelCoefs.slope.lowerCI)
+                .slopeUpperCI(drcOutput.modelCoefs.slope.upperCI)
+                .residualVariance(drcOutput.residualVariance)
+                .warning(drcOutput.warning)
                 .build();
         kafkaTemplate.send("curvedata-topic", "createCurve", curveDTO);
     }
@@ -275,7 +289,20 @@ public class CurveFittingExecutorService {
                     "\tslope = \""+ slope +"\"\n" +
                     ")\n" +
                     "\n" +
-                    "output <- value$dataPredict2Plot";
+                    "output$pIC50toReport <- value$pIC50toReport\n" +
+                    "output$validpIC50 <- value$validpIC50\n" +
+                    "output$rangeResults$eMin <- value$rangeResults[c(\"eMin\"),]\n" +
+                    "output$rangeResults$eMax <- value$rangeResults[c(\"eMax\"),]\n" +
+                    "output$validpIC20 <- value$validpIC20[c(\"e:1:20\"),]\n" +
+                    "output$validpIC80 <- value$validpIC80[c(\"e:1:80\"),]\n" +
+                    "output$dataPredict2Plot <- value$dataPredict2Plot \n" +
+                    "output$weights <- value$weights\n" +
+                    "output$pIC50Location <- value$pIC50Location\n" +
+                    "output$modelCoefs$Slope <- value$modelCoefs[c(\"Slope\"),]\n" +
+                    "output$modelCoefs$Bottom <- value$modelCoefs[c(\"Bottom\"),]\n" +
+                    "output$modelCoefs$Top <- value$modelCoefs[c(\"Top\"),]\n" +
+                    "output$modelCoefs$negLog10ED50 <- value$modelCoefs[c(\"-log10ED50\"),]\n";
+//                    "output <- value$dataPredict2Plot";
 
             var execution = scriptEngineClient.newScriptExecution(
                     R_FAST_LANE,
@@ -291,46 +318,54 @@ public class CurveFittingExecutorService {
         return Optional.empty();
     }
 
-    public Optional<DataPredict2Plot> getOutputData(CurveFittingContext cfCtx, FeatureCurvFitting curvFitting) {
-        if (curvFitting.getOutput().isEmpty()) {
-            return Optional.empty();
-        }
-
-        var output = curvFitting.getOutput().get();
-        try {
-            OutputWrapper outputValue = objectMapper.readValue(output.getOutput(), OutputWrapper.class);
-            if (StringUtils.isNotBlank(outputValue.output)) {
-                var dataPredict2Plot = objectMapper.readValue(outputValue.output, DataPredict2Plot.class);
-                if (dataPredict2Plot != null) {
-                    return Optional.of(dataPredict2Plot);
-                }
-            }
-
-        } catch (JsonProcessingException e) {
-            //TODO: set error message
-        }
-        return Optional.empty();
-    }
-
     private static class OutputWrapper {
 
-        public final String output;
+        public final DRCOutputDTO output;
 
         @JsonCreator
-        private OutputWrapper(@JsonProperty(value = "output", required = true) String output) {
+        private OutputWrapper(@JsonProperty(value = "output", required = true) DRCOutputDTO output) {
             this.output = output;
         }
     }
 
-    private static class DRCOutput {
-        public DataPredict2Plot output;
+    private static class DRCOutputDTO {
+        public String pIC50toReport;
+        public ValidICDTO validpIC50;
+        public ValidICDTO validpIC20;
+        public ValidICDTO validpIC80;
+        public RangeResultsDTO rangeResults;
+        public DataPredict2PlotDTO dataPredict2Plot;
+        public float[] weights;
+        public String[] pIC50Location;
+        public ModelCoefsDTO modelCoefs;
+        public float residualVariance;
+        public String warning;
 
-        @JsonCreator
-        private DRCOutput(@JsonProperty(value = "output", required = true) DataPredict2Plot output) {
-            this.output = output;
+        public DRCOutputDTO(@JsonProperty(value = "pIC50toReport", required = true) String pIC50toReport,
+                            @JsonProperty(value = "validpIC50", required = true) ValidICDTO validpIC50,
+                            @JsonProperty(value = "validpIC20", required = true) ValidICDTO validpIC20,
+                            @JsonProperty(value = "validpIC80", required = true) ValidICDTO validpIC80,
+                            @JsonProperty(value = "rangeResults", required = true) RangeResultsDTO rangeResults,
+                            @JsonProperty(value = "dataPredict2Plot", required = true) DataPredict2PlotDTO dataPredict2Plot,
+                            @JsonProperty(value = "weights", required = true) float[] weights,
+                            @JsonProperty(value = "pIC50Location", required = true) String[] pIC50Location,
+                            @JsonProperty(value = "modelCoefs", required = true) ModelCoefsDTO modelCoefs,
+                            @JsonProperty(value = "residulaVariance", required = true) float residualVariance,
+                            @JsonProperty(value = "warningFit") String warning) {
+            this.pIC50toReport = pIC50toReport;
+            this.validpIC50 = validpIC50;
+            this.validpIC20 = validpIC20;
+            this.validpIC80 = validpIC80;
+            this.rangeResults = rangeResults;
+            this.dataPredict2Plot = dataPredict2Plot;
+            this.weights = weights;
+            this.pIC50Location = pIC50Location;
+            this.modelCoefs = modelCoefs;
+            this.residualVariance = residualVariance;
+            this.warning = warning;
         }
     }
-    private static class DataPredict2Plot {
+    private static class DataPredict2PlotDTO {
 
         public float[] dose;
         public float[] prediction;
@@ -338,12 +373,96 @@ public class CurveFittingExecutorService {
         public float[] upper;
 
         @JsonCreator
-        private DataPredict2Plot(@JsonProperty(value = "dose", required = true) float[] dose,
-                                 @JsonProperty(value = "Prediction", required = true) float[] prediction,
-                                 @JsonProperty(value = "Lower", required = true) float[] lower,
-                                 @JsonProperty(value = "Upper", required = true) float[] upper) {
+        private DataPredict2PlotDTO(@JsonProperty(value = "dose", required = true) float[] dose,
+                                    @JsonProperty(value = "Prediction", required = true) float[] prediction,
+                                    @JsonProperty(value = "Lower", required = true) float[] lower,
+                                    @JsonProperty(value = "Upper", required = true) float[] upper) {
             this.dose = dose;
             this.prediction = prediction;
+            this.lower = lower;
+            this.upper = upper;
+        }
+    }
+
+    private static class ModelCoefsDTO {
+        public ModelCoefDTO slope;
+        public ModelCoefDTO bottom;
+        public ModelCoefDTO top;
+        public ModelCoefDTO negLog10ED50;
+
+        @JsonCreator
+        private ModelCoefsDTO(@JsonProperty(value = "Slope", required = true) ModelCoefDTO slope,
+                              @JsonProperty(value = "Bottom", required = true) ModelCoefDTO bottom,
+                              @JsonProperty(value = "Top", required = true) ModelCoefDTO top,
+                              @JsonProperty(value = "negLog10ED50", required = true) ModelCoefDTO negLog10ED50) {
+            this.slope = slope;
+            this.bottom = bottom;
+            this.top = top;
+            this.negLog10ED50 = negLog10ED50;
+        }
+    }
+
+    private static class ModelCoefDTO {
+        public float estimate;
+        public float stdError;
+        public float tValue;
+        public float pValue;
+        public float lowerCI;
+        public float upperCI;
+
+        @JsonCreator
+        public ModelCoefDTO(@JsonProperty(value = "Estimate", required = true) float estimate,
+                            @JsonProperty(value = "Std. Error", required = true) float stdError,
+                            @JsonProperty(value = "t-value", required = true) float tValue,
+                            @JsonProperty(value = "p-value", required = true) float pValue,
+                            @JsonProperty(value = "LowerCI", required = true) float lowerCI,
+                            @JsonProperty(value = "upperCI", required = true) float upperCI) {
+            this.estimate = estimate;
+            this.stdError = stdError;
+            this.tValue = tValue;
+            this.pValue = pValue;
+            this.lowerCI = lowerCI;
+            this.upperCI = upperCI;
+        }
+    }
+
+    private static class RangeResultsDTO {
+        public RangeResultDTO eMax;
+        public RangeResultDTO eMin;
+
+        @JsonCreator
+        public RangeResultsDTO(@JsonProperty(value = "eMax", required = true) RangeResultDTO eMax,
+                               @JsonProperty(value = "eMin", required = true) RangeResultDTO eMin) {
+            this.eMax = eMax;
+            this.eMin = eMin;
+        }
+    }
+
+    private static class RangeResultDTO {
+        public float dose;
+        public float response;
+
+        @JsonCreator
+        public RangeResultDTO(@JsonProperty(value = "dose", required = true) float dose,
+                              @JsonProperty(value = "response", required = true) float response) {
+            this.dose = dose;
+            this.response = response;
+        }
+    }
+
+    private static class ValidICDTO {
+        public String estimate;
+        public String stdError;
+        public String lower;
+        public String upper;
+
+        @JsonCreator
+        public ValidICDTO(@JsonProperty(value = "Estimate", required = true) String estimate,
+                          @JsonProperty(value = "Std. Error", required = true) String stdError,
+                          @JsonProperty(value = "Lower", required = true) String lower,
+                          @JsonProperty(value = "Upper", required = true) String upper) {
+            this.estimate = estimate;
+            this.stdError = stdError;
             this.lower = lower;
             this.upper = upper;
         }
