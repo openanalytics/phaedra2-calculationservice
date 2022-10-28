@@ -298,14 +298,15 @@ public class CurveFittingExecutorService {
                     "output$validpIC80 <- value$validpIC80[c(\"e:1:80\"),]\n" +
                     "output$dataPredict2Plot <- value$dataPredict2Plot \n" +
                     "output$weights <- value$weights\n" +
-                    "output$pIC50Location <- value$pIC50Location[1]\n" +
-                    "output$pIC50LocationPrediction <- value$pIC50Location[2]\n" +
                     "output$modelCoefs$Slope <- value$modelCoefs[c(\"Slope\"),]\n" +
                     "output$modelCoefs$Bottom <- value$modelCoefs[c(\"Bottom\"),]\n" +
                     "output$modelCoefs$Top <- value$modelCoefs[c(\"Top\"),]\n" +
                     "output$modelCoefs$negLog10ED50 <- value$modelCoefs[c(\"-log10ED50\"),]\n" +
                     "output$residulaVariance <- value$residulaVariance\n" +
                     "output$warningFit <- value$warningFit\n";
+                    // TODO: Later include pIC50Location value(s)
+                    // "output$pIC50Location <- value$pIC50Location[1]\n" +
+                    // "output$pIC50LocationPrediction <- value$pIC50Location[2]\n" +
 
             var execution = scriptEngineClient.newScriptExecution(
                     R_FAST_LANE,
@@ -339,8 +340,6 @@ public class CurveFittingExecutorService {
         public RangeResultsDTO rangeResults;
         public DataPredict2PlotDTO dataPredict2Plot;
         public float[] weights;
-        public String pIC50Location;
-        public String pIC50LocationPrediction;
         public ModelCoefsDTO modelCoefs;
         public float residualVariance;
         public String warning;
@@ -352,8 +351,6 @@ public class CurveFittingExecutorService {
                             @JsonProperty(value = "rangeResults") RangeResultsDTO rangeResults,
                             @JsonProperty(value = "dataPredict2Plot") DataPredict2PlotDTO dataPredict2Plot,
                             @JsonProperty(value = "weights") float[] weights,
-                            @JsonProperty(value = "pIC50Location") String pIC50Location,
-                            @JsonProperty(value = "pIC50LocationPrediction") String pIC50LocationPrediction,
                             @JsonProperty(value = "modelCoefs") ModelCoefsDTO modelCoefs,
                             @JsonProperty(value = "residulaVariance") float residualVariance,
                             @JsonProperty(value = "warningFit") String warning) {
@@ -364,8 +361,6 @@ public class CurveFittingExecutorService {
             this.rangeResults = rangeResults;
             this.dataPredict2Plot = dataPredict2Plot;
             this.weights = weights;
-            this.pIC50Location = pIC50Location;
-            this.pIC50LocationPrediction = pIC50LocationPrediction;
             this.modelCoefs = modelCoefs;
             this.residualVariance = residualVariance;
             this.warning = warning;
