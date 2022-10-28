@@ -44,7 +44,8 @@ import eu.openanalytics.phaedra.scriptengine.client.model.ScriptExecution;
 import eu.openanalytics.phaedra.scriptengine.dto.ScriptExecutionOutputDTO;
 import eu.openanalytics.phaedra.util.WellNumberUtils;
 import org.apache.commons.collections4.CollectionUtils;
-import org.apache.commons.lang3.StringUtils;
+
+import static org.apache.commons.lang3.StringUtils.*;
 import org.apache.commons.math3.util.Precision;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -54,6 +55,8 @@ import org.springframework.stereotype.Service;
 import java.util.*;
 import java.util.concurrent.*;
 import java.util.stream.Collectors;
+
+import static java.lang.Float.*;
 
 import static eu.openanalytics.phaedra.calculationservice.CalculationService.R_FAST_LANE;
 
@@ -147,7 +150,7 @@ public class CurveFittingExecutorService {
             if (execution.isPresent()) {
                 try {
                     ScriptExecutionOutputDTO outputDTO = execution.get().getOutput().get();
-                    if (StringUtils.isNotBlank(outputDTO.getOutput())) {
+                    if (isNotBlank(outputDTO.getOutput())) {
                         logger.info("Output is " + outputDTO.getOutput());
 
                         OutputWrapper outputWrapper = objectMapper.readValue(outputDTO.getOutput(), OutputWrapper.class);
@@ -193,18 +196,18 @@ public class CurveFittingExecutorService {
                 .weights(drcOutput.weights)
                 .pIC50(drcOutput.pIC50toReport)
                 .pIC50StdErr(drcOutput.validpIC50.stdError)
-                .eMax(drcOutput.rangeResults.eMax.response)
-                .eMin(drcOutput.rangeResults.eMin.response)
-                .eMaxConc(drcOutput.rangeResults.eMax.dose)
-                .eMinConc(drcOutput.rangeResults.eMin.dose)
-                .pIC20(StringUtils.isNumeric(drcOutput.validpIC20.estimate) ? Float.parseFloat(drcOutput.validpIC20.estimate) : null)
-                .pIC80(StringUtils.isNumeric(drcOutput.validpIC80.estimate) ? Float.parseFloat(drcOutput.validpIC80.estimate) : null)
-                .slope(drcOutput.modelCoefs.slope.estimate)
-                .bottom(drcOutput.modelCoefs.bottom.estimate)
-                .top(drcOutput.modelCoefs.top.estimate)
-                .slopeLowerCI(drcOutput.modelCoefs.slope.lowerCI)
-                .slopeUpperCI(drcOutput.modelCoefs.slope.upperCI)
-                .residualVariance(drcOutput.residualVariance)
+                .eMax(isNumeric(drcOutput.rangeResults.eMax.response) ? parseFloat(drcOutput.rangeResults.eMax.response) : null)
+                .eMin(isNumeric(drcOutput.rangeResults.eMin.response) ? parseFloat(drcOutput.rangeResults.eMin.response) : null)
+                .eMaxConc(isNumeric(drcOutput.rangeResults.eMax.dose) ? parseFloat(drcOutput.rangeResults.eMax.dose) : null)
+                .eMinConc(isNumeric(drcOutput.rangeResults.eMin.dose) ? parseFloat(drcOutput.rangeResults.eMin.dose) : null)
+                .pIC20(isNumeric(drcOutput.validpIC20.estimate) ? parseFloat(drcOutput.validpIC20.estimate) : null)
+                .pIC80(isNumeric(drcOutput.validpIC80.estimate) ? parseFloat(drcOutput.validpIC80.estimate) : null)
+                .slope(isNumeric(drcOutput.modelCoefs.slope.estimate) ? parseFloat(drcOutput.modelCoefs.slope.estimate) : null)
+                .bottom(isNumeric(drcOutput.modelCoefs.bottom.estimate) ? parseFloat(drcOutput.modelCoefs.bottom.estimate) : null)
+                .top(isNumeric(drcOutput.modelCoefs.top.estimate) ? parseFloat(drcOutput.modelCoefs.top.estimate) : null)
+                .slopeLowerCI(isNumeric(drcOutput.modelCoefs.slope.lowerCI) ? parseFloat(drcOutput.modelCoefs.slope.lowerCI) : null)
+                .slopeUpperCI(isNumeric(drcOutput.modelCoefs.slope.upperCI) ? parseFloat(drcOutput.modelCoefs.slope.upperCI) : null)
+                .residualVariance(isNumeric(drcOutput.residualVariance) ? parseFloat(drcOutput.residualVariance) : null)
                 .warning(drcOutput.warning)
                 .build();
         kafkaTemplate.send("curvedata-topic", "createCurve", curveDTO);
@@ -341,7 +344,7 @@ public class CurveFittingExecutorService {
         public DataPredict2PlotDTO dataPredict2Plot;
         public float[] weights;
         public ModelCoefsDTO modelCoefs;
-        public float residualVariance;
+        public String residualVariance;
         public String warning;
 
         public DRCOutputDTO(@JsonProperty(value = "pIC50toReport") String pIC50toReport,
@@ -352,7 +355,7 @@ public class CurveFittingExecutorService {
                             @JsonProperty(value = "dataPredict2Plot") DataPredict2PlotDTO dataPredict2Plot,
                             @JsonProperty(value = "weights") float[] weights,
                             @JsonProperty(value = "modelCoefs") ModelCoefsDTO modelCoefs,
-                            @JsonProperty(value = "residulaVariance") float residualVariance,
+                            @JsonProperty(value = "residulaVariance") String residualVariance,
                             @JsonProperty(value = "warningFit") String warning) {
             this.pIC50toReport = pIC50toReport;
             this.validpIC50 = validpIC50;
@@ -404,20 +407,20 @@ public class CurveFittingExecutorService {
     }
 
     private static class ModelCoefDTO {
-        public float estimate;
-        public float stdError;
-        public float tValue;
-        public float pValue;
-        public float lowerCI;
-        public float upperCI;
+        public String estimate;
+        public String stdError;
+        public String tValue;
+        public String pValue;
+        public String lowerCI;
+        public String upperCI;
 
         @JsonCreator
-        public ModelCoefDTO(@JsonProperty(value = "Estimate") float estimate,
-                            @JsonProperty(value = "Std. Error") float stdError,
-                            @JsonProperty(value = "t-value") float tValue,
-                            @JsonProperty(value = "p-value") float pValue,
-                            @JsonProperty(value = "LowerCI") float lowerCI,
-                            @JsonProperty(value = "upperCI") float upperCI) {
+        public ModelCoefDTO(@JsonProperty(value = "Estimate") String estimate,
+                            @JsonProperty(value = "Std. Error") String stdError,
+                            @JsonProperty(value = "t-value") String tValue,
+                            @JsonProperty(value = "p-value") String pValue,
+                            @JsonProperty(value = "LowerCI") String lowerCI,
+                            @JsonProperty(value = "upperCI") String upperCI) {
             this.estimate = estimate;
             this.stdError = stdError;
             this.tValue = tValue;
@@ -440,12 +443,12 @@ public class CurveFittingExecutorService {
     }
 
     private static class RangeResultDTO {
-        public float dose;
-        public float response;
+        public String dose;
+        public String response;
 
         @JsonCreator
-        public RangeResultDTO(@JsonProperty(value = "dose") float dose,
-                              @JsonProperty(value = "response") float response) {
+        public RangeResultDTO(@JsonProperty(value = "dose") String dose,
+                              @JsonProperty(value = "response") String response) {
             this.dose = dose;
             this.response = response;
         }
