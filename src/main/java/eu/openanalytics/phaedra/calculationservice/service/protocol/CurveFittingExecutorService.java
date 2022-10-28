@@ -298,7 +298,8 @@ public class CurveFittingExecutorService {
                     "output$validpIC80 <- value$validpIC80[c(\"e:1:80\"),]\n" +
                     "output$dataPredict2Plot <- value$dataPredict2Plot \n" +
                     "output$weights <- value$weights\n" +
-                    "output$pIC50Location <- value$pIC50Location\n" +
+                    "output$pIC50Location <- value$pIC50Location[1]\n" +
+                    "output$pIC50LocationPrediction <- value$pIC50Location[2]\n" +
                     "output$modelCoefs$Slope <- value$modelCoefs[c(\"Slope\"),]\n" +
                     "output$modelCoefs$Bottom <- value$modelCoefs[c(\"Bottom\"),]\n" +
                     "output$modelCoefs$Top <- value$modelCoefs[c(\"Top\"),]\n" +
@@ -338,22 +339,24 @@ public class CurveFittingExecutorService {
         public RangeResultsDTO rangeResults;
         public DataPredict2PlotDTO dataPredict2Plot;
         public float[] weights;
-        public String[] pIC50Location;
+        public String pIC50Location;
+        public String pIC50LocationPrediction;
         public ModelCoefsDTO modelCoefs;
         public float residualVariance;
         public String warning;
 
-        public DRCOutputDTO(@JsonProperty(value = "pIC50toReport", required = true) String pIC50toReport,
-                            @JsonProperty(value = "validpIC50", required = true) ValidIC50DTO validpIC50,
-                            @JsonProperty(value = "validpIC20", required = true) ValidICDTO validpIC20,
-                            @JsonProperty(value = "validpIC80", required = true) ValidICDTO validpIC80,
-                            @JsonProperty(value = "rangeResults", required = true) RangeResultsDTO rangeResults,
-                            @JsonProperty(value = "dataPredict2Plot", required = true) DataPredict2PlotDTO dataPredict2Plot,
-                            @JsonProperty(value = "weights", required = true) float[] weights,
-                            @JsonProperty(value = "pIC50Location", required = true) String[] pIC50Location,
-                            @JsonProperty(value = "modelCoefs", required = true) ModelCoefsDTO modelCoefs,
-                            @JsonProperty(value = "residulaVariance", required = true) float residualVariance,
-                            @JsonProperty(value = "warningFit", required = true) String warning) {
+        public DRCOutputDTO(@JsonProperty(value = "pIC50toReport") String pIC50toReport,
+                            @JsonProperty(value = "validpIC50") ValidIC50DTO validpIC50,
+                            @JsonProperty(value = "validpIC20") ValidICDTO validpIC20,
+                            @JsonProperty(value = "validpIC80") ValidICDTO validpIC80,
+                            @JsonProperty(value = "rangeResults") RangeResultsDTO rangeResults,
+                            @JsonProperty(value = "dataPredict2Plot") DataPredict2PlotDTO dataPredict2Plot,
+                            @JsonProperty(value = "weights") float[] weights,
+                            @JsonProperty(value = "pIC50Location") String pIC50Location,
+                            @JsonProperty(value = "pIC50LocationPrediction") String pIC50LocationPrediction,
+                            @JsonProperty(value = "modelCoefs") ModelCoefsDTO modelCoefs,
+                            @JsonProperty(value = "residulaVariance") float residualVariance,
+                            @JsonProperty(value = "warningFit") String warning) {
             this.pIC50toReport = pIC50toReport;
             this.validpIC50 = validpIC50;
             this.validpIC20 = validpIC20;
@@ -362,6 +365,7 @@ public class CurveFittingExecutorService {
             this.dataPredict2Plot = dataPredict2Plot;
             this.weights = weights;
             this.pIC50Location = pIC50Location;
+            this.pIC50LocationPrediction = pIC50LocationPrediction;
             this.modelCoefs = modelCoefs;
             this.residualVariance = residualVariance;
             this.warning = warning;
@@ -375,10 +379,10 @@ public class CurveFittingExecutorService {
         public float[] upper;
 
         @JsonCreator
-        private DataPredict2PlotDTO(@JsonProperty(value = "dose", required = true) float[] dose,
-                                    @JsonProperty(value = "Prediction", required = true) float[] prediction,
-                                    @JsonProperty(value = "Lower", required = true) float[] lower,
-                                    @JsonProperty(value = "Upper", required = true) float[] upper) {
+        private DataPredict2PlotDTO(@JsonProperty(value = "dose") float[] dose,
+                                    @JsonProperty(value = "Prediction") float[] prediction,
+                                    @JsonProperty(value = "Lower") float[] lower,
+                                    @JsonProperty(value = "Upper") float[] upper) {
             this.dose = dose;
             this.prediction = prediction;
             this.lower = lower;
@@ -393,10 +397,10 @@ public class CurveFittingExecutorService {
         public ModelCoefDTO negLog10ED50;
 
         @JsonCreator
-        private ModelCoefsDTO(@JsonProperty(value = "Slope", required = true) ModelCoefDTO slope,
-                              @JsonProperty(value = "Bottom", required = true) ModelCoefDTO bottom,
-                              @JsonProperty(value = "Top", required = true) ModelCoefDTO top,
-                              @JsonProperty(value = "negLog10ED50", required = true) ModelCoefDTO negLog10ED50) {
+        private ModelCoefsDTO(@JsonProperty(value = "Slope") ModelCoefDTO slope,
+                              @JsonProperty(value = "Bottom") ModelCoefDTO bottom,
+                              @JsonProperty(value = "Top") ModelCoefDTO top,
+                              @JsonProperty(value = "negLog10ED50") ModelCoefDTO negLog10ED50) {
             this.slope = slope;
             this.bottom = bottom;
             this.top = top;
@@ -413,12 +417,12 @@ public class CurveFittingExecutorService {
         public float upperCI;
 
         @JsonCreator
-        public ModelCoefDTO(@JsonProperty(value = "Estimate", required = true) float estimate,
-                            @JsonProperty(value = "Std. Error", required = true) float stdError,
-                            @JsonProperty(value = "t-value", required = true) float tValue,
-                            @JsonProperty(value = "p-value", required = true) float pValue,
-                            @JsonProperty(value = "LowerCI", required = true) float lowerCI,
-                            @JsonProperty(value = "upperCI", required = true) float upperCI) {
+        public ModelCoefDTO(@JsonProperty(value = "Estimate") float estimate,
+                            @JsonProperty(value = "Std. Error") float stdError,
+                            @JsonProperty(value = "t-value") float tValue,
+                            @JsonProperty(value = "p-value") float pValue,
+                            @JsonProperty(value = "LowerCI") float lowerCI,
+                            @JsonProperty(value = "upperCI") float upperCI) {
             this.estimate = estimate;
             this.stdError = stdError;
             this.tValue = tValue;
@@ -433,8 +437,8 @@ public class CurveFittingExecutorService {
         public RangeResultDTO eMin;
 
         @JsonCreator
-        public RangeResultsDTO(@JsonProperty(value = "eMax", required = true) RangeResultDTO eMax,
-                               @JsonProperty(value = "eMin", required = true) RangeResultDTO eMin) {
+        public RangeResultsDTO(@JsonProperty(value = "eMax") RangeResultDTO eMax,
+                               @JsonProperty(value = "eMin") RangeResultDTO eMin) {
             this.eMax = eMax;
             this.eMin = eMin;
         }
@@ -445,8 +449,8 @@ public class CurveFittingExecutorService {
         public float response;
 
         @JsonCreator
-        public RangeResultDTO(@JsonProperty(value = "dose", required = true) float dose,
-                              @JsonProperty(value = "response", required = true) float response) {
+        public RangeResultDTO(@JsonProperty(value = "dose") float dose,
+                              @JsonProperty(value = "response") float response) {
             this.dose = dose;
             this.response = response;
         }
@@ -459,10 +463,10 @@ public class CurveFittingExecutorService {
         public String upper;
 
         @JsonCreator
-        public ValidIC50DTO(@JsonProperty(value = "Estimate", required = true) String estimate,
-                            @JsonProperty(value = "Std. Error", required = true) String stdError,
-                            @JsonProperty(value = "LowerCI", required = true) String lower,
-                            @JsonProperty(value = "upperCI", required = true) String upper) {
+        public ValidIC50DTO(@JsonProperty(value = "Estimate") String estimate,
+                            @JsonProperty(value = "Std. Error") String stdError,
+                            @JsonProperty(value = "LowerCI") String lower,
+                            @JsonProperty(value = "upperCI") String upper) {
             this.estimate = estimate;
             this.stdError = stdError;
             this.lower = lower;
@@ -476,10 +480,10 @@ public class CurveFittingExecutorService {
         public String upper;
 
         @JsonCreator
-        public ValidICDTO(@JsonProperty(value = "Estimate", required = true) String estimate,
-                          @JsonProperty(value = "Std. Error", required = true) String stdError,
-                          @JsonProperty(value = "Lower", required = true) String lower,
-                          @JsonProperty(value = "Upper", required = true) String upper) {
+        public ValidICDTO(@JsonProperty(value = "Estimate") String estimate,
+                          @JsonProperty(value = "Std. Error") String stdError,
+                          @JsonProperty(value = "Lower") String lower,
+                          @JsonProperty(value = "Upper") String upper) {
             this.estimate = estimate;
             this.stdError = stdError;
             this.lower = lower;
