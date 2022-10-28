@@ -46,6 +46,8 @@ import eu.openanalytics.phaedra.util.WellNumberUtils;
 import org.apache.commons.collections4.CollectionUtils;
 
 import static org.apache.commons.lang3.StringUtils.*;
+import static org.apache.commons.lang3.math.NumberUtils.*;
+
 import org.apache.commons.math3.util.Precision;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -196,18 +198,18 @@ public class CurveFittingExecutorService {
                 .weights(drcOutput.weights)
                 .pIC50(drcOutput.pIC50toReport)
                 .pIC50StdErr(drcOutput.validpIC50.stdError)
-                .eMax(isNumeric(drcOutput.rangeResults.eMax.response) ? parseFloat(drcOutput.rangeResults.eMax.response) : null)
-                .eMin(isNumeric(drcOutput.rangeResults.eMin.response) ? parseFloat(drcOutput.rangeResults.eMin.response) : null)
-                .eMaxConc(isNumeric(drcOutput.rangeResults.eMax.dose) ? parseFloat(drcOutput.rangeResults.eMax.dose) : null)
-                .eMinConc(isNumeric(drcOutput.rangeResults.eMin.dose) ? parseFloat(drcOutput.rangeResults.eMin.dose) : null)
-                .pIC20(isNumeric(drcOutput.validpIC20.estimate) ? parseFloat(drcOutput.validpIC20.estimate) : null)
-                .pIC80(isNumeric(drcOutput.validpIC80.estimate) ? parseFloat(drcOutput.validpIC80.estimate) : null)
-                .slope(isNumeric(drcOutput.modelCoefs.slope.estimate) ? parseFloat(drcOutput.modelCoefs.slope.estimate) : null)
-                .bottom(isNumeric(drcOutput.modelCoefs.bottom.estimate) ? parseFloat(drcOutput.modelCoefs.bottom.estimate) : null)
-                .top(isNumeric(drcOutput.modelCoefs.top.estimate) ? parseFloat(drcOutput.modelCoefs.top.estimate) : null)
-                .slopeLowerCI(isNumeric(drcOutput.modelCoefs.slope.lowerCI) ? parseFloat(drcOutput.modelCoefs.slope.lowerCI) : null)
-                .slopeUpperCI(isNumeric(drcOutput.modelCoefs.slope.upperCI) ? parseFloat(drcOutput.modelCoefs.slope.upperCI) : null)
-                .residualVariance(isNumeric(drcOutput.residualVariance) ? parseFloat(drcOutput.residualVariance) : null)
+                .eMax(isCreatable(drcOutput.rangeResults.eMax.response) ? parseFloat(drcOutput.rangeResults.eMax.response) : NaN)
+                .eMin(isCreatable(drcOutput.rangeResults.eMin.response) ? parseFloat(drcOutput.rangeResults.eMin.response) : NaN)
+                .eMaxConc(isCreatable(drcOutput.rangeResults.eMax.dose) ? parseFloat(drcOutput.rangeResults.eMax.dose) : NaN)
+                .eMinConc(isCreatable(drcOutput.rangeResults.eMin.dose) ? parseFloat(drcOutput.rangeResults.eMin.dose) : NaN)
+                .pIC20(isCreatable(drcOutput.validpIC20.estimate) ? parseFloat(drcOutput.validpIC20.estimate) : NaN)
+                .pIC80(isCreatable(drcOutput.validpIC80.estimate) ? parseFloat(drcOutput.validpIC80.estimate) : NaN)
+                .slope(isCreatable(drcOutput.modelCoefs.slope.estimate) ? parseFloat(drcOutput.modelCoefs.slope.estimate) : NaN)
+                .bottom(isCreatable(drcOutput.modelCoefs.bottom.estimate) ? parseFloat(drcOutput.modelCoefs.bottom.estimate) : NaN)
+                .top(isCreatable(drcOutput.modelCoefs.top.estimate) ? parseFloat(drcOutput.modelCoefs.top.estimate) : NaN)
+                .slopeLowerCI(isCreatable(drcOutput.modelCoefs.slope.lowerCI) ? parseFloat(drcOutput.modelCoefs.slope.lowerCI) : NaN)
+                .slopeUpperCI(isCreatable(drcOutput.modelCoefs.slope.upperCI) ? parseFloat(drcOutput.modelCoefs.slope.upperCI) : NaN)
+                .residualVariance(isCreatable(drcOutput.residualVariance) ? parseFloat(drcOutput.residualVariance) : NaN)
                 .warning(drcOutput.warning)
                 .build();
         kafkaTemplate.send("curvedata-topic", "createCurve", curveDTO);
