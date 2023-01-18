@@ -1,7 +1,7 @@
 /**
  * Phaedra II
  *
- * Copyright (C) 2016-2022 Open Analytics
+ * Copyright (C) 2016-2023 Open Analytics
  *
  * ===========================================================================
  *
@@ -130,7 +130,7 @@ public class FormulaService {
         }
     	return new FormulaParser().parseInputNames(formula.get());
     }
-    
+
     private FormulaDTO save(Formula formula) {
         Formula newFormula = formulaRepository.save(formula);
         return modelMapper.map(newFormula).build();

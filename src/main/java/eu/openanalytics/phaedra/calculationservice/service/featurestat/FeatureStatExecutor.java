@@ -1,7 +1,7 @@
 /**
  * Phaedra II
  *
- * Copyright (C) 2016-2022 Open Analytics
+ * Copyright (C) 2016-2023 Open Analytics
  *
  * ===========================================================================
  *
@@ -76,7 +76,7 @@ public class FeatureStatExecutor {
     }
 
     public Boolean executeFeatureStat(CalculationContext cctx, Feature feature, ResultDataDTO resultData) {
-    	
+
         if (!Objects.equals(resultData.getFeatureId(), feature.getId())) {
             cctx.getErrorCollector().handleError("Skipping calculating FeatureStats because FeatureId does not match the FeatureId of the ResultData", feature);
             return false;
