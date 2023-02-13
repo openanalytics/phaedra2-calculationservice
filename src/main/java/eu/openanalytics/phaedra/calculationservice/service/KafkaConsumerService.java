@@ -1,7 +1,7 @@
 package eu.openanalytics.phaedra.calculationservice.service;
 
-import eu.openanalytics.phaedra.calculationservice.dto.CalculationRequestDTO;
 import eu.openanalytics.phaedra.calculationservice.service.protocol.ProtocolExecutorService;
+import eu.openanalytics.phaedra.commons.dto.CalculationRequestDTO;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;

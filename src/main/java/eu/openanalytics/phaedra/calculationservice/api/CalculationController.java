@@ -24,17 +24,16 @@ import java.util.concurrent.ExecutionException;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
 
+import eu.openanalytics.phaedra.commons.dto.CalculationRequestDTO;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
-import org.springframework.kafka.core.KafkaTemplate;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
-import eu.openanalytics.phaedra.calculationservice.dto.CalculationRequestDTO;
 import eu.openanalytics.phaedra.calculationservice.dto.CalculationStatus;
 import eu.openanalytics.phaedra.calculationservice.service.protocol.ProtocolExecutorService;
 import eu.openanalytics.phaedra.calculationservice.service.status.CalculationStatusService;
@@ -51,7 +50,6 @@ public class CalculationController {
     private final ProtocolExecutorService protocolExecutorService;
     private final CalculationStatusService calculationStatusService;
 
-    private final KafkaTemplate<String, Object> kafkaTemplate;
     @PostMapping("/calculation")
     public ResponseEntity<Long> calculate(@RequestBody CalculationRequestDTO calculationRequestDTO,
                                           @RequestParam(value = "timeout", required = false) Long timeout) throws ExecutionException, InterruptedException {
