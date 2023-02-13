@@ -27,9 +27,7 @@ import lombok.*;
 @AllArgsConstructor
 @NoArgsConstructor(force = true, access = AccessLevel.PRIVATE) // Jackson deserialize compatibility
 public class CalculationRequestDTO {
-
     long protocolId;
     long plateId;
     long measId;
-
 }
