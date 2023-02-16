@@ -114,15 +114,17 @@ private List<CurveDTO> executeCurveFitting(CompletableFuture<Long> curveIdFuture
         var plate  = plateServiceClient.getPlate(plateId);
         var wells = plateServiceClient.getWells(plateId);
 
-//        var protocolFeatures = protocolServiceClient.getFeaturesOfProtocol(protocolId);
-//        logger.info("Number of feature within protocol " + protocolId + " : " + protocolFeatures.size());
+        if (featureResultData == null) {
+            logger.info("Feature result data is null!!");
+            return null;
+        }
+
+        logger.info("Get feature by featureId: " + featureResultData.getFeatureId());
         var feature = protocolServiceClient.getFeature(featureResultData.getFeatureId());
-
-//        var curveFeatures = protocolFeatures.stream().filter(pf -> pf.getDrcModel() != null).collect(Collectors.toList());
-//        logger.info("Number of feature with curve fitting models: " + curveFeatures.size());
-
-//        if (CollectionUtils.isEmpty(curveFeatures))
-//            return null; //TODO: Return a proper error
+        if (feature.getDrcModel() == null) {
+            logger.info("No drcModel found featureId: " + featureResultData.getFeatureId());
+            return null;
+        }
 
         var wellSubstances = plateServiceClient.getWellSubstances(plateId);
         var wellSubstancesUnique = wellSubstances
@@ -138,21 +140,15 @@ private List<CurveDTO> executeCurveFitting(CompletableFuture<Long> curveIdFuture
             return null; //TODO: Return a proper error
 
         List<Object[]> curvesToFit = new ArrayList<>();
-//        for (FeatureDTO feature: curveFeatures) {
             for (String wellSubstance: wellSubstancesUnique) {
                 curvesToFit.add(new Object[] { wellSubstance, feature.getId() });
             }
-//        }
-//        logger.info("Number of curve to be fitted: " + curvesToFit.size());
-//        var cfCtx = CurveFittingContext.newInstance(plate, wells, wellSubstances, wellSubstancesUnique, curveFeatures, resultSetId, protocolId);
         var cfCtx = CurveFittingContext.newInstance(plate, wells, wellSubstances, wellSubstancesUnique, feature, feature.getDrcModel());
 
         List<CurveDTO> results = new ArrayList<>();
         for (Object[] o : curvesToFit) {
             String substance = (String) o[0];
-//            long featureId = (long) o[1];
             logger.info("Fit curve for substance " + substance + " and featureId " + featureResultData.getFeatureId());
-//            DRCInputDTO drcInput = collectDRCIntpuData(cfCtx, substance, featureId, resultSetId);
             DRCInputDTO drcInput = collectDRCIntpuData(cfCtx, substance, featureResultData);
             Optional<ScriptExecution> execution = fitCurve(drcInput);
             if (execution.isPresent()) {
