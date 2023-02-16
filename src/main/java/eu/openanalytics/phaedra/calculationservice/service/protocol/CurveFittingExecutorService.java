@@ -30,27 +30,18 @@ import eu.openanalytics.curvedataservice.dto.CurveDTO;
 import eu.openanalytics.phaedra.calculationservice.config.KafkaConsumerConfig;
 import eu.openanalytics.phaedra.calculationservice.dto.DRCInputDTO;
 import eu.openanalytics.phaedra.calculationservice.model.CurveFittingContext;
-import eu.openanalytics.phaedra.curvedataservice.client.exception.CurveUnresolvedException;
 import eu.openanalytics.phaedra.plateservice.client.PlateServiceClient;
 import eu.openanalytics.phaedra.plateservice.client.exception.PlateUnresolvableException;
 import eu.openanalytics.phaedra.plateservice.dto.WellSubstanceDTO;
 import eu.openanalytics.phaedra.protocolservice.client.ProtocolServiceClient;
 import eu.openanalytics.phaedra.protocolservice.client.exception.FeatureUnresolvableException;
-import eu.openanalytics.phaedra.protocolservice.client.exception.ProtocolUnresolvableException;
-import eu.openanalytics.phaedra.protocolservice.dto.FeatureDTO;
 import eu.openanalytics.phaedra.resultdataservice.client.ResultDataServiceClient;
-import eu.openanalytics.phaedra.resultdataservice.client.exception.ResultDataUnresolvableException;
-import eu.openanalytics.phaedra.resultdataservice.client.exception.ResultSetUnresolvableException;
 import eu.openanalytics.phaedra.resultdataservice.dto.ResultDataDTO;
 import eu.openanalytics.phaedra.scriptengine.client.ScriptEngineClient;
 import eu.openanalytics.phaedra.scriptengine.client.model.ScriptExecution;
 import eu.openanalytics.phaedra.scriptengine.dto.ScriptExecutionOutputDTO;
 import eu.openanalytics.phaedra.util.WellNumberUtils;
 import org.apache.commons.collections4.CollectionUtils;
-
-import static org.apache.commons.lang3.StringUtils.*;
-import static org.apache.commons.lang3.math.NumberUtils.*;
-
 import org.apache.commons.math3.util.Precision;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -61,9 +52,11 @@ import java.util.*;
 import java.util.concurrent.*;
 import java.util.stream.Collectors;
 
-import static java.lang.Float.*;
-
 import static eu.openanalytics.phaedra.calculationservice.CalculationService.R_FAST_LANE;
+import static java.lang.Float.NaN;
+import static java.lang.Float.parseFloat;
+import static org.apache.commons.lang3.StringUtils.isNotBlank;
+import static org.apache.commons.lang3.math.NumberUtils.isCreatable;
 
 @Service
 public class CurveFittingExecutorService {
@@ -91,15 +84,11 @@ public class CurveFittingExecutorService {
 
     public record CurveFittingExecution(CompletableFuture<Long> curveId, Future<List<CurveDTO>> plateCurves) {};
 
-//    public CurveFittingExecution execute(long protocolId, long plateId, long resultSetId, long measId) {
     public CurveFittingExecution execute(long plateId, ResultDataDTO featureResultData) {
         // submit execution to the ThreadPool/ExecutorService and return a future
         var curveIdFuture = new CompletableFuture<Long>();
         return new CurveFittingExecution(curveIdFuture, executorService.submit(() -> {
             try {
-//                logger.info("Start curve fitting with protocol " + protocolId + ", plate " + plateId + ", and resultSet " + resultSetId);
-//                return executeCurveFitting(curveIdFuture, protocolId, plateId, resultSetId, measId);
-//                return executeCurveFitting(curveIdFuture, protocolId, plateId, resultSetId);
                 return executeCurveFitting(curveIdFuture, plateId, featureResultData);
             } catch (Throwable ex) {
                 // print the stack strace. Since the future may never be awaited, we may not see the error otherwise
@@ -109,7 +98,6 @@ public class CurveFittingExecutorService {
         }));
     }
 
-//    private List<CurveDTO> executeCurveFitting(CompletableFuture<Long> curveIdFuture, long protocolId, long plateId, long resultSetId, long measId) throws ProtocolUnresolvableException, ResultSetUnresolvableException, PlateUnresolvableException, CurveUnresolvedException {
 private List<CurveDTO> executeCurveFitting(CompletableFuture<Long> curveIdFuture, long plateId, ResultDataDTO featureResultData) throws PlateUnresolvableException, FeatureUnresolvableException {
         var plate  = plateServiceClient.getPlate(plateId);
         var wells = plateServiceClient.getWells(plateId);
@@ -217,18 +205,10 @@ private List<CurveDTO> executeCurveFitting(CompletableFuture<Long> curveIdFuture
         kafkaTemplate.send(KafkaConsumerConfig.CURVEDATA_TOPIC, KafkaConsumerConfig.SAVE_CURVE_EVENT, curveDTO);
     }
 
-//    private DRCInputDTO collectDRCIntpuData(CurveFittingContext cfCtx, String substanceName, long featureId, long resultSetId) {
     private DRCInputDTO collectDRCIntpuData(CurveFittingContext cfCtx, String substanceName, ResultDataDTO featureResult) {
-//        try {
-//            var featureResult = resultDataServiceClient.getResultData(resultSetId, featureId);
-
             var wells = cfCtx.getWells().stream()
                     .filter(w -> w.getWellSubstance() != null && w.getWellSubstance().getName().equals(substanceName))
                     .collect(Collectors.toList());
-//            var drcModelDTO = cfCtx.getCurveFeatures().stream()
-//                    .filter(f -> f.getId() == featureId)
-//                    .findFirst()
-//                    .map(f -> f.getDrcModel());
             var drcModelDTO = cfCtx.getDrcModel();
 
 
@@ -263,9 +243,6 @@ private List<CurveDTO> executeCurveFitting(CompletableFuture<Long> curveIdFuture
                     .accepts(accepts)
                     .drcModel(Optional.of(drcModelDTO))
                     .build();
-//        } catch (ResultDataUnresolvableException e) {
-//            throw new RuntimeException(e);
-//        }
     }
 
     public Optional<ScriptExecution> fitCurve(DRCInputDTO inputDTO) {
