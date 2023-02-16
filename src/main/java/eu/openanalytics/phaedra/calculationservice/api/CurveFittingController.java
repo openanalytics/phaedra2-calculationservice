@@ -50,11 +50,8 @@ public class CurveFittingController {
     @PostMapping("/curvefit")
     public ResponseEntity<List<CurveDTO>> fitCurve(@RequestBody CurveFittingRequestDTO curveFittingRequestDTO,
                                                    @RequestParam(value = "timeout", required = false) Long timeout) throws ExecutionException, InterruptedException {
-        var future = curveFittingExecutorService.execute(
-                curveFittingRequestDTO.getProtocolId(),
-                curveFittingRequestDTO.getPlateId(),
-                curveFittingRequestDTO.getResultSetId(),
-                curveFittingRequestDTO.getMeasId());
+        var future = curveFittingExecutorService.execute(curveFittingRequestDTO.getPlateId(),
+                curveFittingRequestDTO.getFeatureResultData());
         if (timeout != null) {
             try {
                 future.plateCurves().get(timeout, TimeUnit.MILLISECONDS);

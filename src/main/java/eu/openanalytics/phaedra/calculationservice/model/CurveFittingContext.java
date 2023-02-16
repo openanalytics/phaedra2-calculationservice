@@ -24,6 +24,7 @@ import eu.openanalytics.phaedra.calculationservice.service.protocol.ErrorCollect
 import eu.openanalytics.phaedra.plateservice.dto.PlateDTO;
 import eu.openanalytics.phaedra.plateservice.dto.WellDTO;
 import eu.openanalytics.phaedra.plateservice.dto.WellSubstanceDTO;
+import eu.openanalytics.phaedra.protocolservice.dto.DRCModelDTO;
 import eu.openanalytics.phaedra.protocolservice.dto.FeatureDTO;
 import lombok.*;
 
@@ -47,22 +48,36 @@ public class CurveFittingContext {
     @NonNull
     List<String> uniqueSubstances;
 
+//    @NonNull
+//    List<FeatureDTO> curveFeatures;
     @NonNull
-    List<FeatureDTO> curveFeatures;
+    FeatureDTO feature;
+    @NonNull
+    DRCModelDTO drcModel;
 
-    @NonNull
-    Long resultSetId;
+//    @NonNull
+//    Long resultSetId;
+//
+//    @NonNull
+//    Long protocolId;
 
-    @NonNull
-    Long protocolId;
+//    public static CurveFittingContext newInstance(PlateDTO plate,
+//                                                  List<WellDTO> wells,
+//                                                  List<WellSubstanceDTO> wellSubstances,
+//                                                  List<String> uniqueSubstances,
+//                                                  List<FeatureDTO> curveFeatures,
+//                                                  Long resultSetId, Long protocolId) {
+//        CurveFittingContext curveFittingContext = new CurveFittingContext(plate, wells, wellSubstances, uniqueSubstances, curveFeatures, resultSetId, protocolId);
+//        return curveFittingContext;
+//    }
 
     public static CurveFittingContext newInstance(PlateDTO plate,
                                                   List<WellDTO> wells,
                                                   List<WellSubstanceDTO> wellSubstances,
                                                   List<String> uniqueSubstances,
-                                                  List<FeatureDTO> curveFeatures,
-                                                  Long resultSetId, Long protocolId) {
-        CurveFittingContext curveFittingContext = new CurveFittingContext(plate, wells, wellSubstances, uniqueSubstances, curveFeatures, resultSetId, protocolId);
+                                                  FeatureDTO feature,
+                                                  DRCModelDTO drcModel) {
+        CurveFittingContext curveFittingContext = new CurveFittingContext(plate, wells, wellSubstances, uniqueSubstances, feature, drcModel);
         return curveFittingContext;
     }
 }

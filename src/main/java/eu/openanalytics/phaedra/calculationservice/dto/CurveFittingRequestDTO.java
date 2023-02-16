@@ -20,6 +20,7 @@
  */
 package eu.openanalytics.phaedra.calculationservice.dto;
 
+import eu.openanalytics.phaedra.resultdataservice.dto.ResultDataDTO;
 import lombok.*;
 
 @Builder
@@ -27,8 +28,14 @@ import lombok.*;
 @AllArgsConstructor
 @NoArgsConstructor(force = true, access = AccessLevel.PRIVATE) // Jackson deserialize compatibility
 public class CurveFittingRequestDTO {
-    long protocolId;
+//    long protocolId;
+//    long plateId;
+//    long resultSetId;
+//    long measId;
+
     long plateId;
-    long resultSetId;
-    long measId;
+
+    long featureId;
+
+    ResultDataDTO featureResultData;
 }

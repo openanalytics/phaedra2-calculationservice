@@ -30,6 +30,8 @@ import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Future;
 
+import eu.openanalytics.phaedra.calculationservice.config.KafkaConsumerConfig;
+import eu.openanalytics.phaedra.calculationservice.dto.CurveFittingRequestDTO;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.kafka.core.KafkaTemplate;
@@ -207,6 +209,9 @@ public class SequenceExecutorService {
                             modelMapper.map(output.getStatusCode()),
                             output.getStatusMessage(),
                             output.getExitCode());
+
+                    var curveFitRequest = new CurveFittingRequestDTO(cctx.getPlate().getId(), resultData.getFeatureId(), resultData);
+                    kafkaTemplate.send(KafkaConsumerConfig.CURVEDATA_TOPIC, KafkaConsumerConfig.CURVE_FIT_EVENT, curveFitRequest);
 
                     return Optional.of(resultData);
                 } catch (JsonProcessingException e) {
