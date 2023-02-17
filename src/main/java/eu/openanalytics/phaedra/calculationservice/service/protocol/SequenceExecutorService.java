@@ -211,7 +211,7 @@ public class SequenceExecutorService {
                             output.getExitCode());
 
                     var curveFitRequest = new CurveFittingRequestDTO(cctx.getPlate().getId(), resultData.getFeatureId(), resultData);
-                    kafkaTemplate.send(KafkaConsumerConfig.CURVEDATA_TOPIC, KafkaConsumerConfig.CURVE_FIT_EVENT, curveFitRequest);
+                    kafkaTemplate.send(KafkaConsumerConfig.CALCULATIONS_TOPIC, KafkaConsumerConfig.CURVE_FIT_EVENT, curveFitRequest);
 
                     return Optional.of(resultData);
                 } catch (JsonProcessingException e) {
@@ -227,7 +227,7 @@ public class SequenceExecutorService {
                         output.getExitCode());
 
                 var curveFitRequest = new CurveFittingRequestDTO(cctx.getPlate().getId(), resultData.getFeatureId(), resultData);
-                kafkaTemplate.send(KafkaConsumerConfig.CURVEDATA_TOPIC, KafkaConsumerConfig.CURVE_FIT_EVENT, curveFitRequest);
+                kafkaTemplate.send(KafkaConsumerConfig.CALCULATIONS_TOPIC, KafkaConsumerConfig.CURVE_FIT_EVENT, curveFitRequest);
 
                 cctx.getErrorCollector().handleError(String.format("executing sequence => processing output => output indicates error [%s]", output.getStatusCode()), output, feature, feature.getFormula());
                 return Optional.of(resultData);

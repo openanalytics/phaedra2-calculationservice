@@ -4,7 +4,6 @@ import eu.openanalytics.phaedra.calculationservice.dto.CurveFittingRequestDTO;
 import eu.openanalytics.phaedra.calculationservice.service.protocol.CurveFittingExecutorService;
 import eu.openanalytics.phaedra.calculationservice.service.protocol.ProtocolExecutorService;
 import eu.openanalytics.phaedra.commons.dto.CalculationRequestDTO;
-import eu.openanalytics.phaedra.resultdataservice.dto.ResultDataDTO;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -17,7 +16,7 @@ import java.util.concurrent.ExecutionException;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
 
-import static eu.openanalytics.phaedra.calculationservice.config.KafkaConsumerConfig.CURVEDATA_TOPIC;
+import static eu.openanalytics.phaedra.calculationservice.config.KafkaConsumerConfig.CALCULATIONS_TOPIC;
 import static eu.openanalytics.phaedra.calculationservice.config.KafkaConsumerConfig.PLATE_TOPIC;
 
 @Service
@@ -44,8 +43,8 @@ public class KafkaConsumerService {
         }
     }
 
-    @KafkaListener(topics = CURVEDATA_TOPIC, groupId = "calculation-service", filter = "curveFitEventFilter")
-    public void onCurveFitEvent(CurveFittingRequestDTO curveFittingRequestDTO, @Header(KafkaHeaders.RECEIVED_KEY) String key) throws ExecutionException, InterruptedException {
+    @KafkaListener(topics = CALCULATIONS_TOPIC, groupId = "calculation-service", filter = "curveFitEventFilter")
+    public void onCurveFitEvent(CurveFittingRequestDTO curveFittingRequestDTO) throws ExecutionException, InterruptedException {
         logger.info("calculation-service: received a curve fit event!");
         var future = curveFittingExecutorService.execute(
                 curveFittingRequestDTO.getPlateId(),

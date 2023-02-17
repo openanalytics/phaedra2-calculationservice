@@ -21,6 +21,7 @@
 package eu.openanalytics.phaedra.calculationservice.service.protocol;
 
 import com.google.common.util.concurrent.ThreadFactoryBuilder;
+import eu.openanalytics.phaedra.calculationservice.config.KafkaConsumerConfig;
 import eu.openanalytics.phaedra.calculationservice.model.CalculationContext;
 import eu.openanalytics.phaedra.calculationservice.model.Sequence;
 import eu.openanalytics.phaedra.plateservice.client.PlateServiceClient;
@@ -174,7 +175,7 @@ public class ProtocolExecutorService {
         // Update plate calculation status through an Apache Kafka topic
         logger.info("Set plate calculation status to " + calculationStatus.name() + " for plateId " + plateId);
         PlateCalculationStatusDTO plateCalcStatusDTO = PlateCalculationStatusDTO.builder().plateId(plateId).calculationStatus(calculationStatus).build();
-        kafkaTemplate.send("calculations", "updatePlateCalculationStatus", plateCalcStatusDTO);
+        kafkaTemplate.send(KafkaConsumerConfig.CALCULATIONS_TOPIC, KafkaConsumerConfig.UPDATE_PLATE_STATUS_EVENT, plateCalcStatusDTO);
     }
 
 }
