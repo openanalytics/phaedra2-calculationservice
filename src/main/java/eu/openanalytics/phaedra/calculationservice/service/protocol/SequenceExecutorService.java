@@ -199,14 +199,23 @@ public class SequenceExecutorService {
                         }
                     }
 
+                    var resultData = ResultDataDTO.builder()
+                            .resultSetId(cctx.getResultSetId())
+                            .featureId(feature.getId())
+                            .values(floatOutputValue)
+                            .statusCode(modelMapper.map(output.getStatusCode()))
+                            .statusMessage(output.getStatusMessage())
+                            .exitCode(output.getExitCode())
+                            .build();
+                    kafkaProducerService.sendResultData(resultData);
 
-                    var resultData = resultDataServiceClient.addResultData(
-                            cctx.getResultSetId(),
-                            feature.getId(),
-                            floatOutputValue,
-                            modelMapper.map(output.getStatusCode()),
-                            output.getStatusMessage(),
-                            output.getExitCode());
+//                    var resultData = resultDataServiceClient.addResultData(
+//                            cctx.getResultSetId(),
+//                            feature.getId(),
+//                            floatOutputValue,
+//                            modelMapper.map(output.getStatusCode()),
+//                            output.getStatusMessage(),
+//                            output.getExitCode());
 
                     var curveFitRequest = new CurveFittingRequestDTO(cctx.getPlate().getId(), resultData.getFeatureId(), resultData);
                     kafkaProducerService.initiateCurveFitting(curveFitRequest);

@@ -1,20 +1,20 @@
 /**
  * Phaedra II
- *
+ * <p>
  * Copyright (C) 2016-2023 Open Analytics
- *
+ * <p>
  * ===========================================================================
- *
+ * <p>
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the Apache License as published by
  * The Apache Software Foundation, either version 2 of the License, or
  * (at your option) any later version.
- *
+ * <p>
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  * Apache License for more details.
- *
+ * <p>
  * You should have received a copy of the Apache License
  * along with this program.  If not, see <http://www.apache.org/licenses/>
  */
@@ -31,6 +31,7 @@ import java.util.Objects;
 import java.util.Optional;
 import java.util.concurrent.ExecutionException;
 
+import eu.openanalytics.phaedra.calculationservice.service.KafkaProducerService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
@@ -65,14 +66,18 @@ public class FeatureStatExecutor {
     private final ObjectMapper objectMapper;
     private final ResultDataServiceClient resultDataServiceClient;
     private final ModelMapper modelMapper;
+    private final KafkaProducerService kafkaProducerService;
 
     private final static int MAX_ATTEMPTS = 3;
 
-    public FeatureStatExecutor(ScriptEngineClient scriptEngineClient, ObjectMapper objectMapper, ResultDataServiceClient resultDataServiceClient, ModelMapper modelMapper) {
+    public FeatureStatExecutor(ScriptEngineClient scriptEngineClient, ObjectMapper objectMapper,
+                               ResultDataServiceClient resultDataServiceClient, ModelMapper modelMapper,
+                               KafkaProducerService kafkaProducerService) {
         this.scriptEngineClient = scriptEngineClient;
         this.objectMapper = objectMapper;
         this.resultDataServiceClient = resultDataServiceClient;
         this.modelMapper = modelMapper;
+        this.kafkaProducerService = kafkaProducerService;
     }
 
     public Boolean executeFeatureStat(CalculationContext cctx, Feature feature, ResultDataDTO resultData) {
@@ -151,18 +156,23 @@ public class FeatureStatExecutor {
         }
 
         // 6. store output
-        try {
-            resultDataServiceClient.createResultFeatureStats(cctx.getResultSetId(), resultFeatureStats);
-        } catch (ResultFeatureStatUnresolvableException e) {
-            cctx.getErrorCollector().handleError("executing featureStat => processing output => saving resultdata", e, feature);
-            success.failed();
-        }
+//        try {
+//            resultDataServiceClient.createResultFeatureStats(cctx.getResultSetId(), resultFeatureStats);
+            kafkaProducerService.sendResultFeatureStats(cctx.getResultSetId(), resultFeatureStats);
+
+//        } catch (ResultFeatureStatUnresolvableException e) {
+//            cctx.getErrorCollector().handleError("executing featureStat => processing output => saving resultdata", e, feature);
+//            success.failed();
+//        }
 
         log(logger, cctx, "[F=%s] All FeatureStat output saved", feature.getId());
         return success.isSuccess();
     }
 
-    private SuccessTracker<List<FeatureStatCalculation>> calculateFeatureStats(CalculationContext cctx, Feature feature, List<FeatureStat> featureStats, ResultDataDTO resultData, ArrayList<ResultFeatureStatDTO> resultFeatureStats) {
+    private SuccessTracker<List<FeatureStatCalculation>> calculateFeatureStats(CalculationContext cctx, Feature feature,
+                                                                               List<FeatureStat> featureStats,
+                                                                               ResultDataDTO resultData,
+                                                                               ArrayList<ResultFeatureStatDTO> resultFeatureStats) {
         var success = new SuccessTracker<List<FeatureStatCalculation>>();
         // 1. send Calculations to ScriptEngine (we do this synchronous, because no API/DB queries are needed)
         final var calculations = new ArrayList<FeatureStatCalculation>();

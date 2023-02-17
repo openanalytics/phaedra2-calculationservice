@@ -4,8 +4,12 @@ import eu.openanalytics.curvedataservice.dto.CurveDTO;
 import eu.openanalytics.phaedra.calculationservice.config.KafkaConfig;
 import eu.openanalytics.phaedra.calculationservice.dto.CurveFittingRequestDTO;
 import eu.openanalytics.phaedra.plateservice.dto.PlateCalculationStatusDTO;
+import eu.openanalytics.phaedra.resultdataservice.dto.ResultDataDTO;
+import eu.openanalytics.phaedra.resultdataservice.dto.ResultFeatureStatDTO;
 import org.springframework.kafka.core.KafkaTemplate;
 import org.springframework.stereotype.Service;
+
+import java.util.ArrayList;
 
 @Service
 public class KafkaProducerService {
@@ -25,5 +29,15 @@ public class KafkaProducerService {
 
     public void initiateCurveFitting(CurveFittingRequestDTO curveFitRequest) {
         kafkaTemplate.send(KafkaConfig.CALCULATIONS_TOPIC, KafkaConfig.CURVE_FIT_EVENT, curveFitRequest);
+    }
+
+    public void sendResultData(ResultDataDTO resultData) {
+        kafkaTemplate.send(KafkaConfig.RESULTDATA_TOPIC, KafkaConfig.SAVE_FEATURE_RESULTDATA_EVENT, resultData);
+    }
+
+    public void sendResultFeatureStats(Long resultSetId, ArrayList<ResultFeatureStatDTO> resultFeatureStats) {
+        for (ResultFeatureStatDTO resultFeatureStatDTO: resultFeatureStats) {
+            kafkaTemplate.send(KafkaConfig.RESULTDATA_TOPIC, KafkaConfig.SAVE_FEATURE_STATS_EVENT, resultFeatureStatDTO.withResultSetId(resultSetId));
+        }
     }
 }

@@ -38,6 +38,7 @@ import java.util.List;
 import java.util.Timer;
 import java.util.TimerTask;
 
+import eu.openanalytics.phaedra.calculationservice.service.KafkaProducerService;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Disabled;
@@ -94,13 +95,15 @@ public class FeatureStatExecutorTest {
     private FeatureStatExecutor featureStatExecutor;
     private ScriptEngineClient scriptEngineClient;
     private ResultDataServiceClient resultDataServiceClient;
+    private KafkaProducerService kafkaProducerService;
 
     @BeforeEach
     public void before() {
         resultDataServiceClient = new InMemoryResultDataServiceClient(); // TODO mock or inMemoery?
         scriptEngineClient = mockUnimplemented(ScriptEngineClient.class);
         plateServiceClient = mockUnimplemented(PlateServiceClient.class);
-        featureStatExecutor = new FeatureStatExecutor(scriptEngineClient, objectMapper, resultDataServiceClient, modelMapper);
+        kafkaProducerService = mockUnimplemented(KafkaProducerService.class);
+        featureStatExecutor = new FeatureStatExecutor(scriptEngineClient, objectMapper, resultDataServiceClient, modelMapper, kafkaProducerService);
     }
 
     @Test
@@ -570,7 +573,7 @@ public class FeatureStatExecutorTest {
     @Test
     public void errorWhileSavingResultDataTest() throws Exception {
         var mockResultDataServiceClient = mockUnimplemented(ResultDataServiceClient.class);
-        var featureStatExecutor = new FeatureStatExecutor(scriptEngineClient, objectMapper, mockResultDataServiceClient, modelMapper);
+        var featureStatExecutor = new FeatureStatExecutor(scriptEngineClient, objectMapper, mockResultDataServiceClient, modelMapper, kafkaProducerService);
         var plate = PlateDTO.builder().id(10L).build();
         var formula = createFormula("JavaStat::count", "count", 13L);
         var featureStat = createFeatureStat(formula, false);
