@@ -27,9 +27,9 @@ import com.fasterxml.jackson.databind.JsonMappingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.common.util.concurrent.ThreadFactoryBuilder;
 import eu.openanalytics.curvedataservice.dto.CurveDTO;
-import eu.openanalytics.phaedra.calculationservice.config.KafkaConsumerConfig;
 import eu.openanalytics.phaedra.calculationservice.dto.DRCInputDTO;
 import eu.openanalytics.phaedra.calculationservice.model.CurveFittingContext;
+import eu.openanalytics.phaedra.calculationservice.service.KafkaProducerService;
 import eu.openanalytics.phaedra.plateservice.client.PlateServiceClient;
 import eu.openanalytics.phaedra.plateservice.client.exception.PlateUnresolvableException;
 import eu.openanalytics.phaedra.plateservice.dto.WellSubstanceDTO;
@@ -45,7 +45,6 @@ import org.apache.commons.collections4.CollectionUtils;
 import org.apache.commons.math3.util.Precision;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.kafka.core.KafkaTemplate;
 import org.springframework.stereotype.Service;
 
 import java.util.*;
@@ -65,18 +64,18 @@ public class CurveFittingExecutorService {
     private final ThreadPoolExecutor executorService;
     private final PlateServiceClient plateServiceClient;
     private final ProtocolServiceClient protocolServiceClient;
-    private final KafkaTemplate<String, Object> kafkaTemplate;
     private final ObjectMapper objectMapper = new ObjectMapper(); // TODO thread-safe?
     private final Logger logger = LoggerFactory.getLogger(getClass());
 
+    private final KafkaProducerService kafkaProducerService;
+
     public CurveFittingExecutorService(ScriptEngineClient scriptEngineClient, ResultDataServiceClient resultDataServiceClient,
-                                       PlateServiceClient plateServiceClient, ProtocolServiceClient protocolServiceClient,
-                                       KafkaTemplate<String, Object> kafkaTemplate) {
+                                       PlateServiceClient plateServiceClient, ProtocolServiceClient protocolServiceClient, KafkaProducerService kafkaProducerService) {
         this.scriptEngineClient = scriptEngineClient;
         this.resultDataServiceClient = resultDataServiceClient;
         this.plateServiceClient = plateServiceClient;
         this.protocolServiceClient = protocolServiceClient;
-        this.kafkaTemplate = kafkaTemplate;
+        this.kafkaProducerService = kafkaProducerService;
 
         var threadFactory = new ThreadFactoryBuilder().setNameFormat("protocol-exec-%s").build();
         this.executorService = new ThreadPoolExecutor(8, 1024, 60L, TimeUnit.SECONDS, new SynchronousQueue<>(), threadFactory);
@@ -202,7 +201,7 @@ private List<CurveDTO> executeCurveFitting(CompletableFuture<Long> curveIdFuture
                 .residualVariance(isCreatable(drcOutput.residualVariance) ? parseFloat(drcOutput.residualVariance) : NaN)
                 .warning(drcOutput.warning)
                 .build();
-        kafkaTemplate.send(KafkaConsumerConfig.CURVEDATA_TOPIC, KafkaConsumerConfig.SAVE_CURVE_EVENT, curveDTO);
+        kafkaProducerService.sendCurveData(curveDTO);
     }
 
     private DRCInputDTO collectDRCIntpuData(CurveFittingContext cfCtx, String substanceName, ResultDataDTO featureResult) {

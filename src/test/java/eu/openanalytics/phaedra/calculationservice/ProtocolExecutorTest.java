@@ -41,6 +41,7 @@ import java.util.Timer;
 import java.util.TimerTask;
 import java.util.concurrent.CompletableFuture;
 
+import eu.openanalytics.phaedra.calculationservice.service.KafkaProducerService;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Disabled;
@@ -113,7 +114,7 @@ public class ProtocolExecutorTest {
     private ProtocolExecutorService protocolExecutorService;
     private ProtocolInfoCollector protocolInfoCollector;
 
-    private KafkaTemplate<String, Object> kafkaTemplate;
+    private KafkaProducerService kafkaProducerService;
     private final ModelMapper modelMapper = new ModelMapper();
 
     @BeforeEach
@@ -124,10 +125,10 @@ public class ProtocolExecutorTest {
         scriptEngineClient = mockUnimplemented(ScriptEngineClient.class);
         plateServiceClient = mockUnimplemented(PlateServiceClient.class);
         featureStatExecutorService = mockUnimplemented(FeatureStatExecutor.class);
-        kafkaTemplate = mockUnimplemented(KafkaTemplate.class);
+        kafkaProducerService = mockUnimplemented(KafkaProducerService.class);
         featureExecutorService = new FeatureExecutorService(scriptEngineClient, measurementServiceClient, resultDataServiceClient);
-        sequenceExecutorService = new SequenceExecutorService(resultDataServiceClient, featureExecutorService, modelMapper, featureStatExecutorService, kafkaTemplate);
-        protocolExecutorService = new ProtocolExecutorService(resultDataServiceClient, sequenceExecutorService, protocolInfoCollector, plateServiceClient, kafkaTemplate);
+        sequenceExecutorService = new SequenceExecutorService(resultDataServiceClient, featureExecutorService, modelMapper, featureStatExecutorService, kafkaProducerService);
+        protocolExecutorService = new ProtocolExecutorService(resultDataServiceClient, sequenceExecutorService, protocolInfoCollector, plateServiceClient, kafkaProducerService);
 
         doReturn(PlateDTO.builder().id(1L).rows(1).columns(4).build()).when(plateServiceClient).getPlate(anyLong());
         doReturn(List.of(
@@ -224,8 +225,8 @@ public class ProtocolExecutorTest {
     public void getResultDataGivesError() throws Exception {
         var mockResultDataServiceClient = mockUnimplemented(ResultDataServiceClient.class);
         featureExecutorService = new FeatureExecutorService(scriptEngineClient, measurementServiceClient, mockResultDataServiceClient);
-        sequenceExecutorService = new SequenceExecutorService(resultDataServiceClient, featureExecutorService, modelMapper, featureStatExecutorService, kafkaTemplate);
-        protocolExecutorService = new ProtocolExecutorService(resultDataServiceClient, sequenceExecutorService, protocolInfoCollector, plateServiceClient, kafkaTemplate);
+        sequenceExecutorService = new SequenceExecutorService(resultDataServiceClient, featureExecutorService, modelMapper, featureStatExecutorService, kafkaProducerService);
+        protocolExecutorService = new ProtocolExecutorService(resultDataServiceClient, sequenceExecutorService, protocolInfoCollector, plateServiceClient, kafkaProducerService);
         var formula1 = "output <- input$abc * 2";
         var input = new ScriptExecution(new TargetRuntime("R", "fast-lane", "v1"), formula1,
                 "{\"abc\":[1.0,2.0,3.0,5.0,8.0]}",

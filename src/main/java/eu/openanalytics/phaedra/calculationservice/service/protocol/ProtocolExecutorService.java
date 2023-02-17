@@ -21,9 +21,9 @@
 package eu.openanalytics.phaedra.calculationservice.service.protocol;
 
 import com.google.common.util.concurrent.ThreadFactoryBuilder;
-import eu.openanalytics.phaedra.calculationservice.config.KafkaConsumerConfig;
 import eu.openanalytics.phaedra.calculationservice.model.CalculationContext;
 import eu.openanalytics.phaedra.calculationservice.model.Sequence;
+import eu.openanalytics.phaedra.calculationservice.service.KafkaProducerService;
 import eu.openanalytics.phaedra.plateservice.client.PlateServiceClient;
 import eu.openanalytics.phaedra.plateservice.client.exception.PlateUnresolvableException;
 import eu.openanalytics.phaedra.plateservice.dto.PlateCalculationStatusDTO;
@@ -56,18 +56,18 @@ public class ProtocolExecutorService {
 
     private final Logger logger = LoggerFactory.getLogger(getClass());
 
-    private final KafkaTemplate<String, Object> kafkaTemplate;
+    private final KafkaProducerService kafkaProducerService;
 
     public ThreadPoolExecutor getExecutorService() {
         return executorService;
     }
 
-    public ProtocolExecutorService(ResultDataServiceClient resultDataServiceClient, SequenceExecutorService sequenceExecutorService, ProtocolInfoCollector protocolInfoCollector, PlateServiceClient plateServiceClient, KafkaTemplate<String, Object> kafkaTemplate) {
+    public ProtocolExecutorService(ResultDataServiceClient resultDataServiceClient, SequenceExecutorService sequenceExecutorService, ProtocolInfoCollector protocolInfoCollector, PlateServiceClient plateServiceClient, KafkaProducerService kafkaProducerService) {
         this.resultDataServiceClient = resultDataServiceClient;
         this.sequenceExecutorService = sequenceExecutorService;
         this.protocolInfoCollector = protocolInfoCollector;
         this.plateServiceClient = plateServiceClient;
-        this.kafkaTemplate = kafkaTemplate;
+        this.kafkaProducerService = kafkaProducerService;
 
         var threadFactory = new ThreadFactoryBuilder().setNameFormat("protocol-exec-%s").build();
         executorService = new ThreadPoolExecutor(8, 1024, 60L, TimeUnit.SECONDS, new SynchronousQueue<>(), threadFactory);
@@ -120,15 +120,11 @@ public class ProtocolExecutorService {
                 // if error -> stop executing sequences
                 break;
             }
-
             // 5. no errors -> continue processing sequences
         }
 
         // 4. execute curve fitting features
-
-
         logMsg(logger, cctx, "Waiting for FeatureStats to finish");
-
         // 6. wait for FeatureStats to be calculated
         // we can wait for all featureStats (of all sequences) here since nothing in the protocol depends on them
         for (var featureStat : cctx.getComputedStatsForFeature().entrySet()) {
@@ -172,10 +168,8 @@ public class ProtocolExecutorService {
 
     // TODO: Secure kafka producer
     private void updatePlateCalculationStatus(Long plateId, CalculationStatus calculationStatus) {
-        // Update plate calculation status through an Apache Kafka topic
-        logger.info("Set plate calculation status to " + calculationStatus.name() + " for plateId " + plateId);
         PlateCalculationStatusDTO plateCalcStatusDTO = PlateCalculationStatusDTO.builder().plateId(plateId).calculationStatus(calculationStatus).build();
-        kafkaTemplate.send(KafkaConsumerConfig.CALCULATIONS_TOPIC, KafkaConsumerConfig.UPDATE_PLATE_STATUS_EVENT, plateCalcStatusDTO);
+        kafkaProducerService.sendPlateCalculationStatus(plateCalcStatusDTO);
     }
 
 }

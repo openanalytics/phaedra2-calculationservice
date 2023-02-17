@@ -16,8 +16,8 @@ import java.util.concurrent.ExecutionException;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
 
-import static eu.openanalytics.phaedra.calculationservice.config.KafkaConsumerConfig.CALCULATIONS_TOPIC;
-import static eu.openanalytics.phaedra.calculationservice.config.KafkaConsumerConfig.PLATE_TOPIC;
+import static eu.openanalytics.phaedra.calculationservice.config.KafkaConfig.CALCULATIONS_TOPIC;
+import static eu.openanalytics.phaedra.calculationservice.config.KafkaConfig.PLATE_TOPIC;
 
 @Service
 public class KafkaConsumerService {

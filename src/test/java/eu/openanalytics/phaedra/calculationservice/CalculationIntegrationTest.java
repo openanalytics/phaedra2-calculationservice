@@ -50,8 +50,6 @@ public class CalculationIntegrationTest extends AbstractIntegrationTest {
     private static final ProtocolExecutorService protocolExecutorService = mock(ProtocolExecutorService.class);
     private static final CalculationStatusService calculationStatusService = mock(CalculationStatusService.class);
 
-    private static final KafkaTemplate kafkaTemplate = mock(KafkaTemplate.class);
-
     @Test
     public void calculateTestNoTimeout() throws Exception {
         var f1 = new CompletableFuture<Long>();

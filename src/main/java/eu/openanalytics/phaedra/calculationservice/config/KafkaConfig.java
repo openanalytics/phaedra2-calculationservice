@@ -7,10 +7,13 @@ import org.springframework.kafka.listener.adapter.RecordFilterStrategy;
 
 @Configuration
 @EnableKafka
-public class KafkaConsumerConfig {
+public class KafkaConfig {
+    // Kafka topics
     public static final String CALCULATIONS_TOPIC = "calculations";
     public static final String PLATE_TOPIC = "plate-topic";
     public static final String CURVEDATA_TOPIC = "curvedata-topic";
+
+    // Kafka events
     public static final String PLATE_CALCULATION_EVENT = "plateCalculationEvent";
     public static final String UPDATE_PLATE_STATUS_EVENT = "updatePlateCalculationStatus";
     public static final String CURVE_FIT_EVENT = "curveFitEvent";
