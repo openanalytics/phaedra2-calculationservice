@@ -25,6 +25,8 @@ import static eu.openanalytics.phaedra.calculationservice.CalculationService.R_F
 import java.util.HashMap;
 import java.util.Optional;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
@@ -50,6 +52,8 @@ public class FeatureExecutorService {
     private final MeasurementServiceClient measurementServiceClient;
     private final ResultDataServiceClient resultDataServiceClient;
     private final ObjectMapper objectMapper = new ObjectMapper(); // TODO thread-safe?
+
+    private final Logger logger = LoggerFactory.getLogger(getClass());
 
     public FeatureExecutorService(ScriptEngineClient scriptEngineClient, MeasurementServiceClient measurementServiceClient, ResultDataServiceClient resultDataServiceClient) {
         this.scriptEngineClient = scriptEngineClient;
@@ -106,8 +110,10 @@ public class FeatureExecutorService {
                         cctx.getErrorCollector().handleError("executing sequence => executing feature => collecting variables for feature => retrieving measurement => trying to get feature in sequence 0", feature, feature.getFormula(), civ);
                         return Optional.empty();
                     }
+                    logger.info("Collect result data for feature %s from result set %s", civ.getSourceFeatureId(), cctx.getResultSetId());
                     inputVariables.put(civ.getVariableName(), resultDataServiceClient.getResultData(cctx.getResultSetId(), civ.getSourceFeatureId()).getValues());
                 } else if (civ.getSourceMeasColName() != null) {
+                    logger.info("Collect result data for measurement %s from result set %s", civ.getSourceMeasColName(), cctx.getMeasId());
                     inputVariables.put(civ.getVariableName(), measurementServiceClient.getWellData(cctx.getMeasId(), civ.getSourceMeasColName()));
                 } else {
                     // the ProtocolService makes sure this cannot happen, but extra check to make sure

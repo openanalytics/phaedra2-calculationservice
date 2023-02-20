@@ -29,6 +29,7 @@ import java.util.Optional;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Future;
+import java.util.concurrent.TimeUnit;
 
 import eu.openanalytics.phaedra.calculationservice.dto.CurveFittingRequestDTO;
 import eu.openanalytics.phaedra.calculationservice.service.KafkaProducerService;
@@ -177,6 +178,12 @@ public class SequenceExecutorService {
 
         log(logger, cctx, "[S=%s] All outputs received from script engine", currentSequence.getSequenceNumber());
         success.setResult(calculations);
+
+        try {
+            TimeUnit.MILLISECONDS.sleep(2000);
+        } catch (InterruptedException e) {
+            throw new RuntimeException(e);
+        }
         return success;
     }
 
