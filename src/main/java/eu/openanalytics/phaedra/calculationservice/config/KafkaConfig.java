@@ -33,4 +33,10 @@ public class KafkaConfig {
         RecordFilterStrategy<String, Object> recordFilterStrategy = consumerRecord -> !(consumerRecord.key().equalsIgnoreCase(CURVE_FIT_EVENT));
         return recordFilterStrategy;
     }
+
+    @Bean
+    public RecordFilterStrategy<String, Object> saveResultDataEventFilter() {
+        RecordFilterStrategy<String, Object> recordFilterStrategy = consumerRecord -> !(consumerRecord.key().equalsIgnoreCase(SAVE_FEATURE_RESULTDATA_EVENT));
+        return recordFilterStrategy;
+    }
 }

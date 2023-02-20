@@ -156,14 +156,7 @@ public class FeatureStatExecutor {
         }
 
         // 6. store output
-//        try {
-//            resultDataServiceClient.createResultFeatureStats(cctx.getResultSetId(), resultFeatureStats);
-            kafkaProducerService.sendResultFeatureStats(cctx.getResultSetId(), resultFeatureStats);
-
-//        } catch (ResultFeatureStatUnresolvableException e) {
-//            cctx.getErrorCollector().handleError("executing featureStat => processing output => saving resultdata", e, feature);
-//            success.failed();
-//        }
+        kafkaProducerService.sendResultFeatureStats(cctx.getResultSetId(), resultFeatureStats);
 
         log(logger, cctx, "[F=%s] All FeatureStat output saved", feature.getId());
         return success.isSuccess();

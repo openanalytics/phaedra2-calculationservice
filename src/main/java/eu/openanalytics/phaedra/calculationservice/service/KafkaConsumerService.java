@@ -1,9 +1,11 @@
 package eu.openanalytics.phaedra.calculationservice.service;
 
+import eu.openanalytics.phaedra.calculationservice.config.KafkaConfig;
 import eu.openanalytics.phaedra.calculationservice.dto.CurveFittingRequestDTO;
 import eu.openanalytics.phaedra.calculationservice.service.protocol.CurveFittingExecutorService;
 import eu.openanalytics.phaedra.calculationservice.service.protocol.ProtocolExecutorService;
 import eu.openanalytics.phaedra.commons.dto.CalculationRequestDTO;
+import eu.openanalytics.phaedra.resultdataservice.dto.ResultDataDTO;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -56,4 +58,9 @@ public class KafkaConsumerService {
 
         }
     }
+
+//    @KafkaListener(topics = KafkaConfig.RESULTDATA_TOPIC, groupId = "calculation-service", filter = "saveResultDataEventFilter")
+//    public void onSaveResultDataEvent(ResultDataDTO resultDataDTO) {
+//        logger.info("calculation-service: received a save result data event!");
+//    }
 }

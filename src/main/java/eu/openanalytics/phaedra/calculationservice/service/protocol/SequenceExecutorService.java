@@ -20,7 +20,26 @@
  */
 package eu.openanalytics.phaedra.calculationservice.service.protocol;
 
-import static eu.openanalytics.phaedra.calculationservice.service.protocol.ProtocolLogger.log;
+import com.fasterxml.jackson.annotation.JsonCreator;
+import com.fasterxml.jackson.annotation.JsonProperty;
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import eu.openanalytics.phaedra.calculationservice.dto.CurveFittingRequestDTO;
+import eu.openanalytics.phaedra.calculationservice.model.CalculationContext;
+import eu.openanalytics.phaedra.calculationservice.model.Feature;
+import eu.openanalytics.phaedra.calculationservice.model.Sequence;
+import eu.openanalytics.phaedra.calculationservice.model.SuccessTracker;
+import eu.openanalytics.phaedra.calculationservice.service.KafkaProducerService;
+import eu.openanalytics.phaedra.calculationservice.service.ModelMapper;
+import eu.openanalytics.phaedra.calculationservice.service.featurestat.FeatureStatExecutor;
+import eu.openanalytics.phaedra.resultdataservice.dto.ResultDataDTO;
+import eu.openanalytics.phaedra.resultdataservice.enumeration.StatusCode;
+import eu.openanalytics.phaedra.scriptengine.client.model.ScriptExecution;
+import eu.openanalytics.phaedra.scriptengine.dto.ResponseStatusCode;
+import eu.openanalytics.phaedra.scriptengine.dto.ScriptExecutionOutputDTO;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.springframework.stereotype.Service;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -31,35 +50,12 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
 
-import eu.openanalytics.phaedra.calculationservice.dto.CurveFittingRequestDTO;
-import eu.openanalytics.phaedra.calculationservice.service.KafkaProducerService;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-import org.springframework.stereotype.Service;
-
-import com.fasterxml.jackson.annotation.JsonCreator;
-import com.fasterxml.jackson.annotation.JsonProperty;
-import com.fasterxml.jackson.core.JsonProcessingException;
-import com.fasterxml.jackson.databind.ObjectMapper;
-
-import eu.openanalytics.phaedra.calculationservice.model.CalculationContext;
-import eu.openanalytics.phaedra.calculationservice.model.Feature;
-import eu.openanalytics.phaedra.calculationservice.model.Sequence;
-import eu.openanalytics.phaedra.calculationservice.model.SuccessTracker;
-import eu.openanalytics.phaedra.calculationservice.service.ModelMapper;
-import eu.openanalytics.phaedra.calculationservice.service.featurestat.FeatureStatExecutor;
-import eu.openanalytics.phaedra.resultdataservice.client.ResultDataServiceClient;
-import eu.openanalytics.phaedra.resultdataservice.dto.ResultDataDTO;
-import eu.openanalytics.phaedra.resultdataservice.enumeration.StatusCode;
-import eu.openanalytics.phaedra.scriptengine.client.model.ScriptExecution;
-import eu.openanalytics.phaedra.scriptengine.dto.ResponseStatusCode;
-import eu.openanalytics.phaedra.scriptengine.dto.ScriptExecutionOutputDTO;
+import static eu.openanalytics.phaedra.calculationservice.service.protocol.ProtocolLogger.log;
 
 @Service
 public class SequenceExecutorService {
 
     private final ObjectMapper objectMapper = new ObjectMapper(); // TODO thread-safe?
-    private final ResultDataServiceClient resultDataServiceClient;
     private final FeatureExecutorService featureExecutorService;
     private final ModelMapper modelMapper;
     private final FeatureStatExecutor featureStatExecutor; // TODO remove deps?
@@ -68,9 +64,8 @@ public class SequenceExecutorService {
 
     private final static int MAX_ATTEMPTS = 3;
 
-    public SequenceExecutorService(ResultDataServiceClient resultDataServiceClient, FeatureExecutorService featureExecutorService,
-                                   ModelMapper modelMapper, FeatureStatExecutor featureStatExecutor, KafkaProducerService kafkaProducerService) {
-        this.resultDataServiceClient = resultDataServiceClient;
+    public SequenceExecutorService(FeatureExecutorService featureExecutorService, ModelMapper modelMapper,
+                                   FeatureStatExecutor featureStatExecutor, KafkaProducerService kafkaProducerService) {
         this.featureExecutorService = featureExecutorService;
         this.modelMapper = modelMapper;
         this.featureStatExecutor = featureStatExecutor;
@@ -205,7 +200,7 @@ public class SequenceExecutorService {
                             floatOutputValue[i] = Float.NaN;
                         }
                     }
-
+                    // Save result data to the database
                     var resultData = ResultDataDTO.builder()
                             .resultSetId(cctx.getResultSetId())
                             .featureId(feature.getId())
@@ -216,14 +211,7 @@ public class SequenceExecutorService {
                             .build();
                     kafkaProducerService.sendResultData(resultData);
 
-//                    var resultData = resultDataServiceClient.addResultData(
-//                            cctx.getResultSetId(),
-//                            feature.getId(),
-//                            floatOutputValue,
-//                            modelMapper.map(output.getStatusCode()),
-//                            output.getStatusMessage(),
-//                            output.getExitCode());
-
+                    // Initiate a curve fitting event
                     var curveFitRequest = new CurveFittingRequestDTO(cctx.getPlate().getId(), resultData.getFeatureId(), resultData);
                     kafkaProducerService.initiateCurveFitting(curveFitRequest);
 
@@ -232,14 +220,7 @@ public class SequenceExecutorService {
                     cctx.getErrorCollector().handleError("executing sequence => processing output => parsing output", e, feature, output, feature.getFormula());
                 }
             } else {
-//                var resultData = resultDataServiceClient.addResultData(
-//                        cctx.getResultSetId(),
-//                        feature.getId(),
-//                        new float[]{},
-//                        modelMapper.map(output.getStatusCode()),
-//                        output.getStatusMessage(),
-//                        output.getExitCode());
-
+                // Save result data to the database
                 var resultData = ResultDataDTO.builder()
                         .resultSetId(cctx.getResultSetId())
                         .featureId(feature.getId())
@@ -250,6 +231,7 @@ public class SequenceExecutorService {
                         .build();
                 kafkaProducerService.sendResultData(resultData);
 
+                // Initiate a curve fitting event
                 var curveFitRequest = new CurveFittingRequestDTO(cctx.getPlate().getId(), resultData.getFeatureId(), resultData);
                 kafkaProducerService.initiateCurveFitting(curveFitRequest);
 
