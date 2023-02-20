@@ -127,7 +127,7 @@ public class ProtocolExecutorTest {
         featureStatExecutorService = mockUnimplemented(FeatureStatExecutor.class);
         kafkaProducerService = mockUnimplemented(KafkaProducerService.class);
         featureExecutorService = new FeatureExecutorService(scriptEngineClient, measurementServiceClient, resultDataServiceClient);
-        sequenceExecutorService = new SequenceExecutorService(resultDataServiceClient, featureExecutorService, modelMapper, featureStatExecutorService, kafkaProducerService);
+        sequenceExecutorService = new SequenceExecutorService(featureExecutorService, modelMapper, featureStatExecutorService, kafkaProducerService);
         protocolExecutorService = new ProtocolExecutorService(resultDataServiceClient, sequenceExecutorService, protocolInfoCollector, plateServiceClient, kafkaProducerService);
 
         doReturn(PlateDTO.builder().id(1L).rows(1).columns(4).build()).when(plateServiceClient).getPlate(anyLong());
@@ -225,7 +225,7 @@ public class ProtocolExecutorTest {
     public void getResultDataGivesError() throws Exception {
         var mockResultDataServiceClient = mockUnimplemented(ResultDataServiceClient.class);
         featureExecutorService = new FeatureExecutorService(scriptEngineClient, measurementServiceClient, mockResultDataServiceClient);
-        sequenceExecutorService = new SequenceExecutorService(resultDataServiceClient, featureExecutorService, modelMapper, featureStatExecutorService, kafkaProducerService);
+        sequenceExecutorService = new SequenceExecutorService(featureExecutorService, modelMapper, featureStatExecutorService, kafkaProducerService);
         protocolExecutorService = new ProtocolExecutorService(resultDataServiceClient, sequenceExecutorService, protocolInfoCollector, plateServiceClient, kafkaProducerService);
         var formula1 = "output <- input$abc * 2";
         var input = new ScriptExecution(new TargetRuntime("R", "fast-lane", "v1"), formula1,
