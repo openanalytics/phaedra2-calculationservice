@@ -38,7 +38,7 @@ import com.fasterxml.jackson.core.type.TypeReference;
 
 import eu.openanalytics.phaedra.calculationservice.dto.FormulaDTO;
 import eu.openanalytics.phaedra.calculationservice.enumeration.CalculationScope;
-import eu.openanalytics.phaedra.calculationservice.enumeration.Category;
+import eu.openanalytics.phaedra.calculationservice.enumeration.FormulaCategory;
 import eu.openanalytics.phaedra.calculationservice.enumeration.ScriptLanguage;
 import eu.openanalytics.phaedra.calculationservice.service.FormulaService;
 import eu.openanalytics.phaedra.calculationservice.support.AbstractIntegrationTest;
@@ -56,7 +56,7 @@ public class FormulaIntegrationTest extends AbstractIntegrationTest {
                 .formula("output <- input * 2")
                 .name("MyFormula")
                 .description("A description")
-                .category(Category.CALCULATION)
+                .category(FormulaCategory.CALCULATION)
                 .language(ScriptLanguage.R)
                 .scope(CalculationScope.WELL)
                 .versionNumber("1.0")
@@ -67,7 +67,7 @@ public class FormulaIntegrationTest extends AbstractIntegrationTest {
         Assertions.assertEquals("output <- input * 2", res1.getFormula());
         Assertions.assertEquals("MyFormula", res1.getName());
         Assertions.assertEquals("A description", res1.getDescription());
-        Assertions.assertEquals(Category.CALCULATION, res1.getCategory());
+        Assertions.assertEquals(FormulaCategory.CALCULATION, res1.getCategory());
         Assertions.assertEquals(ScriptLanguage.R, res1.getLanguage());
         Assertions.assertEquals(CalculationScope.WELL, res1.getScope());
         Assertions.assertEquals("1.0", res1.getVersionNumber().split("-")[0]);
@@ -79,7 +79,7 @@ public class FormulaIntegrationTest extends AbstractIntegrationTest {
         Assertions.assertEquals("output <- input * 2", res2.getFormula());
         Assertions.assertEquals("MyFormula", res2.getName());
         Assertions.assertEquals("A description", res2.getDescription());
-        Assertions.assertEquals(Category.CALCULATION, res2.getCategory());
+        Assertions.assertEquals(FormulaCategory.CALCULATION, res2.getCategory());
         Assertions.assertEquals(ScriptLanguage.R, res2.getLanguage());
         Assertions.assertEquals(CalculationScope.WELL, res2.getScope());
         Assertions.assertEquals("1.0", res2.getVersionNumber().split("-")[0]);
@@ -112,7 +112,7 @@ public class FormulaIntegrationTest extends AbstractIntegrationTest {
                 .formula("output <- input * 3")
                 .name("MyFormula_updated")
                 .description("An updated description")
-                .category(Category.HIT_CALLING)
+                .category(FormulaCategory.HIT_CALLING)
                 .language(ScriptLanguage.JAVASCRIPT)
                 .scope(CalculationScope.PLATE)
                 .build();
@@ -129,7 +129,7 @@ public class FormulaIntegrationTest extends AbstractIntegrationTest {
                 .formula("output <- input * 2")
                 .name("MyFormula")
                 .description("A description")
-                .category(Category.CALCULATION)
+                .category(FormulaCategory.CALCULATION)
                 .language(ScriptLanguage.R)
                 .scope(CalculationScope.WELL)
                 .versionNumber("1.0")
@@ -140,7 +140,7 @@ public class FormulaIntegrationTest extends AbstractIntegrationTest {
         Assertions.assertEquals("output <- input * 2", res1.getFormula());
         Assertions.assertEquals("MyFormula", res1.getName());
         Assertions.assertEquals("A description", res1.getDescription());
-        Assertions.assertEquals(Category.CALCULATION, res1.getCategory());
+        Assertions.assertEquals(FormulaCategory.CALCULATION, res1.getCategory());
         Assertions.assertEquals(ScriptLanguage.R, res1.getLanguage());
         Assertions.assertEquals(CalculationScope.WELL, res1.getScope());
 
@@ -149,7 +149,7 @@ public class FormulaIntegrationTest extends AbstractIntegrationTest {
                 .formula("output <- input * 3")
                 .name("MyFormula_updated")
                 .description("An updated description")
-                .category(Category.HIT_CALLING)
+                .category(FormulaCategory.HIT_CALLING)
                 .language(ScriptLanguage.JAVASCRIPT)
                 .scope(CalculationScope.PLATE)
                 .versionNumber("2.0")
@@ -161,7 +161,7 @@ public class FormulaIntegrationTest extends AbstractIntegrationTest {
         Assertions.assertEquals("output <- input * 3", res2.getFormula());
         Assertions.assertEquals("MyFormula_updated", res2.getName());
         Assertions.assertEquals("An updated description", res2.getDescription());
-        Assertions.assertEquals(Category.HIT_CALLING, res2.getCategory());
+        Assertions.assertEquals(FormulaCategory.HIT_CALLING, res2.getCategory());
         Assertions.assertEquals(ScriptLanguage.JAVASCRIPT, res2.getLanguage());
         Assertions.assertEquals(CalculationScope.PLATE, res2.getScope());
         Assertions.assertEquals(res1.getVersionNumber(), res2.getPreviousVersion());
@@ -177,7 +177,7 @@ public class FormulaIntegrationTest extends AbstractIntegrationTest {
         Assertions.assertEquals("output <- input * 3", res2.getFormula());
         Assertions.assertEquals("MyFormula_updated", res2.getName());
         Assertions.assertEquals("An updated description", res2.getDescription());
-        Assertions.assertEquals(Category.HIT_CALLING, res2.getCategory());
+        Assertions.assertEquals(FormulaCategory.HIT_CALLING, res2.getCategory());
         Assertions.assertEquals(ScriptLanguage.JAVASCRIPT, res2.getLanguage());
         Assertions.assertEquals(CalculationScope.PLATE, res2.getScope());
         Assertions.assertEquals(res1.getVersionNumber(), res3.getPreviousVersion());
@@ -196,7 +196,7 @@ public class FormulaIntegrationTest extends AbstractIntegrationTest {
                     .formula("output <- input * 2 + " + i)
                     .name("MyFormula " + i)
                     .description("A description")
-                    .category(Category.CALCULATION)
+                    .category(FormulaCategory.CALCULATION)
                     .language(ScriptLanguage.R)
                     .scope(CalculationScope.WELL)
                     .versionNumber("1.0")
@@ -208,7 +208,7 @@ public class FormulaIntegrationTest extends AbstractIntegrationTest {
                     .formula("output <- input * 2 + " + i)
                     .name("MyFormula " + i)
                     .description("A description")
-                    .category(Category.HIT_CALLING)
+                    .category(FormulaCategory.HIT_CALLING)
                     .language(ScriptLanguage.R)
                     .scope(CalculationScope.WELL)
                     .versionNumber("1.0")
@@ -220,7 +220,7 @@ public class FormulaIntegrationTest extends AbstractIntegrationTest {
                     .formula("output <- input * 2 + " + i)
                     .name("MyFormula " + i)
                     .description("A description")
-                    .category(Category.OUTLIER_DETECTION)
+                    .category(FormulaCategory.OUTLIER_DETECTION)
                     .language(ScriptLanguage.R)
                     .scope(CalculationScope.WELL)
                     .versionNumber("1.0")
@@ -235,24 +235,24 @@ public class FormulaIntegrationTest extends AbstractIntegrationTest {
         var res2 = performRequest(get("/formulas"), HttpStatus.OK, t);
         Assertions.assertEquals(15, res2.size());
         Assertions.assertEquals("output <- input * 2 + 1", res2.get(0).getFormula());
-        Assertions.assertEquals(Category.CALCULATION, res2.get(0).getCategory());
+        Assertions.assertEquals(FormulaCategory.CALCULATION, res2.get(0).getCategory());
         Assertions.assertEquals("output <- input * 2 + 5", res2.get(9).getFormula());
-        Assertions.assertEquals(Category.HIT_CALLING, res2.get(9).getCategory());
+        Assertions.assertEquals(FormulaCategory.HIT_CALLING, res2.get(9).getCategory());
         Assertions.assertEquals("output <- input * 2 + 5", res2.get(14).getFormula());
-        Assertions.assertEquals(Category.OUTLIER_DETECTION, res2.get(14).getCategory());
+        Assertions.assertEquals(FormulaCategory.OUTLIER_DETECTION, res2.get(14).getCategory());
 
         // 3. query by category
         var res3 = performRequest(get("/formulas?category=CALCULATION"), HttpStatus.OK, t);
         Assertions.assertEquals(5, res3.size());
-        Assertions.assertEquals(5L, res3.stream().filter((f) -> f.getCategory() == Category.CALCULATION).count());
+        Assertions.assertEquals(5L, res3.stream().filter((f) -> f.getCategory() == FormulaCategory.CALCULATION).count());
 
         var res4 = performRequest(get("/formulas?category=HIT_CALLING"), HttpStatus.OK, t);
         Assertions.assertEquals(5, res4.size());
-        Assertions.assertEquals(5L, res4.stream().filter((f) -> f.getCategory() == Category.HIT_CALLING).count());
+        Assertions.assertEquals(5L, res4.stream().filter((f) -> f.getCategory() == FormulaCategory.HIT_CALLING).count());
 
         var res5 = performRequest(get("/formulas?category=OUTLIER_DETECTION"), HttpStatus.OK, t);
         Assertions.assertEquals(5, res5.size());
-        Assertions.assertEquals(5L, res5.stream().filter((f) -> f.getCategory() == Category.OUTLIER_DETECTION).count());
+        Assertions.assertEquals(5L, res5.stream().filter((f) -> f.getCategory() == FormulaCategory.OUTLIER_DETECTION).count());
     }
 
 
@@ -264,7 +264,7 @@ public class FormulaIntegrationTest extends AbstractIntegrationTest {
                     .formula("output <- input * 2 + " + i)
                     .name("MyFormula " + i)
                     .description("A description")
-                    .category(Category.CALCULATION)
+                    .category(FormulaCategory.CALCULATION)
                     .language(ScriptLanguage.R)
                     .scope(CalculationScope.WELL)
                     .versionNumber("1.0")
@@ -309,7 +309,7 @@ public class FormulaIntegrationTest extends AbstractIntegrationTest {
                 .formula("output <- input * 2")
                 .name("MyFormula")
                 .description("A description")
-                .category(Category.CALCULATION)
+                .category(FormulaCategory.CALCULATION)
                 .language(ScriptLanguage.R)
                 .scope(CalculationScope.WELL)
                 .createdBy("Alice")

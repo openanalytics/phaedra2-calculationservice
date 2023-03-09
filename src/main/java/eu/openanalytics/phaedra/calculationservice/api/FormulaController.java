@@ -38,7 +38,7 @@ import org.springframework.web.bind.annotation.RestController;
 import eu.openanalytics.phaedra.calculationservice.dto.FormulaDTO;
 import eu.openanalytics.phaedra.calculationservice.dto.validation.OnCreate;
 import eu.openanalytics.phaedra.calculationservice.dto.validation.OnUpdate;
-import eu.openanalytics.phaedra.calculationservice.enumeration.Category;
+import eu.openanalytics.phaedra.calculationservice.enumeration.FormulaCategory;
 import eu.openanalytics.phaedra.calculationservice.exception.FormulaNotFoundException;
 import eu.openanalytics.phaedra.calculationservice.service.FormulaService;
 import eu.openanalytics.phaedra.util.exceptionhandling.HttpMessageNotReadableExceptionHandler;
@@ -84,7 +84,7 @@ public class FormulaController implements MethodArgumentNotValidExceptionHandler
     }
 
     @GetMapping(params = {"category"})
-    public List<FormulaDTO> getFormulasByCategory(@RequestParam(value = "category", required = false) Category category) {
+    public List<FormulaDTO> getFormulasByCategory(@RequestParam(value = "category", required = false) FormulaCategory category) {
         return formulaService.getFormulasByCategory(category);
     }
 

@@ -32,7 +32,7 @@ import java.util.stream.Collectors;
 import org.springframework.stereotype.Service;
 
 import eu.openanalytics.phaedra.calculationservice.dto.FormulaDTO;
-import eu.openanalytics.phaedra.calculationservice.enumeration.Category;
+import eu.openanalytics.phaedra.calculationservice.enumeration.FormulaCategory;
 import eu.openanalytics.phaedra.calculationservice.exception.FormulaNotFoundException;
 import eu.openanalytics.phaedra.calculationservice.model.Formula;
 import eu.openanalytics.phaedra.calculationservice.model.ModelMapper;
@@ -108,7 +108,7 @@ public class FormulaService {
                 .collect(Collectors.toList());
     }
 
-    public List<FormulaDTO> getFormulasByCategory(Category category) {
+    public List<FormulaDTO> getFormulasByCategory(FormulaCategory category) {
         return formulaRepository.findFormulasByCategory(category)
                 .stream()
                 .map((f) -> modelMapper.map(f).build())

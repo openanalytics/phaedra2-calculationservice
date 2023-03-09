@@ -33,7 +33,7 @@ import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 
 import eu.openanalytics.phaedra.calculationservice.enumeration.CalculationScope;
-import eu.openanalytics.phaedra.calculationservice.enumeration.Category;
+import eu.openanalytics.phaedra.calculationservice.enumeration.FormulaCategory;
 import eu.openanalytics.phaedra.calculationservice.enumeration.ScriptLanguage;
 import eu.openanalytics.phaedra.calculationservice.model.CalculationContext;
 import eu.openanalytics.phaedra.calculationservice.util.CalculationInputHelper;
@@ -82,7 +82,7 @@ public class FeatureExecutorService {
                 return Optional.empty();
             }
             
-            if (formula.getCategory() != Category.CALCULATION
+            if (formula.getCategory() != FormulaCategory.CALCULATION
                     || formula.getLanguage() != ScriptLanguage.R
                     || formula.getScope() != CalculationScope.WELL) {
                 ctx.getErrorCollector().addError("executing feature => unsupported formula", feature, formula);

@@ -40,7 +40,7 @@ import com.fasterxml.jackson.annotation.JsonProperty;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 
-import eu.openanalytics.phaedra.calculationservice.enumeration.Category;
+import eu.openanalytics.phaedra.calculationservice.enumeration.FormulaCategory;
 import eu.openanalytics.phaedra.calculationservice.enumeration.ScriptLanguage;
 import eu.openanalytics.phaedra.calculationservice.model.CalculationContext;
 import eu.openanalytics.phaedra.calculationservice.model.ModelMapper;
@@ -174,7 +174,7 @@ public class FeatureStatExecutorService {
         for (var featureStat : featureStats) {
         	var formula = ctx.getProtocolData().formulas.get(featureStat.getFormulaId());
             // Validate it
-            if (formula.getCategory() != Category.CALCULATION
+            if (formula.getCategory() != FormulaCategory.CALCULATION
                     || formula.getLanguage() != ScriptLanguage.JAVASTAT) {
                 ctx.getErrorCollector().addError("Skipping calculating FeatureStat because the formula is not valid (category must be CALCULATION, language must be JAVASTAT)",
                         feature, featureStat, formula);

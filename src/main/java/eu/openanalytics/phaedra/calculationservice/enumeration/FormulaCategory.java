@@ -20,8 +20,9 @@
  */
 package eu.openanalytics.phaedra.calculationservice.enumeration;
 
-public enum FeatureType {
+public enum FormulaCategory {
     CALCULATION,
-    NORMALIZATION,
-    RAW
+    HIT_CALLING,
+    OUTLIER_DETECTION,
+    POLISHING
 }

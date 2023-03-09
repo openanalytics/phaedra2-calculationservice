@@ -20,21 +20,22 @@
  */
 package eu.openanalytics.phaedra.calculationservice.dto;
 
+import java.time.LocalDateTime;
+
+import javax.validation.constraints.NotBlank;
+import javax.validation.constraints.NotNull;
+import javax.validation.constraints.Null;
+
 import eu.openanalytics.phaedra.calculationservice.dto.validation.OnCreate;
 import eu.openanalytics.phaedra.calculationservice.dto.validation.OnUpdate;
 import eu.openanalytics.phaedra.calculationservice.enumeration.CalculationScope;
-import eu.openanalytics.phaedra.calculationservice.enumeration.Category;
+import eu.openanalytics.phaedra.calculationservice.enumeration.FormulaCategory;
 import eu.openanalytics.phaedra.calculationservice.enumeration.ScriptLanguage;
 import lombok.AccessLevel;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.NoArgsConstructor;
 import lombok.Value;
-
-import javax.validation.constraints.NotBlank;
-import javax.validation.constraints.NotNull;
-import javax.validation.constraints.Null;
-import java.time.LocalDateTime;
 
 @Value
 @Builder
@@ -52,7 +53,7 @@ public class FormulaDTO {
     String description;
 
     @NotNull(message = "Category is mandatory", groups = {OnCreate.class})
-    Category category;
+    FormulaCategory category;
 
     @NotBlank(message = "Formula is mandatory", groups = {OnCreate.class})
     String formula;
