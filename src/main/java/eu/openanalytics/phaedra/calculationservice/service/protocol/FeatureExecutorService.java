@@ -114,22 +114,39 @@ public class FeatureExecutorService {
                     return Optional.empty();
                 }
 
-                if (civ.getSourceFeatureId() != null) {
-                    if (currentSequence == 0) {
-                        ctx.getErrorCollector().addError("executing sequence => executing feature => collecting variables for feature => retrieving measurement => trying to get feature in sequence 0", feature, formula, civ);
+                switch (civ.getInputSource()) {
+                case FEATURE:
+                	if (currentSequence == 0) {
+                        ctx.getErrorCollector().addError("executing sequence => executing feature => collecting variables for feature => retrieving measurement => cannot reference features from sequence 0", feature, formula, civ);
                         return Optional.empty();
                     }
+                	if (civ.getSourceFeatureId() == null) {
+                		ctx.getErrorCollector().addError("executing sequence => executing feature => collecting variables for feature => retrieving measurement => no feature ID provided for feature reference", feature, formula, civ);
+                        return Optional.empty();
+                	}
                     logger.info("Collect result data for feature %s from result set %s", civ.getSourceFeatureId(), ctx.getResultSetId());
                     inputVariables.put(civ.getVariableName(), resultDataServiceClient.getResultData(ctx.getResultSetId(), civ.getSourceFeatureId()).getValues());
-                } else if (civ.getSourceMeasColName() != null) {
-                    logger.info("Collect result data for measurement %s from result set %s", civ.getSourceMeasColName(), ctx.getMeasId());
+                    break;
+                case MEASUREMENT_WELL_COLUMN:
+                	if (civ.getSourceMeasColName() == null || civ.getSourceMeasColName().trim().isEmpty()) {
+                		ctx.getErrorCollector().addError("executing sequence => executing feature => collecting variables for feature => retrieving measurement => no column name provided for meas column reference", feature, formula, civ);
+                        return Optional.empty();
+                	}
+                	logger.info("Collect result data for measurement %s from result set %s", civ.getSourceMeasColName(), ctx.getMeasId());
                     inputVariables.put(civ.getVariableName(), measurementServiceClient.getWellData(ctx.getMeasId(), civ.getSourceMeasColName()));
-                } else {
-                    // the ProtocolService makes sure this cannot happen, but extra check to make sure
-                    ctx.getErrorCollector().addError("executing sequence => executing feature => collecting variables for feature => retrieving measurement => civ has no valid source", feature, formula, civ);
+                    break;
+                case MEASUREMENT_SUBWELL_COLUMN:
+                	if (civ.getSourceMeasColName() == null || civ.getSourceMeasColName().trim().isEmpty()) {
+                		ctx.getErrorCollector().addError("executing sequence => executing feature => collecting variables for feature => retrieving measurement => no column name provided for meas column reference", feature, formula, civ);
+                        return Optional.empty();
+                	}
+                	logger.info("Collect result data for measurement %s from result set %s", civ.getSourceMeasColName(), ctx.getMeasId());
+                    inputVariables.put(civ.getVariableName(), measurementServiceClient.getSubWellData(ctx.getMeasId(), civ.getSourceMeasColName()));
+                    break;
+                default:                	
+                    ctx.getErrorCollector().addError("executing sequence => executing feature => collecting variables for feature => retrieving measurement => civ has no valid source type", feature, formula, civ);
                     return Optional.empty();
                 }
-
             } catch (MeasUnresolvableException | ResultDataUnresolvableException e) {
                 ctx.getErrorCollector().addError("executing sequence => executing feature => collecting variables for feature => retrieving measurement", e, feature, formula, civ);
                 return Optional.empty();
