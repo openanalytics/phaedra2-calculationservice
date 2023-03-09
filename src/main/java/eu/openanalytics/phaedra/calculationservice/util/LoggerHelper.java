@@ -18,12 +18,12 @@
  * You should have received a copy of the Apache License
  * along with this program.  If not, see <http://www.apache.org/licenses/>
  */
-package eu.openanalytics.phaedra.calculationservice.service.protocol;
+package eu.openanalytics.phaedra.calculationservice.util;
 
 import eu.openanalytics.phaedra.calculationservice.model.CalculationContext;
 import org.slf4j.Logger;
 
-public class ProtocolLogger {
+public class LoggerHelper {
 
     /**
      * Logs a message related to a protocol in a consistent format.
@@ -41,7 +41,7 @@ public class ProtocolLogger {
         if (formatArgs.length == 0) {
             throw new IllegalArgumentException("At least one formatArg is needed");
         }
-        var prefix = String.format("Calculation [R=%s Pr=%s Pl=%s M=%s] ",  cctx.getResultSetId(), cctx.getProtocol().getId(), cctx.getPlate().getId(), cctx.getMeasId());
+        var prefix = String.format("Calculation [R=%s Pr=%s Pl=%s M=%s] ",  cctx.getResultSetId(), cctx.getProtocolData().protocol.getId(), cctx.getPlate().getId(), cctx.getMeasId());
         logger.info(prefix + String.format(formatString, formatArgs));
     }
 
@@ -53,8 +53,8 @@ public class ProtocolLogger {
      * @param cctx CalculationContext, used to generate a consistent prefix for the log messages
      * @param message the message to log, may contain user input
      */
-    public static void logMsg(Logger logger, CalculationContext cctx, String message) {
-        var prefix = String.format("Calculation [R=%s Pr=%s Pl=%s M=%s] ",  cctx.getResultSetId(), cctx.getProtocol().getId(), cctx.getPlate().getId(), cctx.getMeasId());
+    public static void log(Logger logger, CalculationContext cctx, String message) {
+        var prefix = String.format("Calculation [R=%s Pr=%s Pl=%s M=%s] ",  cctx.getResultSetId(), cctx.getProtocolData().protocol.getId(), cctx.getPlate().getId(), cctx.getMeasId());
         logger.info(prefix + message);
     }
 
@@ -75,7 +75,7 @@ public class ProtocolLogger {
         if (formatArgs.length == 0) {
             throw new IllegalArgumentException("At least one formatArg is needed");
         }
-        var prefix = String.format("Calculation [R=%s Pr=%s Pl=%s M=%s] ",  cctx.getResultSetId(), cctx.getProtocol().getId(), cctx.getPlate().getId(), cctx.getMeasId());
+        var prefix = String.format("Calculation [R=%s Pr=%s Pl=%s M=%s] ",  cctx.getResultSetId(), cctx.getProtocolData().protocol.getId(), cctx.getPlate().getId(), cctx.getMeasId());
         logger.info(prefix + String.format(formatString, formatArgs), ex);
     }
 
@@ -88,8 +88,8 @@ public class ProtocolLogger {
      * @param message the message to log, may contain user input
      * @param ex the exception to log
      */
-    public static void logMsg(Logger logger, CalculationContext cctx, String message, Throwable ex) {
-        var prefix = String.format("Calculation [R=%s Pr=%s Pl=%s M=%s] ",  cctx.getResultSetId(), cctx.getProtocol().getId(), cctx.getPlate().getId(), cctx.getMeasId());
+    public static void log(Logger logger, CalculationContext cctx, String message, Throwable ex) {
+        var prefix = String.format("Calculation [R=%s Pr=%s Pl=%s M=%s] ",  cctx.getResultSetId(), cctx.getProtocolData().protocol.getId(), cctx.getPlate().getId(), cctx.getMeasId());
         logger.info(prefix + message, ex);
     }
 

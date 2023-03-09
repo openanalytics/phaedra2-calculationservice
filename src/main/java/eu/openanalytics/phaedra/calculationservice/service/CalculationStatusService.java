@@ -18,21 +18,31 @@
  * You should have received a copy of the Apache License
  * along with this program.  If not, see <http://www.apache.org/licenses/>
  */
-package eu.openanalytics.phaedra.calculationservice.service.status;
+package eu.openanalytics.phaedra.calculationservice.service;
+
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Collection;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Map;
+import java.util.Objects;
+import java.util.stream.Collectors;
+
+import org.springframework.stereotype.Service;
 
 import eu.openanalytics.phaedra.calculationservice.dto.CalculationStatus;
 import eu.openanalytics.phaedra.calculationservice.enumeration.CalculationStatusCode;
 import eu.openanalytics.phaedra.calculationservice.model.CalculationContext;
-import eu.openanalytics.phaedra.calculationservice.model.Feature;
-import eu.openanalytics.phaedra.calculationservice.model.FeatureStat;
-import eu.openanalytics.phaedra.calculationservice.model.Protocol;
-import eu.openanalytics.phaedra.calculationservice.model.Sequence;
-import eu.openanalytics.phaedra.calculationservice.service.ModelMapper;
-import eu.openanalytics.phaedra.calculationservice.service.protocol.ProtocolInfoCollector;
+import eu.openanalytics.phaedra.calculationservice.model.ModelMapper;
+import eu.openanalytics.phaedra.calculationservice.service.protocol.ProtocolDataCollector;
 import eu.openanalytics.phaedra.plateservice.client.PlateServiceClient;
 import eu.openanalytics.phaedra.plateservice.client.exception.PlateUnresolvableException;
 import eu.openanalytics.phaedra.plateservice.dto.WellDTO;
 import eu.openanalytics.phaedra.protocolservice.client.exception.ProtocolUnresolvableException;
+import eu.openanalytics.phaedra.protocolservice.dto.FeatureDTO;
+import eu.openanalytics.phaedra.protocolservice.dto.FeatureStatDTO;
 import eu.openanalytics.phaedra.resultdataservice.client.ResultDataServiceClient;
 import eu.openanalytics.phaedra.resultdataservice.client.exception.ResultDataUnresolvableException;
 import eu.openanalytics.phaedra.resultdataservice.client.exception.ResultFeatureStatUnresolvableException;
@@ -40,23 +50,11 @@ import eu.openanalytics.phaedra.resultdataservice.client.exception.ResultSetUnre
 import eu.openanalytics.phaedra.resultdataservice.dto.ResultDataDTO;
 import eu.openanalytics.phaedra.resultdataservice.dto.ResultFeatureStatDTO;
 import eu.openanalytics.phaedra.resultdataservice.enumeration.StatusCode;
-import org.springframework.stereotype.Service;
-
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Collection;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.LinkedHashSet;
-import java.util.List;
-import java.util.Map;
-import java.util.Objects;
-import java.util.stream.Collectors;
 
 @Service
 public class CalculationStatusService {
 
-    private final ProtocolInfoCollector protocolInfoCollector;
+    private final ProtocolDataCollector protocolInfoCollector;
     private final PlateServiceClient plateServiceClient;
     private final ResultDataServiceClient resultDataServiceClient;
     private final ModelMapper modelMapper;
@@ -90,48 +88,11 @@ public class CalculationStatusService {
                     .description("Sequence marked as failed because at least one featureStat failed (next sequence will still be calculated).")
                     .build();
 
-    public CalculationStatusService(ProtocolInfoCollector protocolInfoCollector, PlateServiceClient plateServiceClient, ResultDataServiceClient resultDataServiceClient, ModelMapper modelMapper) {
+    public CalculationStatusService(ProtocolDataCollector protocolInfoCollector, PlateServiceClient plateServiceClient, ResultDataServiceClient resultDataServiceClient, ModelMapper modelMapper) {
         this.protocolInfoCollector = protocolInfoCollector;
         this.plateServiceClient = plateServiceClient;
         this.resultDataServiceClient = resultDataServiceClient;
         this.modelMapper = modelMapper;
-    }
-
-    public CalculationStatus.CalculationComplexityDTO getComplexity(CalculationContext cctx) {
-        return getComplexity(cctx.getProtocol(), cctx.getNumWelltypes());
-    }
-
-    /**
-     * Calculates the complexity of the given protocol.
-     * @param protocol the protocol
-     * @param numWelltypes the number of welltypes in the plate. This is used to calculate the exact amount of FeatureStats
-     *                     that will be computed.
-     * @return the complexity of the protocol.
-     */
-    public CalculationStatus.CalculationComplexityDTO getComplexity(Protocol protocol, int numWelltypes) {
-        // 3. determine number of steps
-        int numberOfFeatures = 0;
-        int numberOfFeatureStats = 0;
-        int numberOfFeatureStatResults = 0;
-        int numberOfSequences = protocol.getSequences().size();
-
-        for (var sequence : protocol.getSequences().entrySet()) {
-            for (var feature : sequence.getValue().getFeatures()) {
-                numberOfFeatures++;
-                for (var featureStat : feature.getFeatureStats()) {
-                    numberOfFeatureStats++;
-                    numberOfFeatureStatResults += getNumOfExpectedFeatureStats(featureStat, numWelltypes);
-                }
-            }
-        }
-
-        return new CalculationStatus.CalculationComplexityDTO(
-                numberOfFeatures + numberOfFeatureStats,
-                numberOfFeatures,
-                numberOfFeatureStats,
-                numberOfFeatureStatResults,
-                numberOfSequences
-        );
     }
 
     /**
@@ -145,34 +106,23 @@ public class CalculationStatusService {
      * @throws PlateUnresolvableException
      */
     public CalculationStatus getStatus(long resultSetId) throws ResultDataUnresolvableException, ResultSetUnresolvableException, ResultFeatureStatUnresolvableException, ProtocolUnresolvableException, PlateUnresolvableException {
-        // 1. get resultSet
-        final var resultSet = resultDataServiceClient.getResultSet(resultSetId);
-        final var protocol = protocolInfoCollector.getProtocol(resultSet.getProtocolId());
-        final var wells = plateServiceClient.getWells(resultSet.getPlateId());
+    	
+        var resultSet = resultDataServiceClient.getResultSet(resultSetId);
+        var protocolData = protocolInfoCollector.getProtocolData(resultSet.getProtocolId());
+        var wells = plateServiceClient.getWells(resultSet.getPlateId());
+        CalculationContext ctx = CalculationContext.newInstance(protocolData, null, wells, resultSetId, resultSet.getMeasId());
 
-        // 2. determine number of unique wellTypes
-        final var welltypesSorted = wells.stream().map(WellDTO::getWellType).toList();
-        final var uniqueWelltypes = new LinkedHashSet<>(welltypesSorted);
-        final var numWelltypes = uniqueWelltypes.size();
+        var resultData = resultDataServiceClient.getResultData(resultSetId);
+        var resultDataByFeature = resultData.stream().collect(Collectors.toMap(ResultDataDTO::getFeatureId, it -> it));
 
-        // 3. get required status
-        final var complexity = getComplexity(protocol, numWelltypes);
+        var resultFeatures = resultDataServiceClient.getResultFeatureStat(resultSetId);
+        var resultFeaturesByFeature = resultFeatures.stream().collect(Collectors.groupingBy(ResultFeatureStatDTO::getFeatureId, Collectors.toList()));
 
-        // 4. get ResultData
-        final var resultData = resultDataServiceClient.getResultData(resultSetId);
-        final var resultDataByFeature = resultData.stream().collect(Collectors.toMap(ResultDataDTO::getFeatureId, it -> it));
-
-        // 5. get ResultFeatureStat
-        final var resultFeatures = resultDataServiceClient.getResultFeatureStat(resultSetId);
-        final var resultFeaturesByFeature = resultFeatures.stream().collect(Collectors.groupingBy(ResultFeatureStatDTO::getFeatureId, Collectors.toList()));
-
-        // 6. calculate sequence status
-        final var sequencesStatus = new HashMap<Integer, CalculationStatus.SequenceStatusDTO>();
+        var sequencesStatus = new HashMap<Integer, CalculationStatus.SequenceStatusDTO>();
 
         var defaultIfMissing = DESCR_SCHEDULED;
-        for (var seq = 0; seq < protocol.getSequences().size(); seq++) {
-            Sequence sequence = protocol.getSequences().get(seq);
-            var status = getSequenceStatus(sequence, resultDataByFeature, resultFeaturesByFeature, numWelltypes, defaultIfMissing);
+        for (Integer seq: protocolData.sequences.keySet().stream().sorted().toList()) {
+            var status = getSequenceStatus(seq, ctx, resultDataByFeature, resultFeaturesByFeature, defaultIfMissing);
             sequencesStatus.put(seq, status);
             if (status.getStatus().getStatusCode() == CalculationStatusCode.FAILURE) {
                 // if the current sequence was a failure -> all other sequences will be skipped
@@ -181,7 +131,7 @@ public class CalculationStatusService {
         }
 
         return CalculationStatus.builder()
-                .complexity(complexity)
+                .complexity(getComplexity(ctx))
                 .sequences(sequencesStatus)
                 .statusCode(resultSet.getOutcome())
                 .errors(resultSet.getErrors())
@@ -197,20 +147,22 @@ public class CalculationStatusService {
      * @param defaultIfMissing the value to use when no result is found for the given Feature or FeatureStat
      * @return the status of this sequence
      */
-    public CalculationStatus.SequenceStatusDTO getSequenceStatus(Sequence sequence, Map<Long, ResultDataDTO> resultData, Map<Long, List<ResultFeatureStatDTO>> statData, int numWelltypes, CalculationStatus.StatusDescription defaultIfMissing) {
-        // keep track of the status of each Feature and FeatureStat in this sequence
-        // used to later compute the aggregated state of this Sequence
-        var featureStatuses = new HashMap<Long, CalculationStatus.FeatureStatusDTO>();
+    public CalculationStatus.SequenceStatusDTO getSequenceStatus(Integer sequence, CalculationContext ctx, Map<Long, ResultDataDTO> resultData, Map<Long, List<ResultFeatureStatDTO>> statData, CalculationStatus.StatusDescription defaultIfMissing) {
+
+    	var featureStatuses = new HashMap<Long, CalculationStatus.FeatureStatusDTO>();
         var featureStatStatuses = new HashSet<CalculationStatus.StatusDescription>();
 
-        for (var feature : sequence.getFeatures()) {
+        var sequenceFeatures = ctx.getProtocolData().protocol.getFeatures().stream()
+        		.filter(f -> f.getSequence() == sequence).toList();
+        
+        for (var feature : sequenceFeatures) {
             var statusCode = getFeatureStatus(resultData.get(feature.getId()), defaultIfMissing);
             HashMap<Long, CalculationStatus.StatusDescription> statStatuses;
             if (statusCode.getStatusCode() == CalculationStatusCode.FAILURE) {
                 // if the feature was a failure, the stats are always skipped
-                statStatuses = getFeatureStatsStatus(feature, statData.get(feature.getId()), numWelltypes, DESCR_SKIPPED_FEATURE_FAILED);
+                statStatuses = getFeatureStatsStatus(feature, ctx, statData.get(feature.getId()), DESCR_SKIPPED_FEATURE_FAILED);
             } else {
-                statStatuses = getFeatureStatsStatus(feature, statData.get(feature.getId()), numWelltypes, defaultIfMissing);
+                statStatuses = getFeatureStatsStatus(feature, ctx, statData.get(feature.getId()), defaultIfMissing);
             }
             featureStatStatuses.addAll(statStatuses.values());
             featureStatuses.put(
@@ -256,12 +208,15 @@ public class CalculationStatusService {
      * @param defaultIfMissing the value to return when there is no result data for a featureStat of this feature
      * @return the status for each FeatureStat in this feature
      */
-    public HashMap<Long, CalculationStatus.StatusDescription> getFeatureStatsStatus(Feature feature, List<ResultFeatureStatDTO> statData, int numWelltypes, CalculationStatus.StatusDescription defaultIfMissing) {
+    public HashMap<Long, CalculationStatus.StatusDescription> getFeatureStatsStatus(FeatureDTO feature, CalculationContext ctx, List<ResultFeatureStatDTO> statData, CalculationStatus.StatusDescription defaultIfMissing) {
         var res = new HashMap<Long, CalculationStatus.StatusDescription>();
 
+        var featureStats = ctx.getProtocolData().featureStats.get(feature.getId());
         var statResultsByStatId = Objects.requireNonNullElse(statData, new ArrayList<ResultFeatureStatDTO>()).stream().collect(Collectors.groupingBy(ResultFeatureStatDTO::getFeatureStatId, Collectors.toList()));
-        for (var featureStat : feature.getFeatureStats()) {
-            var numOfExpectedResults = getNumOfExpectedFeatureStats(featureStat, numWelltypes);
+        int numberOfWellTypes = (int) ctx.getWells().stream().map(WellDTO::getWellType).distinct().count();
+        
+        for (var featureStat : featureStats) {
+            var numOfExpectedResults = getNumOfExpectedFeatureStats(featureStat, numberOfWellTypes);
             var statResults = statResultsByStatId.get(featureStat.getId());
 
             if (statResults == null || statResults.size() != numOfExpectedResults) {
@@ -288,6 +243,26 @@ public class CalculationStatusService {
         return res;
     }
 
+    private CalculationStatus.CalculationComplexityDTO getComplexity(CalculationContext ctx) {
+    	
+        int numberOfFeatures = ctx.getProtocolData().protocol.getFeatures().size();
+        int numberOfFeatureStats = (int) ctx.getProtocolData().featureStats.values().stream().flatMap(l -> l.stream()).count();
+        int numberOfWellTypes = (int) ctx.getWells().stream().map(WellDTO::getWellType).distinct().count();
+        int numberOfFeatureStatResults =
+        		ctx.getProtocolData().featureStats.values().stream().flatMap(l -> l.stream())
+        		.mapToInt(fs -> getNumOfExpectedFeatureStats(fs, numberOfWellTypes))
+        		.sum();
+        int numberOfSequences = ctx.getProtocolData().sequences.size();
+
+        return new CalculationStatus.CalculationComplexityDTO(
+                numberOfFeatures + numberOfFeatureStats,
+                numberOfFeatures,
+                numberOfFeatureStats,
+                numberOfFeatureStatResults,
+                numberOfSequences
+        );
+    }
+    
     /**
      * Calculates the StatusDescription for a sequence based on the statuses of the feature and featueStats of the sequence.
      * @param featureStatuses the statuses of the features in this sequence
@@ -346,12 +321,12 @@ public class CalculationStatusService {
      * @param numWelltypes the number of welltypes used in the calculation
      * @return the number of expected results
      */
-    private int getNumOfExpectedFeatureStats(FeatureStat featureStat, int numWelltypes) {
+    private int getNumOfExpectedFeatureStats(FeatureStatDTO featureStat, int numWelltypes) {
         var requiredAmount = 0;
-        if (featureStat.isPlateStat()) {
+        if (featureStat.getPlateStat()) {
             requiredAmount++;
         }
-        if (featureStat.isWelltypeStat()) {
+        if (featureStat.getWelltypeStat()) {
             requiredAmount += numWelltypes;
         }
         return requiredAmount;

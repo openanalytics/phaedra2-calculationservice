@@ -41,16 +41,16 @@ public class CalculationInputHelper {
 		wellStatus
 	}
 
-	public static void addWellInfo(Map<String, Object> inputMap, CalculationContext context) {
-		if (context.getProtocol() != null) {
-			inputMap.put(InputName.lowWellType.name(), context.getProtocol().getLowWelltype());
-			inputMap.put(InputName.highWellType.name(), context.getProtocol().getHighWelltype());
+	public static void addWellInfo(Map<String, Object> inputMap, CalculationContext ctx) {
+		if (ctx.getProtocolData() != null && ctx.getProtocolData().protocol != null) {
+			inputMap.put(InputName.lowWellType.name(), ctx.getProtocolData().protocol.getLowWelltype());
+			inputMap.put(InputName.highWellType.name(), ctx.getProtocolData().protocol.getHighWelltype());
 		}
 
-		if (context.getWells() != null) {
+		if (ctx.getWells() != null) {
 			// Sort wells by wellNumber
-			List<WellDTO> wells = new ArrayList<>(context.getWells());
-			int columnCount = context.getPlate().getColumns();
+			List<WellDTO> wells = new ArrayList<>(ctx.getWells());
+			int columnCount = ctx.getPlate().getColumns();
 			wells.sort((w1, w2) -> { 
 				return WellNumberUtils.getWellNr(w1.getRow(), w1.getColumn(), columnCount) - WellNumberUtils.getWellNr(w2.getRow(), w2.getColumn(), columnCount);
 			});

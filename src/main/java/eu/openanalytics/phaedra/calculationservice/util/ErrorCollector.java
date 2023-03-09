@@ -18,17 +18,9 @@
  * You should have received a copy of the Apache License
  * along with this program.  If not, see <http://www.apache.org/licenses/>
  */
-package eu.openanalytics.phaedra.calculationservice.service.protocol;
+package eu.openanalytics.phaedra.calculationservice.util;
 
-import eu.openanalytics.phaedra.calculationservice.model.CalculationContext;
-import eu.openanalytics.phaedra.calculationservice.model.CalculationInputValue;
-import eu.openanalytics.phaedra.calculationservice.model.Feature;
-import eu.openanalytics.phaedra.calculationservice.model.FeatureStat;
-import eu.openanalytics.phaedra.calculationservice.model.Formula;
-import eu.openanalytics.phaedra.resultdataservice.dto.ErrorDTO;
-import eu.openanalytics.phaedra.scriptengine.dto.ScriptExecutionOutputDTO;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import static eu.openanalytics.phaedra.calculationservice.util.LoggerHelper.log;
 
 import java.time.LocalDateTime;
 import java.util.ArrayList;
@@ -36,16 +28,25 @@ import java.util.Collections;
 import java.util.List;
 import java.util.Optional;
 
-import static eu.openanalytics.phaedra.calculationservice.service.protocol.ProtocolLogger.logMsg;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
+import eu.openanalytics.phaedra.calculationservice.model.CalculationContext;
+import eu.openanalytics.phaedra.calculationservice.model.Formula;
+import eu.openanalytics.phaedra.protocolservice.dto.CalculationInputValueDTO;
+import eu.openanalytics.phaedra.protocolservice.dto.FeatureDTO;
+import eu.openanalytics.phaedra.protocolservice.dto.FeatureStatDTO;
+import eu.openanalytics.phaedra.resultdataservice.dto.ErrorDTO;
+import eu.openanalytics.phaedra.scriptengine.dto.ScriptExecutionOutputDTO;
 
 public class ErrorCollector {
 
     private final List<ErrorDTO> errors = Collections.synchronizedList(new ArrayList<>());
     private final Logger logger = LoggerFactory.getLogger(getClass());
-    private final CalculationContext cctx;
+    private final CalculationContext ctx;
 
-    public ErrorCollector(CalculationContext cctx) {
-        this.cctx = cctx;
+    public ErrorCollector(CalculationContext ctx) {
+        this.ctx = ctx;
     }
 
     public List<ErrorDTO> getErrors() {
@@ -65,46 +66,46 @@ public class ErrorCollector {
         return errors.size() > 0;
     }
 
-    public void handleError(String description, Object... ctxObjects) {
+    public void addError(String description, Object... ctxObjects) {
         var errorBuilder = ErrorDTO.builder()
                 .timestamp(LocalDateTime.now())
                 .description(description);
 
         Optional<Throwable> exception = Optional.empty();
 
-        for (Object ctx : ctxObjects) {
-            if (ctx instanceof Feature feature) {
+        for (Object ctxObject : ctxObjects) {
+            if (ctxObject instanceof FeatureDTO feature) {
                 errorBuilder
                         .sequenceNumber(feature.getSequence())
                         .featureId(feature.getId())
                         .featureName(feature.getName());
-            } else if (ctx instanceof ScriptExecutionOutputDTO output) {
+            } else if (ctxObject instanceof ScriptExecutionOutputDTO output) {
                 errorBuilder
                         .exitCode(output.getExitCode())
                         .statusMessage(output.getStatusMessage());
-            } else if (ctx instanceof CalculationInputValue civ) {
+            } else if (ctxObject instanceof CalculationInputValueDTO civ) {
                 errorBuilder
-                        .civType(civ.getType())
+                        .civType(civ.getInputSource().name())
                         .civVariableName(civ.getVariableName())
-                        .civSource(civ.getSource());
-            } else if (ctx instanceof FeatureStat featureStat) {
+                        .civSource(civ.getSourceMeasColName() == null ? String.valueOf(civ.getSourceFeatureId()) : civ.getSourceMeasColName());
+            } else if (ctxObject instanceof FeatureStatDTO featureStat) {
                 errorBuilder
                         .featureStatId(featureStat.getId())
                         .featureStatName(featureStat.getName());
-            } else if (ctx instanceof Formula formula) {
+            } else if (ctxObject instanceof Formula formula) {
                 errorBuilder
                         .formulaId(formula.getId())
                         .formulaName(formula.getName());
-            } else if (ctx instanceof Throwable e) {
+            } else if (ctxObject instanceof Throwable e) {
                 errorBuilder
                         .exceptionClassName(e.getClass().getSimpleName())
                         .exceptionMessage(e.getMessage());
                 if (exception.isPresent()) {
-                    logMsg(logger, cctx,"Multiple exception provided to errorCollector:handleError");
+                    log(logger, ctx,"Multiple exception provided to errorCollector:handleError");
                 }
                 exception = Optional.of(e);
             } else {
-                logMsg(logger, cctx, "Unrecognized contextObject passed to errorCollector:handleError");
+                log(logger, ctx, "Unrecognized contextObject passed to errorCollector:handleError");
             }
         }
 
@@ -112,13 +113,13 @@ public class ErrorCollector {
         errors.add(error);
         
         if (exception.isPresent()) {
-            logMsg(logger, cctx, "Error added to ErrorCollector" + error.toString(), exception.get());
+            log(logger, ctx, "Error added to ErrorCollector" + error.toString(), exception.get());
         } else {
-            logMsg(logger, cctx, "Error added to ErrorCollector" + error);
+            log(logger, ctx, "Error added to ErrorCollector" + error);
         }
     }
 
-    public void handleError(String description, int sequenceNumber) {
+    public void addError(String description, int sequenceNumber) {
         var error = ErrorDTO.builder()
                 .timestamp(LocalDateTime.now())
                 .description(description)

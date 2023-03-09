@@ -35,6 +35,7 @@ import eu.openanalytics.phaedra.calculationservice.dto.FormulaDTO;
 import eu.openanalytics.phaedra.calculationservice.enumeration.Category;
 import eu.openanalytics.phaedra.calculationservice.exception.FormulaNotFoundException;
 import eu.openanalytics.phaedra.calculationservice.model.Formula;
+import eu.openanalytics.phaedra.calculationservice.model.ModelMapper;
 import eu.openanalytics.phaedra.calculationservice.repository.FormulaRepository;
 import eu.openanalytics.phaedra.calculationservice.util.FormulaParser;
 import eu.openanalytics.phaedra.util.auth.IAuthorizationService;

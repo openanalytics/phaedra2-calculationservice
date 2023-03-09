@@ -37,8 +37,8 @@ import org.springframework.http.HttpStatus;
 
 import eu.openanalytics.phaedra.calculationservice.api.CalculationController;
 import eu.openanalytics.phaedra.calculationservice.dto.CalculationStatus;
+import eu.openanalytics.phaedra.calculationservice.service.CalculationStatusService;
 import eu.openanalytics.phaedra.calculationservice.service.protocol.ProtocolExecutorService;
-import eu.openanalytics.phaedra.calculationservice.service.status.CalculationStatusService;
 import eu.openanalytics.phaedra.calculationservice.support.AbstractIntegrationTest;
 import eu.openanalytics.phaedra.resultdataservice.dto.ResultSetDTO;
 import eu.openanalytics.phaedra.resultdataservice.enumeration.StatusCode;

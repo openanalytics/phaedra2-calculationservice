@@ -20,17 +20,18 @@
  */
 package eu.openanalytics.phaedra.calculationservice.model;
 
-import eu.openanalytics.phaedra.calculationservice.service.protocol.ErrorCollector;
+import java.util.List;
+
 import eu.openanalytics.phaedra.plateservice.dto.PlateDTO;
 import eu.openanalytics.phaedra.plateservice.dto.WellDTO;
 import eu.openanalytics.phaedra.plateservice.dto.WellSubstanceDTO;
 import eu.openanalytics.phaedra.protocolservice.dto.DRCModelDTO;
 import eu.openanalytics.phaedra.protocolservice.dto.FeatureDTO;
-import lombok.*;
-
-import java.util.LinkedHashSet;
-import java.util.List;
-import java.util.concurrent.ConcurrentHashMap;
+import lombok.AccessLevel;
+import lombok.AllArgsConstructor;
+import lombok.Data;
+import lombok.NonNull;
+import lombok.Setter;
 
 @Data
 @AllArgsConstructor(access = AccessLevel.PRIVATE)

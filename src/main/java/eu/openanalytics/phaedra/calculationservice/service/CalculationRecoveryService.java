@@ -37,10 +37,11 @@ import eu.openanalytics.phaedra.resultdataservice.enumeration.StatusCode;
 
 @Service
 public class CalculationRecoveryService {
-    private final Logger logger = LoggerFactory.getLogger(getClass());
 
     private final ResultDataServiceClient resultDataServiceClient;
     private final ProtocolExecutorService protocolExecutorService;
+
+    private final Logger logger = LoggerFactory.getLogger(getClass());
 
     private static final Duration MAX_RECOVER_TIME = Duration.ofHours(2);
 

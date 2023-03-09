@@ -20,26 +20,7 @@
  */
 package eu.openanalytics.phaedra.calculationservice.service.protocol;
 
-import com.fasterxml.jackson.annotation.JsonCreator;
-import com.fasterxml.jackson.annotation.JsonProperty;
-import com.fasterxml.jackson.core.JsonProcessingException;
-import com.fasterxml.jackson.databind.ObjectMapper;
-import eu.openanalytics.phaedra.calculationservice.dto.CurveFittingRequestDTO;
-import eu.openanalytics.phaedra.calculationservice.model.CalculationContext;
-import eu.openanalytics.phaedra.calculationservice.model.Feature;
-import eu.openanalytics.phaedra.calculationservice.model.Sequence;
-import eu.openanalytics.phaedra.calculationservice.model.SuccessTracker;
-import eu.openanalytics.phaedra.calculationservice.service.KafkaProducerService;
-import eu.openanalytics.phaedra.calculationservice.service.ModelMapper;
-import eu.openanalytics.phaedra.calculationservice.service.featurestat.FeatureStatExecutor;
-import eu.openanalytics.phaedra.resultdataservice.dto.ResultDataDTO;
-import eu.openanalytics.phaedra.resultdataservice.enumeration.StatusCode;
-import eu.openanalytics.phaedra.scriptengine.client.model.ScriptExecution;
-import eu.openanalytics.phaedra.scriptengine.dto.ResponseStatusCode;
-import eu.openanalytics.phaedra.scriptengine.dto.ScriptExecutionOutputDTO;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-import org.springframework.stereotype.Service;
+import static eu.openanalytics.phaedra.calculationservice.util.LoggerHelper.log;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -48,52 +29,81 @@ import java.util.Optional;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Future;
-import java.util.concurrent.TimeUnit;
 
-import static eu.openanalytics.phaedra.calculationservice.service.protocol.ProtocolLogger.log;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.springframework.stereotype.Service;
 
+import com.fasterxml.jackson.annotation.JsonCreator;
+import com.fasterxml.jackson.annotation.JsonProperty;
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.ObjectMapper;
+
+import eu.openanalytics.phaedra.calculationservice.dto.CurveFittingRequestDTO;
+import eu.openanalytics.phaedra.calculationservice.model.CalculationContext;
+import eu.openanalytics.phaedra.calculationservice.model.Formula;
+import eu.openanalytics.phaedra.calculationservice.model.ModelMapper;
+import eu.openanalytics.phaedra.calculationservice.service.KafkaProducerService;
+import eu.openanalytics.phaedra.calculationservice.util.SuccessTracker;
+import eu.openanalytics.phaedra.protocolservice.dto.FeatureDTO;
+import eu.openanalytics.phaedra.resultdataservice.dto.ResultDataDTO;
+import eu.openanalytics.phaedra.resultdataservice.enumeration.StatusCode;
+import eu.openanalytics.phaedra.scriptengine.client.model.ScriptExecution;
+import eu.openanalytics.phaedra.scriptengine.dto.ResponseStatusCode;
+import eu.openanalytics.phaedra.scriptengine.dto.ScriptExecutionOutputDTO;
+
+/**
+ * A sequence is a group of features that may depend on features from the
+ * previous sequence, but do not depend on features from the same sequence
+ * or any later sequence.
+ * 
+ * In other words, all features from a sequence can be calculated in parallel.
+ */
 @Service
 public class SequenceExecutorService {
 
-    private final ObjectMapper objectMapper = new ObjectMapper(); // TODO thread-safe?
     private final FeatureExecutorService featureExecutorService;
-    private final ModelMapper modelMapper;
-    private final FeatureStatExecutor featureStatExecutor; // TODO remove deps?
-    private final Logger logger = LoggerFactory.getLogger(getClass());
+    private final FeatureStatExecutorService featureStatExecutorService;
+    
     private final KafkaProducerService kafkaProducerService;
+    private final ObjectMapper objectMapper;
+    private final ModelMapper modelMapper;
+    private final Logger logger = LoggerFactory.getLogger(getClass());
 
     private final static int MAX_ATTEMPTS = 3;
 
-    public SequenceExecutorService(FeatureExecutorService featureExecutorService, ModelMapper modelMapper,
-                                   FeatureStatExecutor featureStatExecutor, KafkaProducerService kafkaProducerService) {
+    public SequenceExecutorService(FeatureExecutorService featureExecutorService, ModelMapper modelMapper, ObjectMapper objectMapper,
+                                   FeatureStatExecutorService featureStatExecutorService, KafkaProducerService kafkaProducerService) {
         this.featureExecutorService = featureExecutorService;
         this.modelMapper = modelMapper;
-        this.featureStatExecutor = featureStatExecutor;
+        this.objectMapper = objectMapper;
+        this.featureStatExecutorService = featureStatExecutorService;
         this.kafkaProducerService = kafkaProducerService;
     }
 
-    public boolean executeSequence(CalculationContext cctx, ExecutorService executorService, Sequence currentSequence) {
+    public boolean executeSequence(CalculationContext ctx, ExecutorService executorService, Integer currentSequence) {
         var sequenceSuccess = new SuccessTracker<Void>();
-        log(logger, cctx, "[S=%s] Executing sequence", currentSequence.getSequenceNumber());
+        log(logger, ctx, "[S=%d] Executing sequence", currentSequence);
 
-        // 1. try to calculate all features
-        var featuresToCalculate = currentSequence.getFeatures();
-        final var featureCount = featuresToCalculate.size(); // total number of features to calculate
+        var featuresToCalculate = ctx.getProtocolData().protocol.getFeatures().stream()
+        		.filter(f -> f.getSequence() == currentSequence).toList();
+        
         var calculations = new ArrayList<FeatureCalculation>();
+        
         for (int attempt = 1; true; attempt++) {
-            log(logger, cctx, "[S=%s] Attempt %s to calculate [%s of %s] features", currentSequence.getSequenceNumber(), attempt, featuresToCalculate.size(), featureCount);
+            log(logger, ctx, "[S=%s] Attempt %s to calculate [%s of %s] features", currentSequence, attempt, featuresToCalculate.size(), featuresToCalculate.size());
 
-            var currentAttempt = calculateFeatures(cctx, executorService, currentSequence, featuresToCalculate);
+            var currentAttempt = calculateFeatures(ctx, executorService, currentSequence, featuresToCalculate);
             sequenceSuccess.failedIfStepFailed(currentAttempt); // sequence is failed if the current attempt failed
 
             if (!currentAttempt.isSuccess() || attempt == MAX_ATTEMPTS) {
-                // 2. there was a hard-error or we are at the last attempt -> do not re-attempt any calculation
+                // There was a hard-error or we are at the last attempt -> do not re-attempt any calculation
                 calculations.addAll(currentAttempt.getResult());
                 break;
             }
 
-            // 3. check if we have to retry any of the calculations
-            var featuresToRetry = new ArrayList<Feature>();
+            // Check if we have to retry any of the calculations
+            var featuresToRetry = new ArrayList<FeatureDTO>();
             for (var calculation : currentAttempt.getResult()) {
                 if (calculation.getOutput().isPresent() && calculation.getOutput().get().getStatusCode().canBeRetried()) {
                     featuresToRetry.add(calculation.getFeature());
@@ -102,92 +112,90 @@ public class SequenceExecutorService {
                 }
             }
             if (featuresToRetry.size() == 0) {
-                // 4. nothing to retry
                 break;
             }
             featuresToCalculate = featuresToRetry;
         }
 
-        // 5. save the output
+        // Save the output
        for (var calculation : calculations) {
         	try {
-        		var resultData = saveOutput(cctx, calculation);
+        		var resultData = emitFeatureCalculationOutput(ctx, calculation);
         		if (resultData.isPresent() && resultData.get().getStatusCode() == StatusCode.SUCCESS) {
-        			// E. trigger calculation of FeatureStats for the features in this Sequence
-        			cctx.getComputedStatsForFeature().put(calculation.getFeature(), executorService.submit(() -> featureStatExecutor.executeFeatureStat(cctx, calculation.getFeature(), resultData.get())));
+        			// Trigger calculation of FeatureStats for the features in this Sequence
+        			ctx.getComputedStatsForFeature().put(calculation.getFeature(), executorService.submit(() -> featureStatExecutorService.executeFeatureStat(ctx, calculation.getFeature(), resultData.get())));
         		} else {
         			sequenceSuccess.failed();
         		}
             } catch (Throwable e) {
-                cctx.getErrorCollector().handleError("executing sequence => saving output", e, calculation.getFeature(), calculation.getFeature().getFormula());
+                ctx.getErrorCollector().addError("executing sequence => saving output", e, 
+                		calculation.getFeature(), ctx.getProtocolData().formulas.get(calculation.getFeature().getFormulaId()));
             }
         }
 
-        log(logger, cctx, "[S=%s] Finished: success: %s", currentSequence.getSequenceNumber(), sequenceSuccess.isSuccess());
+        log(logger, ctx, "[S=%s] Finished: success: %s", currentSequence, sequenceSuccess.isSuccess());
         return sequenceSuccess.isSuccess();
     }
 
-    public SuccessTracker<ArrayList<FeatureCalculation>> calculateFeatures(CalculationContext cctx, ExecutorService executorService, Sequence currentSequence, List<Feature> features) {
+    public SuccessTracker<ArrayList<FeatureCalculation>> calculateFeatures(CalculationContext ctx, ExecutorService executorService, Integer currentSequence, List<FeatureDTO> features) {
         // A. asynchronously create inputs and submit them to the ScriptEngine
         var calculations = new ArrayList<FeatureCalculation>();
         var success = new SuccessTracker<ArrayList<FeatureCalculation>>();
-
         for (var feature : features) {
             calculations.add(new FeatureCalculation(feature, executorService.submit(() ->
-                    featureExecutorService.executeFeature(cctx, feature, currentSequence.getSequenceNumber()))));
+                    featureExecutorService.executeFeature(ctx, feature, currentSequence))));
         }
 
         // B. wait (block !) for execution to be sent to the ScriptEngine
         for (var calculation : calculations) {
+        	Formula formula = ctx.getProtocolData().formulas.get(calculation.getFeature().getFormulaId());
             try {
                 calculation.waitForExecution();
             } catch (InterruptedException e) {
-                cctx.getErrorCollector().handleError("executing sequence => waiting for feature to be sent => interrupted", e, calculation.getFeature(), calculation.getFeature().getFormula());
+                ctx.getErrorCollector().addError("executing sequence => waiting for feature to be sent => interrupted", e, calculation.getFeature(), formula);
                 success.failed();
             } catch (ExecutionException e) {
-                cctx.getErrorCollector().handleError("executing sequence => waiting for feature to be sent => exception during execution", e.getCause(), calculation.getFeature(), calculation.getFeature().getFormula());
+                ctx.getErrorCollector().addError("executing sequence => waiting for feature to be sent => exception during execution", e.getCause(), calculation.getFeature(), formula);
                 success.failed();
             } catch (Throwable e) {
-                cctx.getErrorCollector().handleError("executing sequence => waiting for feature to be sent => exception during execution", e, calculation.getFeature(), calculation.getFeature().getFormula());
+                ctx.getErrorCollector().addError("executing sequence => waiting for feature to be sent => exception during execution", e, calculation.getFeature(), formula);
                 success.failed();
             }
         }
 
-        log(logger, cctx, "[S=%s] All calculations send to script engine", currentSequence.getSequenceNumber());
+        log(logger, ctx, "[S=%s] All calculations send to script engine", currentSequence);
 
         // C. wait (block !) for output to be received from the ScriptEngine
         for (var calculation : calculations) {
+        	Formula formula = ctx.getProtocolData().formulas.get(calculation.getFeature().getFormulaId());
             try {
                 calculation.waitForOutput();
             } catch (InterruptedException e) {
-                cctx.getErrorCollector().handleError("executing sequence => waiting for output to be received => interrupted", e, calculation.getFeature(), calculation.getFeature().getFormula());
+                ctx.getErrorCollector().addError("executing sequence => waiting for output to be received => interrupted", e, calculation.getFeature(), formula);
                 success.failed();
             } catch (ExecutionException e) {
-                cctx.getErrorCollector().handleError("executing sequence => waiting for output to be received => exception during execution", e.getCause(), calculation.getFeature(), calculation.getFeature().getFormula());
+                ctx.getErrorCollector().addError("executing sequence => waiting for output to be received => exception during execution", e.getCause(), calculation.getFeature(), formula);
                 success.failed();
             } catch (Throwable e) {
-                cctx.getErrorCollector().handleError("executing sequence => waiting for output to be received => exception during execution", e, calculation.getFeature(), calculation.getFeature().getFormula());
+                ctx.getErrorCollector().addError("executing sequence => waiting for output to be received => exception during execution", e, calculation.getFeature(), formula);
                 success.failed();
             }
         }
 
-        log(logger, cctx, "[S=%s] All outputs received from script engine", currentSequence.getSequenceNumber());
+        log(logger, ctx, "[S=%s] All outputs received from script engine", currentSequence);
         success.setResult(calculations);
-
-        try {
-            TimeUnit.MILLISECONDS.sleep(2000);
-        } catch (InterruptedException e) {
-            throw new RuntimeException(e);
-        }
         return success;
     }
 
-    public Optional<ResultDataDTO> saveOutput(CalculationContext cctx, FeatureCalculation calculation) {
+    public Optional<ResultDataDTO> emitFeatureCalculationOutput(CalculationContext ctx, FeatureCalculation calculation) {
         if (calculation.getOutput().isEmpty()) {
             return Optional.empty();
         }
-        var output = calculation.getOutput().get();
+        
         var feature = calculation.getFeature();
+        var formula = ctx.getProtocolData().formulas.get(feature.getFormulaId());
+        var output = calculation.getOutput().get();
+        
         try {
             if (output.getStatusCode() == ResponseStatusCode.SUCCESS) {
                 try {
@@ -200,9 +208,9 @@ public class SequenceExecutorService {
                             floatOutputValue[i] = Float.NaN;
                         }
                     }
-                    // Save result data to the database
+                    // Emit result data event
                     var resultData = ResultDataDTO.builder()
-                            .resultSetId(cctx.getResultSetId())
+                            .resultSetId(ctx.getResultSetId())
                             .featureId(feature.getId())
                             .values(floatOutputValue)
                             .statusCode(modelMapper.map(output.getStatusCode()))
@@ -212,17 +220,17 @@ public class SequenceExecutorService {
                     kafkaProducerService.sendResultData(resultData);
 
                     // Initiate a curve fitting event
-                    var curveFitRequest = new CurveFittingRequestDTO(cctx.getPlate().getId(), resultData.getFeatureId(), resultData);
+                    var curveFitRequest = new CurveFittingRequestDTO(ctx.getPlate().getId(), resultData.getFeatureId(), resultData);
                     kafkaProducerService.initiateCurveFitting(curveFitRequest);
 
                     return Optional.of(resultData);
                 } catch (JsonProcessingException e) {
-                    cctx.getErrorCollector().handleError("executing sequence => processing output => parsing output", e, feature, output, feature.getFormula());
+                    ctx.getErrorCollector().addError("executing sequence => processing output => parsing output", e, feature, output, formula);
                 }
             } else {
-                // Save result data to the database
+            	// Emit result data event
                 var resultData = ResultDataDTO.builder()
-                        .resultSetId(cctx.getResultSetId())
+                        .resultSetId(ctx.getResultSetId())
                         .featureId(feature.getId())
                         .values(new float[]{})
                         .statusCode(modelMapper.map(output.getStatusCode()))
@@ -232,15 +240,16 @@ public class SequenceExecutorService {
                 kafkaProducerService.sendResultData(resultData);
 
                 // Initiate a curve fitting event
-                var curveFitRequest = new CurveFittingRequestDTO(cctx.getPlate().getId(), resultData.getFeatureId(), resultData);
+                var curveFitRequest = new CurveFittingRequestDTO(ctx.getPlate().getId(), resultData.getFeatureId(), resultData);
                 kafkaProducerService.initiateCurveFitting(curveFitRequest);
 
-                cctx.getErrorCollector().handleError(String.format("executing sequence => processing output => output indicates error [%s]", output.getStatusCode()), output, feature, feature.getFormula());
+                ctx.getErrorCollector().addError(String.format("executing sequence => processing output => output indicates error [%s]", output.getStatusCode()), output, feature, formula);
                 return Optional.of(resultData);
             }
         } catch (Exception e) {
-            cctx.getErrorCollector().handleError("executing sequence => processing output => saving resultdata", e, feature, feature.getFormula());
+            ctx.getErrorCollector().addError("executing sequence => processing output => saving resultdata", e, feature, formula);
         }
+
         return Optional.empty();
     }
 
@@ -257,12 +266,12 @@ public class SequenceExecutorService {
     private static class FeatureCalculation {
 
         private final Future<Optional<ScriptExecution>> scriptExecutionFuture;
-        private final Feature feature;
+        private final FeatureDTO feature;
 
         private Optional<ScriptExecution> scriptExecution = Optional.empty();
         private Optional<ScriptExecutionOutputDTO> output = Optional.empty();
 
-        public FeatureCalculation(Feature feature, Future<Optional<ScriptExecution>> scriptExecutionFuture) {
+        public FeatureCalculation(FeatureDTO feature, Future<Optional<ScriptExecution>> scriptExecutionFuture) {
             Objects.requireNonNull(feature, "Feature cannot be null");
             Objects.requireNonNull(scriptExecutionFuture, "scriptExecutionFuture cannot be null");
             this.feature = feature;
@@ -279,7 +288,7 @@ public class SequenceExecutorService {
             }
         }
 
-        public Feature getFeature() {
+        public FeatureDTO getFeature() {
             return feature;
         }
 

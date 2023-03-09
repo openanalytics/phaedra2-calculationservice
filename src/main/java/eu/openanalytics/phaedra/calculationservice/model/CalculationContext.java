@@ -20,18 +20,18 @@
  */
 package eu.openanalytics.phaedra.calculationservice.model;
 
-import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.Future;
 
-import eu.openanalytics.phaedra.calculationservice.service.protocol.ErrorCollector;
+import eu.openanalytics.phaedra.calculationservice.service.protocol.ProtocolDataCollector.ProtocolData;
+import eu.openanalytics.phaedra.calculationservice.util.ErrorCollector;
 import eu.openanalytics.phaedra.plateservice.dto.PlateDTO;
 import eu.openanalytics.phaedra.plateservice.dto.WellDTO;
+import eu.openanalytics.phaedra.protocolservice.dto.FeatureDTO;
 import lombok.AccessLevel;
 import lombok.AllArgsConstructor;
 import lombok.Data;
-import lombok.NonNull;
 import lombok.Setter;
 
 @Data
@@ -39,44 +39,19 @@ import lombok.Setter;
 @Setter(AccessLevel.PRIVATE)
 public class CalculationContext {
 
-    @NonNull
+	ProtocolData protocolData;
     PlateDTO plate;
-
-    @NonNull
     List<WellDTO> wells;
-
-    @NonNull
-    Protocol protocol;
-
-    @NonNull
     Long resultSetId;
-
-    @NonNull
     Long measId;
 
     ErrorCollector errorCollector;
+    ConcurrentHashMap<FeatureDTO, Future<Boolean>> computedStatsForFeature;
 
-    @NonNull
-    List<String> welltypesSorted;
-
-    @NonNull
-    LinkedHashSet<String> uniqueWelltypes;
-
-    int numWelltypes;
-
-    @NonNull
-    ConcurrentHashMap<Feature, Future<Boolean>> computedStatsForFeature;
-
-    public static CalculationContext newInstance(PlateDTO plate,
-                                                 List<WellDTO> wells,
-                                                 Protocol protocol,
-                                                 Long resultSetId,
-                                                 Long measId,
-                                                 List<String> welltypesSorted,
-                                                 LinkedHashSet<String> uniqueWelltypes) {
-        var res = new CalculationContext(plate, wells, protocol, resultSetId, measId,
-                null, welltypesSorted, uniqueWelltypes, uniqueWelltypes.size(),
-                new ConcurrentHashMap<>());
+    public static CalculationContext newInstance(ProtocolData protocolData,
+    		PlateDTO plate, List<WellDTO> wells, Long resultSetId, Long measId) {
+    	
+        var res = new CalculationContext(protocolData, plate, wells, resultSetId, measId, null, new ConcurrentHashMap<>());
         res.errorCollector = new ErrorCollector(res);
         return res;
     }

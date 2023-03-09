@@ -22,8 +22,9 @@ package eu.openanalytics.phaedra.calculationservice.api;
 
 import eu.openanalytics.curvedataservice.dto.CurveDTO;
 import eu.openanalytics.phaedra.calculationservice.dto.CurveFittingRequestDTO;
+import eu.openanalytics.phaedra.calculationservice.service.CalculationStatusService;
 import eu.openanalytics.phaedra.calculationservice.service.protocol.CurveFittingExecutorService;
-import eu.openanalytics.phaedra.calculationservice.service.status.CalculationStatusService;
+
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.PostMapping;

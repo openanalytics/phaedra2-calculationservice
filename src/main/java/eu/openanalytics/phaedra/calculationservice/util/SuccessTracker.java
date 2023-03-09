@@ -18,17 +18,13 @@
  * You should have received a copy of the Apache License
  * along with this program.  If not, see <http://www.apache.org/licenses/>
  */
-package eu.openanalytics.phaedra.calculationservice.model;
+package eu.openanalytics.phaedra.calculationservice.util;
 
 import java.util.Optional;
 
-/**
- * TODO
- */
 public class SuccessTracker<T> {
 
     private boolean success = true;
-
     private Optional<T> result = Optional.empty();
 
     public void failedIfStepFailed(SuccessTracker<?> success) {
