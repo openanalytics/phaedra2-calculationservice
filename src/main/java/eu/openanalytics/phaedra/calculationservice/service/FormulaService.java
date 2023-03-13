@@ -23,7 +23,6 @@ package eu.openanalytics.phaedra.calculationservice.service;
 
 import java.time.Clock;
 import java.time.LocalDateTime;
-import java.time.format.DateTimeFormatter;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
@@ -39,6 +38,7 @@ import eu.openanalytics.phaedra.calculationservice.model.ModelMapper;
 import eu.openanalytics.phaedra.calculationservice.repository.FormulaRepository;
 import eu.openanalytics.phaedra.calculationservice.util.FormulaParser;
 import eu.openanalytics.phaedra.util.auth.IAuthorizationService;
+import eu.openanalytics.phaedra.util.versioning.VersionUtils;
 
 @Service
 public class FormulaService {
@@ -57,9 +57,8 @@ public class FormulaService {
 
     public FormulaDTO createFormula(FormulaDTO formulaDTO) {
         LocalDateTime date = LocalDateTime.now(clock);
-        DateTimeFormatter dateTimeFormatter = DateTimeFormatter.ofPattern("yyyyMMdd.hhmmss");
         var formula = modelMapper.map(formulaDTO)
-                .versionNumber(formulaDTO.getVersionNumber()+"-"+date.format(dateTimeFormatter))
+        		.versionNumber(VersionUtils.generateNewVersion(null))
                 .createdBy(authService.getCurrentPrincipalName())
                 .createdOn(date)
                 .build();
@@ -73,11 +72,10 @@ public class FormulaService {
             throw new FormulaNotFoundException(formulaId);
         }
         LocalDateTime date = LocalDateTime.now(clock);
-        DateTimeFormatter dateTimeFormatter = DateTimeFormatter.ofPattern("yyyyMMdd.hhmmss");
         Formula previousFormula = existingFormula.get();
         Formula updatedFormula = modelMapper.map(formulaDTO, previousFormula)
                 .id(null) //To create new formula
-                .versionNumber(formulaDTO.getVersionNumber()+"-"+date.format(dateTimeFormatter))
+                .versionNumber(VersionUtils.generateNewVersion(formulaDTO.getVersionNumber()))
                 .updatedBy(authService.getCurrentPrincipalName())
                 .updatedOn(date)
                 .build();
@@ -118,10 +116,7 @@ public class FormulaService {
     public Map<Long, Formula> getFormulasByIds(List<Long> formulaIds) {
         return ((List<Formula>) formulaRepository.findAllById(formulaIds))
                 .stream()
-                .collect(Collectors.toMap(
-                        Formula::getId,
-                        (f) -> f
-                ));
+                .collect(Collectors.toMap(Formula::getId, (f) -> f));
     }
 
     public List<String> getFormulaInputNames(long formulaId) throws FormulaNotFoundException {

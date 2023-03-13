@@ -66,7 +66,6 @@ public class FormulaDTO {
 
     String previousVersion;
 
-    @NotNull(message = "versionNumber is mandatory", groups = {OnCreate.class})
     String versionNumber;
 
     @Null(groups = {OnCreate.class, OnUpdate.class}, message = "CreatedBy must be null when creating a formula")
