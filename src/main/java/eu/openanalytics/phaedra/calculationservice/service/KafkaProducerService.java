@@ -40,24 +40,24 @@ public class KafkaProducerService {
     }
 
     public void sendPlateCalculationStatus(PlateCalculationStatusDTO plateCalculationStatusDTO) {
-        kafkaTemplate.send(KafkaConfig.PLATE_TOPIC, KafkaConfig.UPDATE_PLATE_STATUS_EVENT, plateCalculationStatusDTO);
+        kafkaTemplate.send(KafkaConfig.TOPIC_PLATES, KafkaConfig.EVENT_UPDATE_PLATE_STATUS, plateCalculationStatusDTO);
     }
 
     public void sendCurveData(CurveDTO curveDTO) {
-        kafkaTemplate.send(KafkaConfig.CURVEDATA_TOPIC, KafkaConfig.SAVE_CURVE_EVENT, curveDTO);
+        kafkaTemplate.send(KafkaConfig.TOPIC_CURVEDATA, KafkaConfig.EVENT_SAVE_CURVE, curveDTO);
     }
 
     public void initiateCurveFitting(CurveFittingRequestDTO curveFitRequest) {
-        kafkaTemplate.send(KafkaConfig.CALCULATIONS_TOPIC, KafkaConfig.CURVE_FIT_EVENT, curveFitRequest);
+        kafkaTemplate.send(KafkaConfig.TOPIC_CALCULATIONS, KafkaConfig.EVENT_REQUEST_CURVE_FIT, curveFitRequest);
     }
 
     public void sendResultData(ResultDataDTO resultData) {
-        kafkaTemplate.send(KafkaConfig.RESULTDATA_TOPIC, KafkaConfig.SAVE_FEATURE_RESULTDATA_EVENT, resultData);
+        kafkaTemplate.send(KafkaConfig.TOPIC_RESULTDATA, KafkaConfig.EVENT_SAVE_RESULT_DATA, resultData);
     }
 
     public void sendResultFeatureStats(Long resultSetId, ArrayList<ResultFeatureStatDTO> resultFeatureStats) {
         for (ResultFeatureStatDTO resultFeatureStatDTO: resultFeatureStats) {
-            kafkaTemplate.send(KafkaConfig.RESULTDATA_TOPIC, KafkaConfig.SAVE_FEATURE_STATS_EVENT, resultFeatureStatDTO.withResultSetId(resultSetId));
+            kafkaTemplate.send(KafkaConfig.TOPIC_RESULTDATA, KafkaConfig.EVENT_SAVE_RESULT_STATS, resultFeatureStatDTO.withResultSetId(resultSetId));
         }
     }
 }

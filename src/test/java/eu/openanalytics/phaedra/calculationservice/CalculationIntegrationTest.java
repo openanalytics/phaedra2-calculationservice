@@ -29,20 +29,19 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.concurrent.CompletableFuture;
 
-import eu.openanalytics.phaedra.commons.dto.CalculationRequestDTO;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
 import org.springframework.http.HttpStatus;
 
 import eu.openanalytics.phaedra.calculationservice.api.CalculationController;
+import eu.openanalytics.phaedra.calculationservice.dto.CalculationRequestDTO;
 import eu.openanalytics.phaedra.calculationservice.dto.CalculationStatus;
 import eu.openanalytics.phaedra.calculationservice.service.CalculationStatusService;
 import eu.openanalytics.phaedra.calculationservice.service.protocol.ProtocolExecutorService;
 import eu.openanalytics.phaedra.calculationservice.support.AbstractIntegrationTest;
 import eu.openanalytics.phaedra.resultdataservice.dto.ResultSetDTO;
 import eu.openanalytics.phaedra.resultdataservice.enumeration.StatusCode;
-import org.springframework.kafka.core.KafkaTemplate;
 
 @Disabled
 public class CalculationIntegrationTest extends AbstractIntegrationTest {

@@ -24,8 +24,6 @@ import java.util.concurrent.ExecutionException;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
 
-import eu.openanalytics.phaedra.commons.dto.CalculationRequestDTO;
-import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -34,6 +32,7 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
+import eu.openanalytics.phaedra.calculationservice.dto.CalculationRequestDTO;
 import eu.openanalytics.phaedra.calculationservice.dto.CalculationStatus;
 import eu.openanalytics.phaedra.calculationservice.service.CalculationStatusService;
 import eu.openanalytics.phaedra.calculationservice.service.protocol.ProtocolExecutorService;
@@ -42,6 +41,7 @@ import eu.openanalytics.phaedra.protocolservice.client.exception.ProtocolUnresol
 import eu.openanalytics.phaedra.resultdataservice.client.exception.ResultDataUnresolvableException;
 import eu.openanalytics.phaedra.resultdataservice.client.exception.ResultFeatureStatUnresolvableException;
 import eu.openanalytics.phaedra.resultdataservice.client.exception.ResultSetUnresolvableException;
+import lombok.RequiredArgsConstructor;
 
 @RestController
 @RequiredArgsConstructor

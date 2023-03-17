@@ -20,8 +20,8 @@
  */
 package eu.openanalytics.phaedra.calculationservice.service;
 
-import static eu.openanalytics.phaedra.calculationservice.config.KafkaConfig.CALCULATIONS_TOPIC;
-import static eu.openanalytics.phaedra.calculationservice.config.KafkaConfig.PLATE_TOPIC;
+import static eu.openanalytics.phaedra.calculationservice.config.KafkaConfig.GROUP_ID;
+import static eu.openanalytics.phaedra.calculationservice.config.KafkaConfig.TOPIC_CALCULATIONS;
 
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.TimeUnit;
@@ -35,10 +35,10 @@ import org.springframework.kafka.support.KafkaHeaders;
 import org.springframework.messaging.handler.annotation.Header;
 import org.springframework.stereotype.Service;
 
+import eu.openanalytics.phaedra.calculationservice.dto.CalculationRequestDTO;
 import eu.openanalytics.phaedra.calculationservice.dto.CurveFittingRequestDTO;
 import eu.openanalytics.phaedra.calculationservice.service.protocol.CurveFittingExecutorService;
 import eu.openanalytics.phaedra.calculationservice.service.protocol.ProtocolExecutorService;
-import eu.openanalytics.phaedra.commons.dto.CalculationRequestDTO;
 
 @Service
 public class KafkaConsumerService {
@@ -49,8 +49,8 @@ public class KafkaConsumerService {
     private CurveFittingExecutorService curveFittingExecutorService;
     private final Logger logger = LoggerFactory.getLogger(getClass());
 
-    @KafkaListener(topics = PLATE_TOPIC, groupId = "calculation-service", filter = "plateCalculationEventFilter")
-    public void onPlateCalculationEvent(CalculationRequestDTO calculationRequestDTO, @Header(KafkaHeaders.RECEIVED_KEY) String msgKey) throws ExecutionException, InterruptedException {
+    @KafkaListener(topics = TOPIC_CALCULATIONS, groupId = GROUP_ID, filter = "requestPlateCalculation")
+    public void onRequestPlateCalculation(CalculationRequestDTO calculationRequestDTO, @Header(KafkaHeaders.RECEIVED_KEY) String msgKey) throws ExecutionException, InterruptedException {
         logger.info("calculation-service: received a plate calculation event!");
         var future = protocolExecutorService.execute(
                 calculationRequestDTO.getProtocolId(),
@@ -64,7 +64,7 @@ public class KafkaConsumerService {
         }
     }
 
-    @KafkaListener(topics = CALCULATIONS_TOPIC, groupId = "calculation-service", filter = "curveFitEventFilter")
+    @KafkaListener(topics = TOPIC_CALCULATIONS, groupId = GROUP_ID, filter = "curveFitEventFilter")
     public void onCurveFitEvent(CurveFittingRequestDTO curveFittingRequestDTO) throws ExecutionException, InterruptedException {
         logger.info("calculation-service: received a curve fit event!");
         var future = curveFittingExecutorService.execute(

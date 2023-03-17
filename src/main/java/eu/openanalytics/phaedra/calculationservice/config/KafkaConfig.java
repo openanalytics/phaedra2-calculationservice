@@ -29,34 +29,34 @@ import org.springframework.kafka.listener.adapter.RecordFilterStrategy;
 @EnableKafka
 public class KafkaConfig {
 
-    // Kafka topics
-    public static final String CALCULATIONS_TOPIC = "calculations";
-    public static final String PLATE_TOPIC = "plate-topic";
-    public static final String CURVEDATA_TOPIC = "curvedata-topic";
-    public static final String RESULTDATA_TOPIC = "resultdata-topic";
+	public static final String GROUP_ID = "calculation-service";
+	
+    // Topics
+    public static final String TOPIC_CALCULATIONS = "calculations";
+    public static final String TOPIC_PLATES = "plates";
+    public static final String TOPIC_CURVEDATA = "curvedata";
+    public static final String TOPIC_RESULTDATA = "resultdata";
 
-    // Kafka events
-    public static final String PLATE_CALCULATION_EVENT = "plateCalculationEvent";
-    public static final String UPDATE_PLATE_STATUS_EVENT = "updatePlateCalculationStatus";
-    public static final String CURVE_FIT_EVENT = "curveFitEvent";
-    public static final String SAVE_CURVE_EVENT = "createCurve";
-    public static final String SAVE_FEATURE_RESULTDATA_EVENT = "saveResultDataEvent";
-    public static final String SAVE_FEATURE_STATS_EVENT = "saveResultStatsEvent";
+    // Event Keys
+    public static final String EVENT_REQUEST_PLATE_CALCULATION = "requestPlateCalculation";
+    public static final String EVENT_REQUEST_CURVE_FIT = "requestCurveFit";
+    public static final String EVENT_UPDATE_PLATE_STATUS = "requestPlateCalculationStatusUpdate";
+    public static final String EVENT_SAVE_CURVE = "saveCurve";
+    public static final String EVENT_SAVE_RESULT_DATA = "saveResultData";
+    public static final String EVENT_SAVE_RESULT_STATS = "saveResultStats";
 
     @Bean
-    public RecordFilterStrategy<String, Object> plateCalculationEventFilter() {
-        RecordFilterStrategy<String, Object> recordFilterStrategy = consumerRecord -> !(consumerRecord.key().equalsIgnoreCase(PLATE_CALCULATION_EVENT));
-        return recordFilterStrategy;
+    public RecordFilterStrategy<String, Object> requestPlateCalculationFilter() {
+        return rec -> !(rec.key().equalsIgnoreCase(EVENT_REQUEST_PLATE_CALCULATION));
     }
+    
     @Bean
-    public RecordFilterStrategy<String, Object> curveFitEventFilter() {
-        RecordFilterStrategy<String, Object> recordFilterStrategy = consumerRecord -> !(consumerRecord.key().equalsIgnoreCase(CURVE_FIT_EVENT));
-        return recordFilterStrategy;
+    public RecordFilterStrategy<String, Object> requestCurveFitFilter() {
+        return rec -> !(rec.key().equalsIgnoreCase(EVENT_REQUEST_CURVE_FIT));
     }
 
     @Bean
-    public RecordFilterStrategy<String, Object> saveResultDataEventFilter() {
-        RecordFilterStrategy<String, Object> recordFilterStrategy = consumerRecord -> !(consumerRecord.key().equalsIgnoreCase(SAVE_FEATURE_RESULTDATA_EVENT));
-        return recordFilterStrategy;
+    public RecordFilterStrategy<String, Object> saveResultDataFilter() {
+        return rec -> !(rec.key().equalsIgnoreCase(EVENT_SAVE_RESULT_DATA));
     }
 }
