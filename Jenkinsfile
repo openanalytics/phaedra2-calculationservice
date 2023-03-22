@@ -29,7 +29,7 @@ pipeline {
                     env.GROUP_ID = sh(returnStdout: true, script: "mvn org.apache.maven.plugins:maven-help-plugin:3.2.0:evaluate -Dexpression=project.groupId -q -DforceStdout").trim()
                     env.ARTIFACT_ID = sh(returnStdout: true, script: "mvn org.apache.maven.plugins:maven-help-plugin:3.2.0:evaluate -Dexpression=project.artifactId -q -DforceStdout").trim()
                     env.VERSION = sh(returnStdout: true, script: "mvn org.apache.maven.plugins:maven-help-plugin:3.2.0:evaluate -Dexpression=project.version -q -DforceStdout").trim()
-                    env.IMAGE_NAME = "openanalytics/phaedra2/${env.ARTIFACT_ID}"
+                    env.REGISTRY = "registry.openanalytics.eu/openanalytics"
                     env.MVN_ARGS = "-Dmaven.repo.local=/home/jenkins/maven-repository --batch-mode"
                     env.MVN_EXLCUDE_PARENT = ""
                 }
@@ -79,15 +79,10 @@ pipeline {
 
         stage('Push to OA registry') {
             steps {
-                container('kaniko') {
-	                sh """
-		            /kaniko/executor \
-		                     -v info \
-		                     --context ${env.WORKSPACE} \
-		                     --cache=true \
-		                     --cache-repo ${env.REGISTRY}/${env.IMAGE_NAME} \
-		                     --destination ${env.REGISTRY}/${env.IMAGE_NAME}:${env.VERSION}
-		            """
+                container('builder') {
+                    configFileProvider([configFile(fileId: 'maven-settings-rsb', variable: 'MAVEN_SETTINGS_RSB')]) {
+                        sh "mvn -s \$MAVEN_SETTINGS_RSB docker:push -Ddocker.push.registry=${REGISTRY} ${env.MVN_ARGS}"
+                    }
                 }
             }
         }
