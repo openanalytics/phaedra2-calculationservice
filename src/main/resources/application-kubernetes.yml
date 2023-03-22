@@ -7,7 +7,3 @@ spring:
   cloud:
     kubernetes:
       enabled: true
-
-eureka:
-  client:
-    enabled: false

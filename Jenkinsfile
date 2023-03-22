@@ -11,10 +11,6 @@ pipeline {
         buildDiscarder(logRotator(numToKeepStr: '3'))
     }
 
-    environment {
-        REPO_PREFIX = "196229073436.dkr.ecr.eu-west-1.amazonaws.com/openanalytics/"
-        ACCOUNTID = "196229073436"
-    }
     stages {
 
         stage('Load maven cache repository from S3') {
@@ -33,11 +29,9 @@ pipeline {
                     env.GROUP_ID = sh(returnStdout: true, script: "mvn org.apache.maven.plugins:maven-help-plugin:3.2.0:evaluate -Dexpression=project.groupId -q -DforceStdout").trim()
                     env.ARTIFACT_ID = sh(returnStdout: true, script: "mvn org.apache.maven.plugins:maven-help-plugin:3.2.0:evaluate -Dexpression=project.artifactId -q -DforceStdout").trim()
                     env.VERSION = sh(returnStdout: true, script: "mvn org.apache.maven.plugins:maven-help-plugin:3.2.0:evaluate -Dexpression=project.version -q -DforceStdout").trim()
-                    env.REPO = "openanalytics/${env.ARTIFACT_ID}"
-                    /*env.REPO = "openanalytics/${env.ARTIFACT_ID}-server"*/
+                    env.IMAGE_NAME = "openanalytics/phaedra2/${env.ARTIFACT_ID}"
                     env.MVN_ARGS = "-Dmaven.repo.local=/home/jenkins/maven-repository --batch-mode"
                     env.MVN_EXLCUDE_PARENT = ""
-//                    env.MVN_EXLCUDE_PARENT = "--projects '!${env.GROUP_ID}:${env.ARTIFACT_ID}'"
                 }
             }
 
@@ -46,13 +40,9 @@ pipeline {
         stage('Build') {
             steps {
                 container('builder') {
-
                     configFileProvider([configFile(fileId: 'maven-settings-rsb', variable: 'MAVEN_SETTINGS_RSB')]) {
-
                         sh "mvn -s \$MAVEN_SETTINGS_RSB -U clean install -DskipTests -Ddockerfile.skip ${env.MVN_ARGS} ${env.MVN_EXLCUDE_PARENT}"
-
                     }
-
                 }
             }
         }
@@ -60,13 +50,9 @@ pipeline {
         stage('Test') {
             steps {
                 container('builder') {
-
                     configFileProvider([configFile(fileId: 'maven-settings-rsb', variable: 'MAVEN_SETTINGS_RSB')]) {
-
                         sh "mvn -s \$MAVEN_SETTINGS_RSB test -Ddockerfile.skip ${env.MVN_ARGS} ${env.MVN_EXLCUDE_PARENT}"
-
                     }
-
                 }
             }
         }
@@ -74,46 +60,35 @@ pipeline {
         stage("Deploy to Nexus") {
             steps {
                 container('builder') {
-
                     configFileProvider([configFile(fileId: 'maven-settings-rsb', variable: 'MAVEN_SETTINGS_RSB')]) {
-
                         sh "mvn -s \$MAVEN_SETTINGS_RSB deploy -DskipTests -Ddockerfile.skip ${env.MVN_ARGS} ${env.MVN_EXLCUDE_PARENT}"
-
                     }
-
                 }
             }
         }
 
         stage('Build Docker image') {
             steps {
-                /*dir('server') {*/
-                    container('builder') {
-
-                        configFileProvider([configFile(fileId: 'maven-settings-rsb', variable: 'MAVEN_SETTINGS_RSB')]) {
-
-                            sh "mvn -s \$MAVEN_SETTINGS_RSB dockerfile:build -Ddocker.repoPrefix=${env.REPO_PREFIX} ${env.MVN_ARGS}"
-
-                        }
-
+                container('builder') {
+                    configFileProvider([configFile(fileId: 'maven-settings-rsb', variable: 'MAVEN_SETTINGS_RSB')]) {
+                        sh "mvn -s \$MAVEN_SETTINGS_RSB dockerfile:build ${env.MVN_ARGS}"
                     }
-                /*}*/
+                }
             }
         }
 
         stage('Push to OA registry') {
             steps {
-                /*dir('server') {*/
-                    container('builder') {
-                        sh "aws --region eu-west-1 ecr describe-repositories --repository-names ${env.REPO} || aws --region eu-west-1 ecr create-repository --repository-name ${env.REPO}"
-                        sh "\$(aws ecr get-login --registry-ids '${env.ACCOUNTID}' --region 'eu-west-1' --no-include-email)"
-
-                        configFileProvider([configFile(fileId: 'maven-settings-rsb', variable: 'MAVEN_SETTINGS_RSB')]) {
-
-                            sh "mvn -s \$MAVEN_SETTINGS_RSB dockerfile:push -Ddocker.repoPrefix=${env.REPO_PREFIX} ${env.MVN_ARGS}"
-                        }
-                    }
-                /*}*/
+                container('kaniko') {
+	                sh """
+		            /kaniko/executor \
+		                     -v info \
+		                     --context ${env.WORKSPACE} \
+		                     --cache=true \
+		                     --cache-repo ${env.REGISTRY}/${env.IMAGE_NAME} \
+		                     --destination ${env.REGISTRY}/${env.IMAGE_NAME}:${env.VERSION}
+		            """
+                }
             }
         }
 

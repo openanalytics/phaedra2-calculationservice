@@ -1,10 +1,16 @@
 apiVersion: v1
 kind: Pod
 metadata:
-  name: phaedra2-calculatiosnervice
+  name: phaedra2-builder
   labels:
-    ci: phaedra2-calculatiosnervice-build
+    ci: phaedra2-builder
 spec:
+  imagePullSecrets:
+    - name: registry-robot
+  volumes:
+    - name: kaniko-dockerconfig
+      secret:
+        secretName: registry-robot
   containers:
    - name: builder
      image: 196229073436.dkr.ecr.eu-west-1.amazonaws.com/openanalytics/phaedra2-build-container:latest
@@ -19,4 +25,18 @@ spec:
          ephemeral-storage: "16Gi"
          memory: "2Gi"
          cpu: "1.0"
-
+   - name: kaniko
+     image: gcr.io/kaniko-project/executor:v1.9.1-debug
+     command:
+     - cat
+     tty: true
+     resources:
+       requests:
+         memory: "1Gi"
+       limits:
+         memory: "4Gi"
+     imagePullPolicy: Always
+     volumeMounts:
+     - name: kaniko-dockerconfig
+       mountPath: /kaniko/.docker/config.json
+       subPath: .dockerconfigjson

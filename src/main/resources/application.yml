@@ -17,7 +17,7 @@ spring:
         registration:
           keycloak:
             provider: keycloak
-#            client-id: phaedra2-calculation-service
+#            client-id: ???
 #            client-secret: ???
             authorization-grant-type: client_credentials
         provider:
@@ -29,9 +29,3 @@ spring:
       resourceserver:
         jwt:
           jwk-set-uri: ${keycloak-base-url}/auth/realms/phaedra2/protocol/openid-connect/certs
-
-eureka:
-  client:
-    enabled: true
-
-
