@@ -24,8 +24,6 @@ import java.time.Clock;
 
 import javax.sql.DataSource;
 
-import eu.openanalytics.phaedra.curvedataservice.client.config.CurveDataServiceClientAutoConfiguration;
-import eu.openanalytics.phaedra.metadataservice.client.config.MetadataServiceClientAutoConfiguration;
 import org.apache.commons.lang3.StringUtils;
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
@@ -42,13 +40,12 @@ import org.springframework.security.config.annotation.web.configuration.EnableWe
 import org.springframework.security.oauth2.client.registration.ClientRegistrationRepository;
 import org.springframework.security.web.SecurityFilterChain;
 
+import eu.openanalytics.phaedra.curvedataservice.client.config.CurveDataServiceClientAutoConfiguration;
 import eu.openanalytics.phaedra.measurementservice.client.config.MeasurementServiceClientAutoConfiguration;
+import eu.openanalytics.phaedra.metadataservice.client.config.MetadataServiceClientAutoConfiguration;
 import eu.openanalytics.phaedra.plateservice.client.config.PlateServiceClientAutoConfiguration;
 import eu.openanalytics.phaedra.protocolservice.client.config.ProtocolServiceClientAutoConfiguration;
 import eu.openanalytics.phaedra.resultdataservice.client.config.ResultDataServiceClientAutoConfiguration;
-import eu.openanalytics.phaedra.scriptengine.client.config.ScriptEngineClientAutoConfiguration;
-import eu.openanalytics.phaedra.scriptengine.client.config.ScriptEngineClientConfiguration;
-import eu.openanalytics.phaedra.scriptengine.client.model.TargetRuntime;
 import eu.openanalytics.phaedra.util.PhaedraRestTemplate;
 import eu.openanalytics.phaedra.util.auth.AuthenticationConfigHelper;
 import eu.openanalytics.phaedra.util.auth.AuthorizationServiceFactory;
@@ -64,7 +61,7 @@ import liquibase.integration.spring.SpringLiquibase;
 @EnableScheduling
 @EnableWebSecurity
 @EnableKafka
-@Import({ScriptEngineClientAutoConfiguration.class,
+@Import({
         ProtocolServiceClientAutoConfiguration.class,
         ResultDataServiceClientAutoConfiguration.class,
         CurveDataServiceClientAutoConfiguration.class,
@@ -134,18 +131,6 @@ public class CalculationService {
     public OpenAPI customOpenAPI() {
         Server server = new Server().url(environment.getProperty("API_URL")).description("Default Server URL");
         return new OpenAPI().addServersItem(server);
-    }
-
-    public static final String R_FAST_LANE = "R_FAST_LANE";
-    public static final String JAVASTAT_FAST_LANE = "JAVASTAT_FAST_LANE";
-
-    @Bean
-    public ScriptEngineClientConfiguration scriptEngineConfiguration() {
-        var config = new ScriptEngineClientConfiguration();
-        config.setClientName("CalculationService");
-        config.addTargetRuntime(R_FAST_LANE, new TargetRuntime("R", "fast-lane", "v1"));
-        config.addTargetRuntime(JAVASTAT_FAST_LANE, new TargetRuntime("JavaStat", "fast-lane", "v1"));
-        return config;
     }
 
     @Bean

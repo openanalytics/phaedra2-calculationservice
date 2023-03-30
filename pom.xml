@@ -63,7 +63,7 @@
         </dependency>
         <dependency>
             <groupId>eu.openanalytics.phaedra</groupId>
-            <artifactId>phaedra2-scriptengine-client</artifactId>
+            <artifactId>phaedra2-scriptengine-dto</artifactId>
             <version>0.0.1-SNAPSHOT</version>
         </dependency>
         <dependency>

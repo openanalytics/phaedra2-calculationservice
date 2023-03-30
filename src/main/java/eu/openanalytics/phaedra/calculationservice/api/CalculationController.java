@@ -21,8 +21,6 @@
 package eu.openanalytics.phaedra.calculationservice.api;
 
 import java.util.concurrent.ExecutionException;
-import java.util.concurrent.TimeUnit;
-import java.util.concurrent.TimeoutException;
 
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -51,21 +49,12 @@ public class CalculationController {
     private final CalculationStatusService calculationStatusService;
 
     @PostMapping("/calculation")
-    public ResponseEntity<Long> calculate(@RequestBody CalculationRequestDTO calculationRequestDTO,
-                                          @RequestParam(value = "timeout", required = false) Long timeout) throws ExecutionException, InterruptedException {
-        var future = protocolExecutorService.execute(
+    public ResponseEntity<Long> calculate(@RequestBody CalculationRequestDTO calculationRequestDTO) throws ExecutionException, InterruptedException {
+        var execution = protocolExecutorService.execute(
                 calculationRequestDTO.getProtocolId(),
                 calculationRequestDTO.getPlateId(),
                 calculationRequestDTO.getMeasId());
-        if (timeout != null) {
-            try {
-                future.resultSet().get(timeout, TimeUnit.MILLISECONDS);
-            } catch (TimeoutException ex) {
-
-            }
-        }
-
-        return new ResponseEntity<>(future.resultSetId().get(), HttpStatus.CREATED);
+        return new ResponseEntity<>(execution.resultSetId().get(), HttpStatus.CREATED);
     }
 
     @GetMapping("/status")

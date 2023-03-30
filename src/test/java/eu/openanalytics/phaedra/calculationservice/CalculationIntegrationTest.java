@@ -58,7 +58,7 @@ public class CalculationIntegrationTest extends AbstractIntegrationTest {
         when(protocolExecutorService.execute(anyLong(),anyLong(),anyLong())).thenReturn(new ProtocolExecutorService.ProtocolExecution(f1, f2));
         var calculationController = new CalculationController(protocolExecutorService, calculationStatusService);
         var calculationRequestDTO = CalculationRequestDTO.builder().protocolId(1L).plateId(1L).measId(1L).build();
-        var res = calculationController.calculate(calculationRequestDTO, 1000L);
+        var res = calculationController.calculate(calculationRequestDTO);
 
         Assertions.assertEquals(45L, res.getBody());
         Assertions.assertEquals(HttpStatus.CREATED, res.getStatusCode());
@@ -74,7 +74,7 @@ public class CalculationIntegrationTest extends AbstractIntegrationTest {
         var calculationController = new CalculationController(protocolExecutorService, calculationStatusService);
         var calculationRequestDTO = CalculationRequestDTO.builder().protocolId(1L).plateId(1L).measId(1L).build();
 
-        var res = calculationController.calculate(calculationRequestDTO, 1000L);
+        var res = calculationController.calculate(calculationRequestDTO);
 
         Assertions.assertEquals(45L,res.getBody());
         Assertions.assertEquals(HttpStatus.CREATED,res.getStatusCode());

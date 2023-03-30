@@ -20,12 +20,7 @@
  */
 package eu.openanalytics.phaedra.calculationservice.service;
 
-import static eu.openanalytics.phaedra.calculationservice.config.KafkaConfig.GROUP_ID;
-import static eu.openanalytics.phaedra.calculationservice.config.KafkaConfig.TOPIC_CALCULATIONS;
-
 import java.util.concurrent.ExecutionException;
-import java.util.concurrent.TimeUnit;
-import java.util.concurrent.TimeoutException;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -35,10 +30,15 @@ import org.springframework.kafka.support.KafkaHeaders;
 import org.springframework.messaging.handler.annotation.Header;
 import org.springframework.stereotype.Service;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
+
+import eu.openanalytics.phaedra.calculationservice.config.KafkaConfig;
 import eu.openanalytics.phaedra.calculationservice.dto.CalculationRequestDTO;
 import eu.openanalytics.phaedra.calculationservice.dto.CurveFittingRequestDTO;
 import eu.openanalytics.phaedra.calculationservice.service.protocol.CurveFittingExecutorService;
 import eu.openanalytics.phaedra.calculationservice.service.protocol.ProtocolExecutorService;
+import eu.openanalytics.phaedra.calculationservice.service.script.ScriptExecutionService;
+import eu.openanalytics.phaedra.scriptengine.dto.ScriptExecutionOutputDTO;
 
 @Service
 public class KafkaConsumerService {
@@ -47,39 +47,38 @@ public class KafkaConsumerService {
     private ProtocolExecutorService protocolExecutorService;
     @Autowired
     private CurveFittingExecutorService curveFittingExecutorService;
+    @Autowired
+    private ScriptExecutionService scriptExecutionService;
+    @Autowired
+    private ObjectMapper objectMapper;
+    
     private final Logger logger = LoggerFactory.getLogger(getClass());
 
-    @KafkaListener(topics = TOPIC_CALCULATIONS, groupId = GROUP_ID, filter = "requestPlateCalculationFilter")
+    @KafkaListener(topics = KafkaConfig.TOPIC_CALCULATIONS, groupId = KafkaConfig.GROUP_ID, filter = "requestPlateCalculationFilter")
     public void onRequestPlateCalculation(CalculationRequestDTO calculationRequestDTO, @Header(KafkaHeaders.RECEIVED_KEY) String msgKey) throws ExecutionException, InterruptedException {
         logger.info("calculation-service: received a plate calculation event!");
-        var future = protocolExecutorService.execute(
+        protocolExecutorService.execute(
                 calculationRequestDTO.getProtocolId(),
                 calculationRequestDTO.getPlateId(),
                 calculationRequestDTO.getMeasId());
-        Long timeout = 60000L;
-        try {
-            future.resultSet().get(timeout, TimeUnit.MILLISECONDS);
-        } catch (TimeoutException ex) {
-
-        }
     }
 
-    @KafkaListener(topics = TOPIC_CALCULATIONS, groupId = GROUP_ID, filter = "requestCurveFitFilter")
+    @KafkaListener(topics = KafkaConfig.TOPIC_CALCULATIONS, groupId = KafkaConfig.GROUP_ID, filter = "requestCurveFitFilter")
     public void onCurveFitEvent(CurveFittingRequestDTO curveFittingRequestDTO) throws ExecutionException, InterruptedException {
         logger.info("calculation-service: received a curve fit event!");
-        var future = curveFittingExecutorService.execute(
+        curveFittingExecutorService.execute(
                 curveFittingRequestDTO.getPlateId(),
                 curveFittingRequestDTO.getFeatureResultData());
-        Long timeout = 60000L;
-        try {
-            future.plateCurves().get(timeout, TimeUnit.MILLISECONDS);
-        } catch (TimeoutException ex) {
-
-        }
     }
-
-//    @KafkaListener(topics = KafkaConfig.RESULTDATA_TOPIC, groupId = "calculation-service", filter = "saveResultDataEventFilter")
-//    public void onSaveResultDataEvent(ResultDataDTO resultDataDTO) {
-//        logger.info("calculation-service: received a save result data event!");
-//    }
+    
+    @KafkaListener(topics = KafkaConfig.TOPIC_SCRIPTENGINE, groupId = KafkaConfig.GROUP_ID)
+    public void onScriptExecutionEvent(String message, @Header(KafkaHeaders.RECEIVED_KEY) String key) {
+    	if (!KafkaConfig.EVENT_SCRIPT_EXECUTION_UPDATE.equalsIgnoreCase(key)) return;
+		try {
+			ScriptExecutionOutputDTO output = objectMapper.readValue(message, ScriptExecutionOutputDTO.class);
+			scriptExecutionService.handleScriptExecutionUpdate(output);
+		} catch (Exception e) {
+			logger.error(String.format("Error parsing message from scriptengine: %s", message), e);
+		}
+    }
 }

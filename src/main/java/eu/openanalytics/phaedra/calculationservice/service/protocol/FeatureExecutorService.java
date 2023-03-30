@@ -20,30 +20,36 @@
  */
 package eu.openanalytics.phaedra.calculationservice.service.protocol;
 
-import static eu.openanalytics.phaedra.calculationservice.CalculationService.R_FAST_LANE;
-
 import java.util.HashMap;
-import java.util.Optional;
+import java.util.Map;
+import java.util.function.BiConsumer;
 
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
 
+import com.fasterxml.jackson.annotation.JsonCreator;
+import com.fasterxml.jackson.annotation.JsonProperty;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 
+import eu.openanalytics.phaedra.calculationservice.dto.CurveFittingRequestDTO;
 import eu.openanalytics.phaedra.calculationservice.enumeration.CalculationScope;
-import eu.openanalytics.phaedra.calculationservice.enumeration.FormulaCategory;
-import eu.openanalytics.phaedra.calculationservice.enumeration.ScriptLanguage;
+import eu.openanalytics.phaedra.calculationservice.exception.CalculationException;
 import eu.openanalytics.phaedra.calculationservice.model.CalculationContext;
+import eu.openanalytics.phaedra.calculationservice.model.Formula;
+import eu.openanalytics.phaedra.calculationservice.model.ModelMapper;
+import eu.openanalytics.phaedra.calculationservice.service.KafkaProducerService;
+import eu.openanalytics.phaedra.calculationservice.service.script.ScriptExecutionRequest;
+import eu.openanalytics.phaedra.calculationservice.service.script.ScriptExecutionService;
 import eu.openanalytics.phaedra.calculationservice.util.CalculationInputHelper;
 import eu.openanalytics.phaedra.measurementservice.client.MeasurementServiceClient;
 import eu.openanalytics.phaedra.measurementservice.client.exception.MeasUnresolvableException;
+import eu.openanalytics.phaedra.protocolservice.dto.CalculationInputValueDTO;
 import eu.openanalytics.phaedra.protocolservice.dto.FeatureDTO;
 import eu.openanalytics.phaedra.resultdataservice.client.ResultDataServiceClient;
 import eu.openanalytics.phaedra.resultdataservice.client.exception.ResultDataUnresolvableException;
-import eu.openanalytics.phaedra.scriptengine.client.ScriptEngineClient;
-import eu.openanalytics.phaedra.scriptengine.client.model.ScriptExecution;
+import eu.openanalytics.phaedra.resultdataservice.dto.ResultDataDTO;
+import eu.openanalytics.phaedra.scriptengine.dto.ResponseStatusCode;
+import eu.openanalytics.phaedra.scriptengine.dto.ScriptExecutionOutputDTO;
 
 /**
  * Feature execution is a part of the protocol execution procedure.
@@ -58,105 +64,179 @@ import eu.openanalytics.phaedra.scriptengine.client.model.ScriptExecution;
 @Service
 public class FeatureExecutorService {
 
-    private final ScriptEngineClient scriptEngineClient;
     private final MeasurementServiceClient measurementServiceClient;
     private final ResultDataServiceClient resultDataServiceClient;
-
+    
+    private final FeatureStatExecutorService featureStatExecutorService;
+    private final ScriptExecutionService scriptExecutionService;
+    private final KafkaProducerService kafkaProducerService;
+    
     private final ObjectMapper objectMapper;
-    private final Logger logger = LoggerFactory.getLogger(getClass());
+    private final ModelMapper modelMapper;
 
-    public FeatureExecutorService(ScriptEngineClient scriptEngineClient, MeasurementServiceClient measurementServiceClient, 
-    		ResultDataServiceClient resultDataServiceClient, ObjectMapper objectMapper) {
-        this.scriptEngineClient = scriptEngineClient;
+    public FeatureExecutorService(
+    		MeasurementServiceClient measurementServiceClient, 
+    		ResultDataServiceClient resultDataServiceClient,
+    		FeatureStatExecutorService featureStatExecutorService,
+    		ScriptExecutionService scriptExecutionService,
+    		KafkaProducerService kafkaProducerService,
+    		ModelMapper modelMapper, ObjectMapper objectMapper) {
+    	
         this.measurementServiceClient = measurementServiceClient;
         this.resultDataServiceClient = resultDataServiceClient;
+        this.featureStatExecutorService = featureStatExecutorService;
+        this.scriptExecutionService = scriptExecutionService;
+        this.kafkaProducerService = kafkaProducerService;
         this.objectMapper = objectMapper;
+        this.modelMapper = modelMapper;
     }
 
-    public Optional<ScriptExecution> executeFeature(CalculationContext ctx, FeatureDTO feature, Integer currentSequence) {
-    	var formula = ctx.getProtocolData().formulas.get(feature.getFormulaId());
+    /**
+     * Calculate the value for a feature.
+     * This operation does not block, and will return as soon as the request is launched.
+     */
+    public ScriptExecutionRequest executeFeature(CalculationContext ctx, FeatureDTO feature, Integer currentSequence) {
     	
-        try {
-            var inputVariables = collectVariablesForFeature(ctx, feature, currentSequence);
-            if (inputVariables.isEmpty()) {
-                return Optional.empty();
+    	// Retrieve and validate the formula
+    	Formula formula = ctx.getProtocolData().formulas.get(feature.getFormulaId());
+    	if (formula.getScope() != CalculationScope.WELL) {
+    		ctx.getErrorCollector().addError("Invalid formula scope for feature calculation", feature, formula);
+    		return null;
+    	}
+    	
+    	// Collect all required input data
+    	Map<String, Object> inputVariables = null;
+    	try {
+    		inputVariables = collectInputVariables(ctx, feature, currentSequence);
+    	} catch (CalculationException e) {
+    		// Appropriate errors have already been added to the ErrorCollector.
+    		return null;
+    	}
+    	
+    	// Submit the calculation request
+    	ScriptExecutionRequest request = scriptExecutionService.submit(formula.getLanguage(), formula.getFormula(), inputVariables);
+    	
+    	request.addCallback(output -> {
+    		float[] outputValues = parseNumericValues(output);
+    		
+    		// Publish the result data
+    		ResultDataDTO resultData = ResultDataDTO.builder()
+    		        .resultSetId(ctx.getResultSetId())
+    		        .featureId(feature.getId())
+    		        .values(outputValues)
+    		        .statusCode(modelMapper.map(output.getStatusCode()))
+    		        .statusMessage(output.getStatusMessage())
+    		        .exitCode(output.getExitCode())
+    		        .build();
+    		kafkaProducerService.sendResultData(resultData);
+    		
+    		if (output.getStatusCode() == ResponseStatusCode.SUCCESS) {
+    			// Submit feature stats calculation
+    			featureStatExecutorService.executeFeatureStats(ctx, feature, outputValues);
+    			
+    			// Submit curve fitting request
+    			var curveFitRequest = new CurveFittingRequestDTO(ctx.getPlate().getId(), resultData.getFeatureId(), resultData);
+    			kafkaProducerService.initiateCurveFitting(curveFitRequest);
+            } else {
+            	ctx.getErrorCollector().addError(String.format("Script execution failed with status %s", output.getStatusCode()), output, feature, formula);
             }
-            
-            if (formula.getCategory() != FormulaCategory.CALCULATION
-                    || formula.getLanguage() != ScriptLanguage.R
-                    || formula.getScope() != CalculationScope.WELL) {
-                ctx.getErrorCollector().addError("executing feature => unsupported formula", feature, formula);
-                return Optional.empty();
-            }
-
-            var execution = scriptEngineClient.newScriptExecution(R_FAST_LANE, formula.getFormula(), 
-            		objectMapper.writeValueAsString(inputVariables.get())
-            );
-            scriptEngineClient.execute(execution);
-
-            return Optional.of(execution);
-        } catch (JsonProcessingException e) {
-            // this error will probably never occur, see: https://stackoverflow.com/q/26716020/1393103 for examples where it does
-            ctx.getErrorCollector().addError("executing feature => writing input variables and request", e, feature, formula);
-        }
-        return Optional.empty();
+    		
+    	});
+    	
+    	return request;
     }
 
-    private Optional<HashMap<String, Object>> collectVariablesForFeature(CalculationContext ctx, FeatureDTO feature, Integer currentSequence) {
-    	var formula = ctx.getProtocolData().formulas.get(feature.getFormulaId());
-    	var inputVariables = new HashMap<String, Object>();
+    private Map<String, Object> collectInputVariables(CalculationContext ctx, FeatureDTO feature, Integer currentSequence) {
+    	Map<String, Object> inputVariables = new HashMap<String, Object>();
+    	Formula formula = ctx.getProtocolData().formulas.get(feature.getFormulaId());
 
+    	BiConsumer<String, CalculationInputValueDTO> errorHandler = (msg, civ) -> {
+    		ctx.getErrorCollector().addError(msg, feature, formula, civ);
+    		throw new CalculationException(msg);
+    	};
+    	
         for (var civ : feature.getCivs()) {
-            try {
-                if (inputVariables.containsKey(civ.getVariableName())) {
-                    // the ProtocolService makes sure this cannot happen, but extra check to make sure
-                    ctx.getErrorCollector().addError("executing sequence => executing feature => collecting variables for feature => duplicate variable name detected", feature, formula, civ);
-                    return Optional.empty();
-                }
-
-                switch (civ.getInputSource()) {
-                case FEATURE:
-                	if (currentSequence == 0) {
-                        ctx.getErrorCollector().addError("executing sequence => executing feature => collecting variables for feature => retrieving measurement => cannot reference features from sequence 0", feature, formula, civ);
-                        return Optional.empty();
-                    }
-                	if (civ.getSourceFeatureId() == null) {
-                		ctx.getErrorCollector().addError("executing sequence => executing feature => collecting variables for feature => retrieving measurement => no feature ID provided for feature reference", feature, formula, civ);
-                        return Optional.empty();
-                	}
-                    logger.info("Collect result data for feature %s from result set %s", civ.getSourceFeatureId(), ctx.getResultSetId());
-                    inputVariables.put(civ.getVariableName(), resultDataServiceClient.getResultData(ctx.getResultSetId(), civ.getSourceFeatureId()).getValues());
-                    break;
-                case MEASUREMENT_WELL_COLUMN:
-                	if (civ.getSourceMeasColName() == null || civ.getSourceMeasColName().trim().isEmpty()) {
-                		ctx.getErrorCollector().addError("executing sequence => executing feature => collecting variables for feature => retrieving measurement => no column name provided for meas column reference", feature, formula, civ);
-                        return Optional.empty();
-                	}
-                	logger.info("Collect result data for measurement %s from result set %s", civ.getSourceMeasColName(), ctx.getMeasId());
-                    inputVariables.put(civ.getVariableName(), measurementServiceClient.getWellData(ctx.getMeasId(), civ.getSourceMeasColName()));
-                    break;
-                case MEASUREMENT_SUBWELL_COLUMN:
-                	if (civ.getSourceMeasColName() == null || civ.getSourceMeasColName().trim().isEmpty()) {
-                		ctx.getErrorCollector().addError("executing sequence => executing feature => collecting variables for feature => retrieving measurement => no column name provided for meas column reference", feature, formula, civ);
-                        return Optional.empty();
-                	}
-                	logger.info("Collect result data for measurement %s from result set %s", civ.getSourceMeasColName(), ctx.getMeasId());
-                    inputVariables.put(civ.getVariableName(), measurementServiceClient.getSubWellData(ctx.getMeasId(), civ.getSourceMeasColName()));
-                    break;
-                default:                	
-                    ctx.getErrorCollector().addError("executing sequence => executing feature => collecting variables for feature => retrieving measurement => civ has no valid source type", feature, formula, civ);
-                    return Optional.empty();
-                }
-            } catch (MeasUnresolvableException | ResultDataUnresolvableException e) {
-                ctx.getErrorCollector().addError("executing sequence => executing feature => collecting variables for feature => retrieving measurement", e, feature, formula, civ);
-                return Optional.empty();
+            if (inputVariables.containsKey(civ.getVariableName())) {
+            	errorHandler.accept("Duplicate variable name", civ);
+            }
+            switch (civ.getInputSource()) {
+            case FEATURE:
+            	if (currentSequence == 0) {
+            		errorHandler.accept("Cannot reference another feature in sequence 0", civ);
+                } else if (civ.getSourceFeatureId() == null) {
+                	errorHandler.accept("Feature reference is missing ID", civ);
+            	} else {
+            		try {
+						inputVariables.put(civ.getVariableName(), resultDataServiceClient.getResultData(ctx.getResultSetId(), civ.getSourceFeatureId()).getValues());
+					} catch (ResultDataUnresolvableException e) {
+						errorHandler.accept("Failed to retrieve feature source data", civ);
+					}
+            	}
+                break;
+            case MEASUREMENT_WELL_COLUMN:
+            	if (civ.getSourceMeasColName() == null || civ.getSourceMeasColName().trim().isEmpty()) {
+            		errorHandler.accept("Measurement reference is missing column name", civ);
+            	} else {
+            		try {
+            			inputVariables.put(civ.getVariableName(), measurementServiceClient.getWellData(ctx.getMeasId(), civ.getSourceMeasColName()));
+            		} catch (MeasUnresolvableException e) {
+            			errorHandler.accept("Failed to retrieve measurement source welldata", civ);
+            		}
+            	}
+                break;
+            case MEASUREMENT_SUBWELL_COLUMN:
+            	if (civ.getSourceMeasColName() == null || civ.getSourceMeasColName().trim().isEmpty()) {
+            		errorHandler.accept("Measurement reference is missing column name", civ);
+            	} else {
+            		try {
+            			inputVariables.put(civ.getVariableName(), measurementServiceClient.getSubWellData(ctx.getMeasId(), civ.getSourceMeasColName()));
+            		} catch (MeasUnresolvableException e) {
+            			errorHandler.accept("Failed to retrieve measurement source subwelldata", civ);
+            		}            		
+            	}
+                break;
+            default:
+            	errorHandler.accept("Invalid variable source reference", civ);
             }
         }
 
         // Add commonly used info about the wells
         CalculationInputHelper.addWellInfo(inputVariables, ctx);
+        
+        return inputVariables;
+    }
+    
+    private float[] parseNumericValues(ScriptExecutionOutputDTO output) {
+    	if (output.getOutput() == null || output.getStatusCode() != ResponseStatusCode.SUCCESS) return null;
+    	
+    	String[] outputStrings = null;
+    	try {
+    		OutputWrapper outputValue = objectMapper.readValue(output.getOutput(), OutputWrapper.class);
+    		outputStrings = outputValue.output;
+    	} catch (JsonProcessingException e) {
+    		return null;
+    	}
+    	if (outputStrings == null) return null;
+    	
+    	float[] numericOutput = new float[outputStrings.length];
+        for (int i = 0; i < numericOutput.length; i++) {
+            try {
+            	numericOutput[i] = Float.parseFloat(outputStrings[i]);
+            } catch (Exception e) {
+            	numericOutput[i] = Float.NaN;
+            }
+        }
+        return numericOutput;
+    }
+    
+    private static class OutputWrapper {
 
-        return Optional.of(inputVariables);
+        public final String[] output;
+
+        @JsonCreator
+        private OutputWrapper(@JsonProperty(value = "output", required = true) String[] output) {
+            this.output = output;
+        }
     }
 }
 

@@ -20,47 +20,31 @@
  */
 package eu.openanalytics.phaedra.calculationservice.api;
 
-import eu.openanalytics.curvedataservice.dto.CurveDTO;
-import eu.openanalytics.phaedra.calculationservice.dto.CurveFittingRequestDTO;
-import eu.openanalytics.phaedra.calculationservice.service.CalculationStatusService;
-import eu.openanalytics.phaedra.calculationservice.service.protocol.CurveFittingExecutorService;
+import java.util.List;
+import java.util.concurrent.ExecutionException;
 
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
-import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
-import java.util.List;
-import java.util.concurrent.ExecutionException;
-import java.util.concurrent.TimeUnit;
-import java.util.concurrent.TimeoutException;
+import eu.openanalytics.curvedataservice.dto.CurveDTO;
+import eu.openanalytics.phaedra.calculationservice.dto.CurveFittingRequestDTO;
+import eu.openanalytics.phaedra.calculationservice.service.protocol.CurveFittingExecutorService;
 
 @RestController
 public class CurveFittingController {
 
     private final CurveFittingExecutorService curveFittingExecutorService;
-    private final CalculationStatusService calculationStatusService;
 
-
-    public CurveFittingController(CurveFittingExecutorService curveFittingExecutorService, CalculationStatusService calculationStatusService) {
+    public CurveFittingController(CurveFittingExecutorService curveFittingExecutorService) {
         this.curveFittingExecutorService = curveFittingExecutorService;
-        this.calculationStatusService = calculationStatusService;
     }
+    
     @PostMapping("/curvefit")
-    public ResponseEntity<List<CurveDTO>> fitCurve(@RequestBody CurveFittingRequestDTO curveFittingRequestDTO,
-                                                   @RequestParam(value = "timeout", required = false) Long timeout) throws ExecutionException, InterruptedException {
-        var future = curveFittingExecutorService.execute(curveFittingRequestDTO.getPlateId(),
-                curveFittingRequestDTO.getFeatureResultData());
-        if (timeout != null) {
-            try {
-                future.plateCurves().get(timeout, TimeUnit.MILLISECONDS);
-            } catch (TimeoutException ex) {
-
-            }
-        }
-
-        return new ResponseEntity<>(future.plateCurves().get(), HttpStatus.CREATED);
+    public ResponseEntity<List<CurveDTO>> fitCurve(@RequestBody CurveFittingRequestDTO curveFittingRequestDTO) throws ExecutionException, InterruptedException {
+        var execution = curveFittingExecutorService.execute(curveFittingRequestDTO.getPlateId(), curveFittingRequestDTO.getFeatureResultData());
+        return new ResponseEntity<>(execution.curves().get(), HttpStatus.CREATED);
     }
 }

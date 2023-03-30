@@ -24,7 +24,6 @@ import static eu.openanalytics.phaedra.calculationservice.util.LoggerHelper.log;
 
 import java.util.ArrayList;
 import java.util.concurrent.CompletableFuture;
-import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
@@ -93,45 +92,27 @@ public class ProtocolExecutorService {
     }
 
     public ResultSetDTO executeProtocol(CompletableFuture<Long> resultSetIdFuture, long protocolId, long plateId, long measId) throws ProtocolUnresolvableException, ResultSetUnresolvableException, PlateUnresolvableException {
-    	
+
+    	// Collect all required input data and create a ResultSet instance
         var protocolData = protocolDataCollector.getProtocolData(protocolId);
         var plate = plateServiceClient.getPlate(plateId);
         var wells = plateServiceClient.getWells(plateId);
-        
         var resultSet = resultDataServiceClient.createResultDataSet(protocolId, plateId, measId);
         resultSetIdFuture.complete(resultSet.getId());
         
-        // Create a CalculationContext holding all the entities related to the calculation
-        var ctx = CalculationContext.newInstance(protocolData, plate, wells, resultSet.getId(), measId);
+        CalculationContext ctx = CalculationContext.newInstance(protocolData, plate, wells, resultSet.getId(), measId);
         log(logger, ctx,  "Starting calculation");
-
         emitPlateCalcStatus(plateId, CalculationStatus.CALCULATION_IN_PROGRESS);
 
         // Execute every sequence
         for (Integer seq: protocolData.sequences.keySet().stream().sorted().toList()) {
-            boolean success = sequenceExecutorService.executeSequence(ctx, executorService, seq);
-            if (!success) break;
+            sequenceExecutorService.executeSequence(ctx, seq);
+            if (ctx.getErrorCollector().hasError()) break;
         }
-
-        log(logger, ctx, "Waiting for FeatureStat calculations");
-        for (var featureStat : ctx.getComputedStatsForFeature().entrySet()) {
-            try {
-                featureStat.getValue().get();
-            } catch (InterruptedException e) {
-                // ideally these exceptions should be caught and handled in the FeatureStatExecutor service, however
-                // we still need to catch them here, because of the API design of Future.
-                ctx.getErrorCollector().addError("executing protocol => waiting for FeatureStat calculations to complete => interrupted", e, featureStat.getKey());
-            } catch (ExecutionException e) {
-                ctx.getErrorCollector().addError("executing protocol => waiting for FeatureStat calculations to complete => exception during execution", e.getCause(), featureStat.getKey());
-            } catch (Throwable e) {
-                ctx.getErrorCollector().addError("executing protocol => waiting for FeatureStat calculations to complete => exception during execution", e, featureStat.getKey());
-            }
-        }
-
+        
         if (ctx.getErrorCollector().hasError()) {
             return saveError(resultSet, ctx, ctx.getErrorCollector());
         }
-
         return saveSuccess(resultSet, ctx);
     }
     
@@ -149,7 +130,6 @@ public class ProtocolExecutorService {
         return resultSetDTO;
     }
 
-    // TODO: Secure kafka producer
     private void emitPlateCalcStatus(Long plateId, CalculationStatus calculationStatus) {
         PlateCalculationStatusDTO plateCalcStatus = PlateCalculationStatusDTO.builder().plateId(plateId).calculationStatus(calculationStatus).build();
         kafkaProducerService.sendPlateCalculationStatus(plateCalcStatus);

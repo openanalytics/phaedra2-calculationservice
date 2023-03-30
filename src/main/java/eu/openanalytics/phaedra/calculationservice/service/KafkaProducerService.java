@@ -20,19 +20,22 @@
  */
 package eu.openanalytics.phaedra.calculationservice.service;
 
+import java.util.List;
+
+import org.springframework.kafka.core.KafkaTemplate;
+import org.springframework.stereotype.Service;
+
 import eu.openanalytics.curvedataservice.dto.CurveDTO;
 import eu.openanalytics.phaedra.calculationservice.config.KafkaConfig;
 import eu.openanalytics.phaedra.calculationservice.dto.CurveFittingRequestDTO;
 import eu.openanalytics.phaedra.plateservice.dto.PlateCalculationStatusDTO;
 import eu.openanalytics.phaedra.resultdataservice.dto.ResultDataDTO;
 import eu.openanalytics.phaedra.resultdataservice.dto.ResultFeatureStatDTO;
-import org.springframework.kafka.core.KafkaTemplate;
-import org.springframework.stereotype.Service;
-
-import java.util.ArrayList;
+import eu.openanalytics.phaedra.scriptengine.dto.ScriptExecutionInputDTO;
 
 @Service
 public class KafkaProducerService {
+	
     private final KafkaTemplate<String, Object> kafkaTemplate;
 
     public KafkaProducerService(KafkaTemplate<String, Object> kafkaTemplate) {
@@ -55,9 +58,13 @@ public class KafkaProducerService {
         kafkaTemplate.send(KafkaConfig.TOPIC_RESULTDATA, KafkaConfig.EVENT_SAVE_RESULT_DATA, resultData);
     }
 
-    public void sendResultFeatureStats(Long resultSetId, ArrayList<ResultFeatureStatDTO> resultFeatureStats) {
+    public void sendResultFeatureStats(Long resultSetId, List<ResultFeatureStatDTO> resultFeatureStats) {
         for (ResultFeatureStatDTO resultFeatureStatDTO: resultFeatureStats) {
             kafkaTemplate.send(KafkaConfig.TOPIC_RESULTDATA, KafkaConfig.EVENT_SAVE_RESULT_STATS, resultFeatureStatDTO.withResultSetId(resultSetId));
         }
+    }
+    
+    public void sendScriptExecutionRequest(ScriptExecutionInputDTO scriptRequest) {
+    	kafkaTemplate.send(KafkaConfig.TOPIC_SCRIPTENGINE, KafkaConfig.EVENT_REQUEST_SCRIPT_EXECUTION, scriptRequest);
     }
 }
