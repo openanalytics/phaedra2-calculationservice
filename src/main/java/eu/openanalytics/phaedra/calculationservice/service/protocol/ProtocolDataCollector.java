@@ -63,7 +63,7 @@ public class ProtocolDataCollector {
         formulaIds.addAll(featureStats.stream().map(FeatureStatDTO::getFormulaId).toList());
         data.formulas = formulaService.getFormulasByIds(formulaIds);
 
-        data.protocol.getFeatures().stream().collect(Collectors.groupingBy(FeatureDTO::getSequence));
+        data.sequences = data.protocol.getFeatures().stream().collect(Collectors.groupingBy(FeatureDTO::getSequence));
         
         return data;
     }
