@@ -52,7 +52,7 @@ public class KafkaConsumerService {
 
     @KafkaListener(topics = KafkaConfig.TOPIC_CALCULATIONS, groupId = KafkaConfig.GROUP_ID, filter = "requestPlateCalculationFilter")
     public void onRequestPlateCalculation(CalculationRequestDTO calculationRequestDTO, @Header(KafkaHeaders.RECEIVED_KEY) String msgKey) throws ExecutionException, InterruptedException {
-        logger.info("calculation-service: received a plate calculation event!");
+        logger.info(KafkaConfig.GROUP_ID + ": received a plate calculation event");
         protocolExecutorService.execute(
                 calculationRequestDTO.getProtocolId(),
                 calculationRequestDTO.getPlateId(),
@@ -61,7 +61,7 @@ public class KafkaConsumerService {
 
     @KafkaListener(topics = KafkaConfig.TOPIC_CALCULATIONS, groupId = KafkaConfig.GROUP_ID, filter = "requestCurveFitFilter")
     public void onCurveFitEvent(CurveFittingRequestDTO curveFittingRequestDTO) throws ExecutionException, InterruptedException {
-        logger.info("calculation-service: received a curve fit event!");
+        logger.info(KafkaConfig.GROUP_ID + ": received a curve fit event");
         curveFittingExecutorService.execute(
                 curveFittingRequestDTO.getPlateId(),
                 curveFittingRequestDTO.getFeatureResultData());
@@ -69,6 +69,7 @@ public class KafkaConsumerService {
     
     @KafkaListener(topics = KafkaConfig.TOPIC_SCRIPTENGINE, groupId = KafkaConfig.GROUP_ID, filter = "scriptExecutionUpdateFilter")
     public void onScriptExecutionEvent(ScriptExecutionOutputDTO output, @Header(KafkaHeaders.RECEIVED_KEY) String key) {
+    	logger.info(KafkaConfig.GROUP_ID + ": received a script execution update event");
 		scriptExecutionService.handleScriptExecutionUpdate(output);
     }
 }

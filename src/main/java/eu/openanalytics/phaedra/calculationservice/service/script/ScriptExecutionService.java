@@ -74,6 +74,7 @@ public class ScriptExecutionService {
 		if (request.getId() == null) {
 			request.setId(UUID.randomUUID().toString());
 			request.getInput().setId(request.getId());
+			trackedExecutions.put(request.getId(), request);
 		}
 		request.setCurrentTry(request.getCurrentTry() + 1);
 		kafkaProducer.sendScriptExecutionRequest(request.getInput());
