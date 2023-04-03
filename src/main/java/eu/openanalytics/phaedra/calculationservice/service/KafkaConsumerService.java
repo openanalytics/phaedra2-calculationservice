@@ -30,8 +30,6 @@ import org.springframework.kafka.support.KafkaHeaders;
 import org.springframework.messaging.handler.annotation.Header;
 import org.springframework.stereotype.Service;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
-
 import eu.openanalytics.phaedra.calculationservice.config.KafkaConfig;
 import eu.openanalytics.phaedra.calculationservice.dto.CalculationRequestDTO;
 import eu.openanalytics.phaedra.calculationservice.dto.CurveFittingRequestDTO;
@@ -49,8 +47,6 @@ public class KafkaConsumerService {
     private CurveFittingExecutorService curveFittingExecutorService;
     @Autowired
     private ScriptExecutionService scriptExecutionService;
-    @Autowired
-    private ObjectMapper objectMapper;
     
     private final Logger logger = LoggerFactory.getLogger(getClass());
 
@@ -71,14 +67,8 @@ public class KafkaConsumerService {
                 curveFittingRequestDTO.getFeatureResultData());
     }
     
-    @KafkaListener(topics = KafkaConfig.TOPIC_SCRIPTENGINE, groupId = KafkaConfig.GROUP_ID)
-    public void onScriptExecutionEvent(String message, @Header(KafkaHeaders.RECEIVED_KEY) String key) {
-    	if (!KafkaConfig.EVENT_SCRIPT_EXECUTION_UPDATE.equalsIgnoreCase(key)) return;
-		try {
-			ScriptExecutionOutputDTO output = objectMapper.readValue(message, ScriptExecutionOutputDTO.class);
-			scriptExecutionService.handleScriptExecutionUpdate(output);
-		} catch (Exception e) {
-			logger.error(String.format("Error parsing message from scriptengine: %s", message), e);
-		}
+    @KafkaListener(topics = KafkaConfig.TOPIC_SCRIPTENGINE, groupId = KafkaConfig.GROUP_ID, filter = "scriptExecutionUpdateFilter")
+    public void onScriptExecutionEvent(ScriptExecutionOutputDTO output, @Header(KafkaHeaders.RECEIVED_KEY) String key) {
+		scriptExecutionService.handleScriptExecutionUpdate(output);
     }
 }

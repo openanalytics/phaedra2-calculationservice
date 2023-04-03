@@ -57,4 +57,9 @@ public class KafkaConfig {
     public RecordFilterStrategy<String, Object> requestCurveFitFilter() {
         return rec -> !(rec.key().equalsIgnoreCase(EVENT_REQUEST_CURVE_FIT));
     }
+    
+    @Bean
+    public RecordFilterStrategy<String, Object> scriptExecutionUpdateFilter() {
+        return rec -> !(rec.key().equalsIgnoreCase(EVENT_SCRIPT_EXECUTION_UPDATE));
+    }
 }
