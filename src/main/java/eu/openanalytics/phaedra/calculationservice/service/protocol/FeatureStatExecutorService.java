@@ -77,7 +77,7 @@ public class FeatureStatExecutorService {
 
     public void executeFeatureStats(CalculationContext ctx, FeatureDTO feature, float[] values) {
         List<FeatureStatDTO> statsToCalculate = ctx.getProtocolData().featureStats.get(feature.getId());
-        log(logger, ctx, "[F=%s] Calculating %d FeatureStats", feature.getId(), statsToCalculate.size());
+        log(logger, ctx, "Calculating %d featureStats for feature %d", statsToCalculate.size(), feature.getId());
 
         // Submit all stat calculation requests
         for (FeatureStatDTO fs: statsToCalculate) {
@@ -90,6 +90,7 @@ public class FeatureStatExecutorService {
 					try {
 						List<ResultFeatureStatDTO> results = parseResults(ctx, feature, fs, output);
 						kafkaProducerService.sendResultFeatureStats(ctx.getResultSetId(), results);
+						log(logger, ctx, "Sent %d featureStat values for feature %d", results.size(), feature.getId());
 					} catch (JsonProcessingException e) {
 						ctx.getErrorCollector().addError("Invalid format received for feature stat response", output, feature, fs);
 					}
