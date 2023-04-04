@@ -34,7 +34,6 @@ import org.springframework.stereotype.Service;
 
 import eu.openanalytics.phaedra.calculationservice.model.CalculationContext;
 import eu.openanalytics.phaedra.calculationservice.service.KafkaProducerService;
-import eu.openanalytics.phaedra.calculationservice.util.ErrorCollector;
 import eu.openanalytics.phaedra.plateservice.client.PlateServiceClient;
 import eu.openanalytics.phaedra.plateservice.client.exception.PlateUnresolvableException;
 import eu.openanalytics.phaedra.plateservice.dto.PlateCalculationStatusDTO;
@@ -111,25 +110,16 @@ public class ProtocolExecutorService {
         }
         
         if (ctx.getErrorCollector().hasError()) {
-            return saveError(resultSet, ctx, ctx.getErrorCollector());
+        	logger.warn("Calculation failed with errors:\n" + ctx.getErrorCollector().getErrorDescription());
+            emitPlateCalcStatus(resultSet.getPlateId(), CalculationStatus.CALCULATION_ERROR);
+            return resultDataServiceClient.completeResultDataSet(resultSet.getId(), StatusCode.FAILURE, ctx.getErrorCollector().getErrors(), ctx.getErrorCollector().getErrorDescription());
         }
-        return saveSuccess(resultSet, ctx);
+        
+        log(logger, ctx, "Calculation finished: SUCCESS");
+        emitPlateCalcStatus(resultSet.getPlateId(), CalculationStatus.CALCULATION_OK);
+        return resultDataServiceClient.completeResultDataSet(resultSet.getId(), StatusCode.SUCCESS, new ArrayList<>(), "");
     }
     
-    private ResultSetDTO saveSuccess(ResultSetDTO resultSet, CalculationContext calculationContext) throws ResultSetUnresolvableException, PlateUnresolvableException {
-        log(logger, calculationContext, "Calculation finished: SUCCESS");
-        ResultSetDTO resultSetDTO = resultDataServiceClient.completeResultDataSet(resultSet.getId(), StatusCode.SUCCESS, new ArrayList<>(), "");
-        emitPlateCalcStatus(resultSet.getPlateId(), CalculationStatus.CALCULATION_OK);
-        return resultSetDTO;
-    }
-
-    private ResultSetDTO saveError(ResultSetDTO resultSet, CalculationContext calculationContext, ErrorCollector errorCollector) throws ResultSetUnresolvableException, PlateUnresolvableException {
-        logger.warn("Protocol failed with errorDescription\n" + errorCollector.getErrorDescription());
-        ResultSetDTO resultSetDTO = resultDataServiceClient.completeResultDataSet(resultSet.getId(), StatusCode.FAILURE, errorCollector.getErrors(), errorCollector.getErrorDescription());
-        emitPlateCalcStatus(resultSet.getPlateId(), CalculationStatus.CALCULATION_ERROR);
-        return resultSetDTO;
-    }
-
     private void emitPlateCalcStatus(Long plateId, CalculationStatus calculationStatus) {
         PlateCalculationStatusDTO plateCalcStatus = PlateCalculationStatusDTO.builder().plateId(plateId).calculationStatus(calculationStatus).build();
         kafkaProducerService.sendPlateCalculationStatus(plateCalcStatus);

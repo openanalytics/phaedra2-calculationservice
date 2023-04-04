@@ -63,8 +63,9 @@ public class SequenceExecutorService {
         		.toList();
         
         // Wait for all features to complete.
+        log(logger, ctx, "[S=%d] Waiting for %d feature outputs from script engine", currentSequence, requests.size());
         requests.forEach(r -> { try { r.awaitOutput(); } catch (InterruptedException e) {} });
 
-        log(logger, ctx, "[S=%s] All outputs received from script engine", currentSequence);
+        log(logger, ctx, "[S=%d] All outputs received, sequence complete", currentSequence);
     }
 }

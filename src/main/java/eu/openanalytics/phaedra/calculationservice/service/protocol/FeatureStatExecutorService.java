@@ -93,7 +93,7 @@ public class FeatureStatExecutorService {
         }).toList();
         
         // Await completion
-        // TODO Make this non-blocking by publishing data for each stat individually as a callback 
+        log(logger, ctx, "[F=%s] Waiting for %d FeatureStats outputs", feature.getId(), statsToCalculate.size());
         requests.forEach(r -> { try { r.awaitOutput(); } catch (InterruptedException e) {} });
         
         // Convert outputs into a list of results
