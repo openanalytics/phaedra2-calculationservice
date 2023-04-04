@@ -22,6 +22,7 @@ package eu.openanalytics.phaedra.calculationservice.service.script;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.concurrent.ForkJoinPool;
 import java.util.function.Consumer;
 
 import eu.openanalytics.phaedra.scriptengine.dto.ScriptExecutionInputDTO;
@@ -56,9 +57,7 @@ public class ScriptExecutionRequest {
             notifyAll();
         }
         if (callbacks != null) {
-        	for (Consumer<ScriptExecutionOutputDTO> callback : callbacks) {
-        		callback.accept(output);
-			}
+        	ForkJoinPool.commonPool().submit(() -> callbacks.forEach(c -> c.accept(output)));
         }
 	}
 	
