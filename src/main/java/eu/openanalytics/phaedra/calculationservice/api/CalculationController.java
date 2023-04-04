@@ -54,7 +54,7 @@ public class CalculationController {
                 calculationRequestDTO.getProtocolId(),
                 calculationRequestDTO.getPlateId(),
                 calculationRequestDTO.getMeasId());
-        return new ResponseEntity<>(execution.resultSetId().get(), HttpStatus.CREATED);
+        return new ResponseEntity<>(execution.get(), HttpStatus.CREATED);
     }
 
     @GetMapping("/status")

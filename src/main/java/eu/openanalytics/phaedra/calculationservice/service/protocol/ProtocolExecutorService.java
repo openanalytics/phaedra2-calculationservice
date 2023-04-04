@@ -23,9 +23,10 @@ package eu.openanalytics.phaedra.calculationservice.service.protocol;
 import static eu.openanalytics.phaedra.calculationservice.util.LoggerHelper.log;
 
 import java.util.ArrayList;
+import java.util.Map;
 import java.util.concurrent.CompletableFuture;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.ForkJoinPool;
 import java.util.concurrent.Future;
 
 import org.slf4j.Logger;
@@ -41,6 +42,8 @@ import eu.openanalytics.phaedra.plateservice.enumartion.CalculationStatus;
 import eu.openanalytics.phaedra.protocolservice.client.exception.ProtocolUnresolvableException;
 import eu.openanalytics.phaedra.resultdataservice.client.ResultDataServiceClient;
 import eu.openanalytics.phaedra.resultdataservice.client.exception.ResultSetUnresolvableException;
+import eu.openanalytics.phaedra.resultdataservice.dto.ResultDataDTO;
+import eu.openanalytics.phaedra.resultdataservice.dto.ResultFeatureStatDTO;
 import eu.openanalytics.phaedra.resultdataservice.dto.ResultSetDTO;
 import eu.openanalytics.phaedra.resultdataservice.enumeration.StatusCode;
 
@@ -55,43 +58,46 @@ import eu.openanalytics.phaedra.resultdataservice.enumeration.StatusCode;
 @Service
 public class ProtocolExecutorService {
 
-    private final SequenceExecutorService sequenceExecutorService;
-    private final ProtocolDataCollector protocolDataCollector;
-    
+	private final FeatureExecutorService featureExecutorService;
+	
     private final ResultDataServiceClient resultDataServiceClient;
     private final PlateServiceClient plateServiceClient;
 
-    private final ExecutorService executorService;
+    private final ProtocolDataCollector protocolDataCollector;
     private final KafkaProducerService kafkaProducerService;
+    
+    private final Map<Long, CalculationContext> activeContexts = new ConcurrentHashMap<>();
+    
     private final Logger logger = LoggerFactory.getLogger(getClass());
 
-    public ProtocolExecutorService(ResultDataServiceClient resultDataServiceClient, SequenceExecutorService sequenceExecutorService, ProtocolDataCollector protocolDataCollector, PlateServiceClient plateServiceClient, KafkaProducerService kafkaProducerService) {
+    public ProtocolExecutorService(
+    		FeatureExecutorService featureExecutorService,
+    		ResultDataServiceClient resultDataServiceClient,
+    		ProtocolDataCollector protocolDataCollector,
+    		PlateServiceClient plateServiceClient,
+    		KafkaProducerService kafkaProducerService) {
+    	
+    	this.featureExecutorService= featureExecutorService; 
         this.resultDataServiceClient = resultDataServiceClient;
-        this.sequenceExecutorService = sequenceExecutorService;
         this.protocolDataCollector = protocolDataCollector;
         this.plateServiceClient = plateServiceClient;
         this.kafkaProducerService = kafkaProducerService;
-
-        executorService = Executors.newCachedThreadPool();
     }
 
-    public record ProtocolExecution(CompletableFuture<Long> resultSetId, Future<ResultSetDTO> resultSet) {};
-
-    public ProtocolExecution execute(long protocolId, long plateId, long measId) {
+    public Future<Long> execute(long protocolId, long plateId, long measId) {
         var resultSetIdFuture = new CompletableFuture<Long>();
-        return new ProtocolExecution(resultSetIdFuture, executorService.submit(() -> {
+        ForkJoinPool.commonPool().submit(() -> {
             try {
-                return executeProtocol(resultSetIdFuture, protocolId, plateId, measId);
+                triggerProtocolExecution(resultSetIdFuture, protocolId, plateId, measId);
             } catch (Throwable ex) {
-                // print the stack strace. Since the future may never be awaited, we may not see the error otherwise
+            	logger.error("Unexpected error during protocol calculation", ex);
                 ex.printStackTrace();
-                throw ex;
             }
-        }));
+        });
+        return resultSetIdFuture;
     }
 
-    public ResultSetDTO executeProtocol(CompletableFuture<Long> resultSetIdFuture, long protocolId, long plateId, long measId) throws ProtocolUnresolvableException, ResultSetUnresolvableException, PlateUnresolvableException {
-
+    private void triggerProtocolExecution(CompletableFuture<Long> resultSetIdFuture, long protocolId, long plateId, long measId) throws ProtocolUnresolvableException, ResultSetUnresolvableException, PlateUnresolvableException {
     	// Collect all required input data and create a ResultSet instance
         var protocolData = protocolDataCollector.getProtocolData(protocolId);
         var plate = plateServiceClient.getPlate(plateId);
@@ -100,24 +106,74 @@ public class ProtocolExecutorService {
         resultSetIdFuture.complete(resultSet.getId());
         
         CalculationContext ctx = CalculationContext.newInstance(protocolData, plate, wells, resultSet.getId(), measId);
-        log(logger, ctx,  "Starting calculation");
+        log(logger, ctx, "Executing protocol %d", protocolId);
         emitPlateCalcStatus(plateId, CalculationStatus.CALCULATION_IN_PROGRESS);
+        activeContexts.put(resultSet.getId(), ctx);
 
-        // Execute every sequence
-        for (Integer seq: protocolData.sequences.keySet().stream().sorted().toList()) {
-            sequenceExecutorService.executeSequence(ctx, seq);
-            if (ctx.getErrorCollector().hasError()) break;
-        }
-        
+        // Start the first sequence
+        triggerSequenceExecution(ctx, ctx.getCalculationProgress().getCurrentSequence());
+    }
+    
+    private void triggerSequenceExecution(CalculationContext ctx, Integer sequence) {
+    	log(logger, ctx, "Executing sequence %d", sequence);
+    	ctx.getProtocolData().protocol.getFeatures().parallelStream()
+        		.filter(f -> f.getSequence() == sequence)
+        		.map(f -> featureExecutorService.executeFeature(ctx, f, sequence))
+        		.filter(r -> r != null)
+        		.toList();
+    }
+    
+    public void handleResultSetUpdate(Object resultObject) {
+    	Long rsId = null;
+    	if (resultObject instanceof ResultSetDTO) {
+    		rsId = ((ResultSetDTO) resultObject).getId();
+    	} else if (resultObject instanceof ResultDataDTO) {
+    		rsId = ((ResultDataDTO) resultObject).getResultSetId();
+    	} else if (resultObject instanceof ResultFeatureStatDTO) {
+    		rsId = ((ResultFeatureStatDTO) resultObject).getResultSetId();
+    	}
+    	if (rsId == null) return;
+    	
+    	CalculationContext ctx = activeContexts.get(rsId);
+    	if (ctx == null) return;
+    	
+    	// Update progress information
+    	ctx.getCalculationProgress().updateProgress(resultObject);
+    	
+    	if (ctx.getCalculationProgress().isComplete()) {
+    		handleCalculationEnded(ctx);
+    	} else if (ctx.getCalculationProgress().isCurrentSequenceComplete()) {
+    		if (ctx.getErrorCollector().hasError()) {
+    			handleCalculationEnded(ctx);
+    		} else {
+    			ctx.getCalculationProgress().incrementCurrentSequence();
+    			triggerSequenceExecution(ctx, ctx.getCalculationProgress().getCurrentSequence());
+    		}
+    	}
+    }
+    
+    private ResultSetDTO handleCalculationEnded(CalculationContext ctx) {
+    	activeContexts.remove(ctx.getResultSetId());
+    	
+    	ResultSetDTO rs = null;
         if (ctx.getErrorCollector().hasError()) {
         	logger.warn("Calculation failed with errors:\n" + ctx.getErrorCollector().getErrorDescription());
-            emitPlateCalcStatus(resultSet.getPlateId(), CalculationStatus.CALCULATION_ERROR);
-            return resultDataServiceClient.completeResultDataSet(resultSet.getId(), StatusCode.FAILURE, ctx.getErrorCollector().getErrors(), ctx.getErrorCollector().getErrorDescription());
+            emitPlateCalcStatus(ctx.getPlate().getId(), CalculationStatus.CALCULATION_ERROR);
+			try {
+				rs = resultDataServiceClient.completeResultDataSet(ctx.getResultSetId(), StatusCode.FAILURE, ctx.getErrorCollector().getErrors(), ctx.getErrorCollector().getErrorDescription());
+			} catch (ResultSetUnresolvableException e) {
+				logger.error("Unexpected error while updating result set", e);
+			}
+        } else {
+        	log(logger, ctx, "Calculation finished: SUCCESS");
+        	emitPlateCalcStatus(ctx.getPlate().getId(), CalculationStatus.CALCULATION_OK);
+			try {
+				rs = resultDataServiceClient.completeResultDataSet(ctx.getResultSetId(), StatusCode.SUCCESS, new ArrayList<>(), "");
+			} catch (ResultSetUnresolvableException e) {
+				logger.error("Unexpected error while updating result set", e);
+			}
         }
-        
-        log(logger, ctx, "Calculation finished: SUCCESS");
-        emitPlateCalcStatus(resultSet.getPlateId(), CalculationStatus.CALCULATION_OK);
-        return resultDataServiceClient.completeResultDataSet(resultSet.getId(), StatusCode.SUCCESS, new ArrayList<>(), "");
+        return rs;
     }
     
     private void emitPlateCalcStatus(Long plateId, CalculationStatus calculationStatus) {

@@ -114,35 +114,33 @@ public class FeatureExecutorService {
     	}
     	
     	// Submit the calculation request
-    	ScriptExecutionRequest request = scriptExecutionService.submit(formula.getLanguage(), formula.getFormula(), inputVariables);
-    	
-    	request.addCallback(output -> {
-    		float[] outputValues = parseNumericValues(output);
-    		
-    		// Publish the result data
-    		ResultDataDTO resultData = ResultDataDTO.builder()
-    		        .resultSetId(ctx.getResultSetId())
-    		        .featureId(feature.getId())
-    		        .values(outputValues)
-    		        .statusCode(modelMapper.map(output.getStatusCode()))
-    		        .statusMessage(output.getStatusMessage())
-    		        .exitCode(output.getExitCode())
-    		        .build();
-    		kafkaProducerService.sendResultData(resultData);
-    		
-    		if (output.getStatusCode() == ResponseStatusCode.SUCCESS) {
-    			// Submit feature stats calculation
-    			featureStatExecutorService.executeFeatureStats(ctx, feature, outputValues);
-    			
-    			// Submit curve fitting request
-    			var curveFitRequest = new CurveFittingRequestDTO(ctx.getPlate().getId(), resultData.getFeatureId(), resultData);
-    			kafkaProducerService.initiateCurveFitting(curveFitRequest);
-            } else {
-            	ctx.getErrorCollector().addError(String.format("Script execution failed with status %s", output.getStatusCode()), output, feature, formula);
-            }
-    		
+    	ScriptExecutionRequest request = scriptExecutionService
+			.submit(formula.getLanguage(), formula.getFormula(), inputVariables)
+			.addCallback(output -> {
+	    		float[] outputValues = parseNumericValues(output);
+	    		
+	    		// Publish the result data
+	    		ResultDataDTO resultData = ResultDataDTO.builder()
+	    		        .resultSetId(ctx.getResultSetId())
+	    		        .featureId(feature.getId())
+	    		        .values(outputValues)
+	    		        .statusCode(modelMapper.map(output.getStatusCode()))
+	    		        .statusMessage(output.getStatusMessage())
+	    		        .exitCode(output.getExitCode())
+	    		        .build();
+	    		kafkaProducerService.sendResultData(resultData);
+	    		
+	    		if (output.getStatusCode() == ResponseStatusCode.SUCCESS) {
+	    			// Submit feature stats calculation
+	    			featureStatExecutorService.executeFeatureStats(ctx, feature, outputValues);
+	    			
+	    			// Submit curve fitting request
+	    			var curveFitRequest = new CurveFittingRequestDTO(ctx.getPlate().getId(), resultData.getFeatureId(), resultData);
+	    			kafkaProducerService.initiateCurveFitting(curveFitRequest);
+	            } else {
+	            	ctx.getErrorCollector().addError(String.format("Script execution failed with status %s", output.getStatusCode()), output, feature, formula);
+	            }
     	});
-    	
     	return request;
     }
 

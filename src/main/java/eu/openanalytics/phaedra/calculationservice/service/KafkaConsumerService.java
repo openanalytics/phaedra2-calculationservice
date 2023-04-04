@@ -36,6 +36,9 @@ import eu.openanalytics.phaedra.calculationservice.dto.CurveFittingRequestDTO;
 import eu.openanalytics.phaedra.calculationservice.service.protocol.CurveFittingExecutorService;
 import eu.openanalytics.phaedra.calculationservice.service.protocol.ProtocolExecutorService;
 import eu.openanalytics.phaedra.calculationservice.service.script.ScriptExecutionService;
+import eu.openanalytics.phaedra.resultdataservice.dto.ResultDataDTO;
+import eu.openanalytics.phaedra.resultdataservice.dto.ResultFeatureStatDTO;
+import eu.openanalytics.phaedra.resultdataservice.dto.ResultSetDTO;
 import eu.openanalytics.phaedra.scriptengine.dto.ScriptExecutionOutputDTO;
 
 @Service
@@ -68,8 +71,23 @@ public class KafkaConsumerService {
     }
     
     @KafkaListener(topics = KafkaConfig.TOPIC_SCRIPTENGINE, groupId = KafkaConfig.GROUP_ID, filter = "scriptExecutionUpdateFilter")
-    public void onScriptExecutionEvent(ScriptExecutionOutputDTO output, @Header(KafkaHeaders.RECEIVED_KEY) String key) {
+    public void onScriptExecutionEvent(ScriptExecutionOutputDTO output) {
     	logger.info(KafkaConfig.GROUP_ID + ": received a script execution update event");
 		scriptExecutionService.handleScriptExecutionUpdate(output);
+    }
+    
+    @KafkaListener(topics = KafkaConfig.TOPIC_RESULTDATA, groupId = KafkaConfig.GROUP_ID, filter = "resultSetUpdatedFilter")
+    public void onResultSetEvent(ResultSetDTO resultSet) {
+    	protocolExecutorService.handleResultSetUpdate(resultSet);
+    }
+ 
+    @KafkaListener(topics = KafkaConfig.TOPIC_RESULTDATA, groupId = KafkaConfig.GROUP_ID, filter = "resultDataUpdatedFilter")
+    public void onResultDataEvent(ResultDataDTO resultData) {
+    	protocolExecutorService.handleResultSetUpdate(resultData);
+    }
+    
+    @KafkaListener(topics = KafkaConfig.TOPIC_RESULTDATA, groupId = KafkaConfig.GROUP_ID, filter = "resultFeatureStatUpdatedFilter")
+    public void onResultFeatureStatEvent(ResultFeatureStatDTO resultFeatureStat) {
+    	protocolExecutorService.handleResultSetUpdate(resultFeatureStat);
     }
 }

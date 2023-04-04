@@ -35,7 +35,6 @@ import org.springframework.stereotype.Service;
 import com.fasterxml.jackson.annotation.JsonCreator;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.fasterxml.jackson.core.JsonProcessingException;
-import com.fasterxml.jackson.databind.JsonMappingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 
 import eu.openanalytics.phaedra.calculationservice.exception.CalculationException;
@@ -43,7 +42,6 @@ import eu.openanalytics.phaedra.calculationservice.model.CalculationContext;
 import eu.openanalytics.phaedra.calculationservice.model.Formula;
 import eu.openanalytics.phaedra.calculationservice.model.ModelMapper;
 import eu.openanalytics.phaedra.calculationservice.service.KafkaProducerService;
-import eu.openanalytics.phaedra.calculationservice.service.script.ScriptExecutionRequest;
 import eu.openanalytics.phaedra.calculationservice.service.script.ScriptExecutionService;
 import eu.openanalytics.phaedra.plateservice.dto.WellDTO;
 import eu.openanalytics.phaedra.protocolservice.dto.FeatureDTO;
@@ -77,38 +75,26 @@ public class FeatureStatExecutorService {
         this.scriptExecutionService = scriptExecutionService;
     }
 
-    /**
-     * Calculate statistics for a feature.
-     * This operation blocks until all statistics are available, and then publishes them all in one message.
-     */
     public void executeFeatureStats(CalculationContext ctx, FeatureDTO feature, float[] values) {
         List<FeatureStatDTO> statsToCalculate = ctx.getProtocolData().featureStats.get(feature.getId());
         log(logger, ctx, "[F=%s] Calculating %d FeatureStats", feature.getId(), statsToCalculate.size());
 
         // Submit all stat calculation requests
-        List<ScriptExecutionRequest> requests = statsToCalculate.stream().map(fs -> {
+        for (FeatureStatDTO fs: statsToCalculate) {
         	Formula formula = ctx.getProtocolData().formulas.get(fs.getFormulaId());
         	Map<String, Object> inputData = collectStatInputData(ctx, feature, fs, values);
-        	return scriptExecutionService.submit(formula.getLanguage(), formula.getFormula(), inputData);
-        }).toList();
-        
-        // Await completion
-        log(logger, ctx, "[F=%s] Waiting for %d FeatureStats outputs", feature.getId(), statsToCalculate.size());
-        requests.forEach(r -> { try { r.awaitOutput(); } catch (InterruptedException e) {} });
-        
-        // Convert outputs into a list of results
-        List<ResultFeatureStatDTO> results = new ArrayList<>();
-        for (int i=0; i < requests.size(); i++) {
-        	try {
-				results.addAll(parseResults(ctx, feature, statsToCalculate.get(i), requests.get(i).getOutput()));
-			} catch (JsonProcessingException e) {
-				CalculationException.doThrow("Failed to parse results", feature);
-			}
-		}
-        
-        // Emit the output
-        kafkaProducerService.sendResultFeatureStats(ctx.getResultSetId(), results);
-        log(logger, ctx, "[F=%s] All FeatureStat output saved", feature.getId());
+        	
+        	scriptExecutionService
+        		.submit(formula.getLanguage(), formula.getFormula(), inputData)
+        		.addCallback(output -> {
+					try {
+						List<ResultFeatureStatDTO> results = parseResults(ctx, feature, fs, output);
+						kafkaProducerService.sendResultFeatureStats(ctx.getResultSetId(), results);
+					} catch (JsonProcessingException e) {
+						ctx.getErrorCollector().addError("Invalid format received for feature stat response", output, feature, fs);
+					}
+        	});
+        }
     }
 
     private Map<String, Object> collectStatInputData(CalculationContext ctx, FeatureDTO feature, FeatureStatDTO featureStat, float[] values) {
@@ -122,7 +108,7 @@ public class FeatureStatExecutorService {
         return input;
     }
 
-    private List<ResultFeatureStatDTO> parseResults(CalculationContext ctx, FeatureDTO feature, FeatureStatDTO featureStat, ScriptExecutionOutputDTO output) throws JsonMappingException, JsonProcessingException {
+    private List<ResultFeatureStatDTO> parseResults(CalculationContext ctx, FeatureDTO feature, FeatureStatDTO featureStat, ScriptExecutionOutputDTO output) throws JsonProcessingException {
     	List<ResultFeatureStatDTO> results = new ArrayList<>();
     	
 		OutputWrapper outputWrapper = objectMapper.readValue(output.getOutput(), OutputWrapper.class);

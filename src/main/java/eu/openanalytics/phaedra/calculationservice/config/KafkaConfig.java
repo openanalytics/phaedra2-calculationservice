@@ -43,8 +43,13 @@ public class KafkaConfig {
     public static final String EVENT_REQUEST_CURVE_FIT = "requestCurveFit";
     public static final String EVENT_UPDATE_PLATE_STATUS = "requestPlateCalculationStatusUpdate";
     public static final String EVENT_SAVE_CURVE = "saveCurve";
+    
     public static final String EVENT_SAVE_RESULT_DATA = "saveResultData";
     public static final String EVENT_SAVE_RESULT_STATS = "saveResultStats";
+    public static final String EVENT_RESULT_SET_UPDATED = "resultSetUpdated";
+    public static final String EVENT_RESULT_DATA_UPDATED = "resultDataUpdated";
+    public static final String EVENT_RESULT_FEATURE_STAT_UPDATED = "resultFeatureStatUpdated";
+    
     public static final String EVENT_REQUEST_SCRIPT_EXECUTION = "requestScriptExecution";
     public static final String EVENT_SCRIPT_EXECUTION_UPDATE = "scriptExecutionUpdate";
     
@@ -60,6 +65,21 @@ public class KafkaConfig {
     
     @Bean
     public RecordFilterStrategy<String, Object> scriptExecutionUpdateFilter() {
+        return rec -> !(rec.key().equalsIgnoreCase(EVENT_SCRIPT_EXECUTION_UPDATE));
+    }
+    
+    @Bean
+    public RecordFilterStrategy<String, Object> resultSetUpdatedFilter() {
+        return rec -> !(rec.key().equalsIgnoreCase(EVENT_SCRIPT_EXECUTION_UPDATE));
+    }
+    
+    @Bean
+    public RecordFilterStrategy<String, Object> resultDataUpdatedFilter() {
+        return rec -> !(rec.key().equalsIgnoreCase(EVENT_SCRIPT_EXECUTION_UPDATE));
+    }
+    
+    @Bean
+    public RecordFilterStrategy<String, Object> resultFeatureStatUpdatedFilter() {
         return rec -> !(rec.key().equalsIgnoreCase(EVENT_SCRIPT_EXECUTION_UPDATE));
     }
 }

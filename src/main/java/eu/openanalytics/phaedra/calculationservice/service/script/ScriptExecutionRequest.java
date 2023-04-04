@@ -45,9 +45,10 @@ public class ScriptExecutionRequest {
 	
 	private List<Consumer<ScriptExecutionOutputDTO>> callbacks;
 	
-	public synchronized void addCallback(Consumer<ScriptExecutionOutputDTO> callback) {
+	public synchronized ScriptExecutionRequest addCallback(Consumer<ScriptExecutionOutputDTO> callback) {
 		if (callbacks == null) callbacks = new ArrayList<>();
 		callbacks.add(callback);
+		return this;
 	}
 	
 	public void signalOutputAvailable(ScriptExecutionOutputDTO output) {

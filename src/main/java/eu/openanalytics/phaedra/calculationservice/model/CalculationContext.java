@@ -21,14 +21,12 @@
 package eu.openanalytics.phaedra.calculationservice.model;
 
 import java.util.List;
-import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.Future;
 
 import eu.openanalytics.phaedra.calculationservice.service.protocol.ProtocolDataCollector.ProtocolData;
+import eu.openanalytics.phaedra.calculationservice.util.CalculationProgress;
 import eu.openanalytics.phaedra.calculationservice.util.ErrorCollector;
 import eu.openanalytics.phaedra.plateservice.dto.PlateDTO;
 import eu.openanalytics.phaedra.plateservice.dto.WellDTO;
-import eu.openanalytics.phaedra.protocolservice.dto.FeatureDTO;
 import lombok.AccessLevel;
 import lombok.AllArgsConstructor;
 import lombok.Data;
@@ -46,14 +44,12 @@ public class CalculationContext {
     Long measId;
 
     ErrorCollector errorCollector;
-    ConcurrentHashMap<FeatureDTO, Future<Boolean>> computedStatsForFeature;
-
-    public static CalculationContext newInstance(ProtocolData protocolData,
-    		PlateDTO plate, List<WellDTO> wells, Long resultSetId, Long measId) {
-    	
-        var res = new CalculationContext(protocolData, plate, wells, resultSetId, measId, null, new ConcurrentHashMap<>());
-        res.errorCollector = new ErrorCollector(res);
-        return res;
+    CalculationProgress calculationProgress;
+    
+    public static CalculationContext newInstance(ProtocolData protocolData, PlateDTO plate, List<WellDTO> wells, Long resultSetId, Long measId) {
+    	CalculationContext ctx = new CalculationContext(protocolData, plate, wells, resultSetId, measId, null, new CalculationProgress(protocolData));
+        ctx.errorCollector = new ErrorCollector(ctx);
+        return ctx;
     }
 
 }
