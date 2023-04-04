@@ -73,10 +73,16 @@ public class CalculationProgress {
 		}
 	}
 	
+	public synchronized float getCompletedFraction() {
+		long calcCount = featureDataUploaded.size() + featureStatsUploaded.values().stream().flatMap(m -> m.values().stream()).count();
+		long completeCount = 
+				featureDataUploaded.values().stream().filter(v -> v).count()
+				+
+				featureStatsUploaded.values().stream().flatMap(m -> m.values().stream()).filter(v -> v).count();
+		return (float) completeCount / calcCount;
+	}
+	
 	public synchronized boolean isComplete() {
-		return (
-				featureDataUploaded.values().stream().allMatch(v -> v)
-				&&
-				featureStatsUploaded.values().stream().flatMap(m -> m.values().stream()).allMatch(v -> v));
+		return getCompletedFraction() == 1.0f;
 	}
 }

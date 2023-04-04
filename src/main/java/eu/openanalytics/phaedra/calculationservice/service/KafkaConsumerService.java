@@ -78,16 +78,19 @@ public class KafkaConsumerService {
     
     @KafkaListener(topics = KafkaConfig.TOPIC_RESULTDATA, groupId = KafkaConfig.GROUP_ID, filter = "resultSetUpdatedFilter")
     public void onResultSetEvent(ResultSetDTO resultSet) {
+    	logger.info(KafkaConfig.GROUP_ID + ": received a resultSet update event");
     	protocolExecutorService.handleResultSetUpdate(resultSet);
     }
  
     @KafkaListener(topics = KafkaConfig.TOPIC_RESULTDATA, groupId = KafkaConfig.GROUP_ID, filter = "resultDataUpdatedFilter")
     public void onResultDataEvent(ResultDataDTO resultData) {
+    	logger.info(KafkaConfig.GROUP_ID + ": received a resultData update event");
     	protocolExecutorService.handleResultSetUpdate(resultData);
     }
     
     @KafkaListener(topics = KafkaConfig.TOPIC_RESULTDATA, groupId = KafkaConfig.GROUP_ID, filter = "resultFeatureStatUpdatedFilter")
     public void onResultFeatureStatEvent(ResultFeatureStatDTO resultFeatureStat) {
+    	logger.info(KafkaConfig.GROUP_ID + ": received a resultFeatureStat update event");
     	protocolExecutorService.handleResultSetUpdate(resultFeatureStat);
     }
 }
