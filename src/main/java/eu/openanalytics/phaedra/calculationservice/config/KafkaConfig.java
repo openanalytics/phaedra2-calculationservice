@@ -70,16 +70,16 @@ public class KafkaConfig {
     
     @Bean
     public RecordFilterStrategy<String, Object> resultSetUpdatedFilter() {
-        return rec -> !(rec.key().equalsIgnoreCase(EVENT_SCRIPT_EXECUTION_UPDATE));
+        return rec -> !(rec.key().equalsIgnoreCase(EVENT_RESULT_SET_UPDATED));
     }
     
     @Bean
     public RecordFilterStrategy<String, Object> resultDataUpdatedFilter() {
-        return rec -> !(rec.key().equalsIgnoreCase(EVENT_SCRIPT_EXECUTION_UPDATE));
+        return rec -> !(rec.key().equalsIgnoreCase(EVENT_RESULT_DATA_UPDATED));
     }
     
     @Bean
     public RecordFilterStrategy<String, Object> resultFeatureStatUpdatedFilter() {
-        return rec -> !(rec.key().equalsIgnoreCase(EVENT_SCRIPT_EXECUTION_UPDATE));
+        return rec -> !(rec.key().equalsIgnoreCase(EVENT_RESULT_FEATURE_STAT_UPDATED));
     }
 }
