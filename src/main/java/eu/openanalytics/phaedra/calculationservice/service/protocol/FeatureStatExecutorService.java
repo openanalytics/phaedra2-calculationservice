@@ -115,7 +115,7 @@ public class FeatureStatExecutorService {
     	Map<String, Object> input = new HashMap<String, Object>();
         input.put("lowWelltype", ctx.getProtocolData().protocol.getLowWelltype());
         input.put("highWelltype", ctx.getProtocolData().protocol.getHighWelltype());
-        input.put("welltypes", ctx.getWells().stream().map(WellDTO::getWellType).distinct().sorted().toList());
+        input.put("welltypes", ctx.getWells().stream().map(WellDTO::getWellType).toList());
         input.put("featureValues", values);
         input.put("isPlateStat", featureStat.getPlateStat());
         input.put("isWelltypeStat", featureStat.getWelltypeStat());
