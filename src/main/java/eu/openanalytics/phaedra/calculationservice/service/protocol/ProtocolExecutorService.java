@@ -138,7 +138,6 @@ public class ProtocolExecutorService {
     	if (ctx == null) return;
     	
     	// Update progress information
-    	log(logger, ctx, "Result data received: %d", resultObject);
     	ctx.getCalculationProgress().updateProgress(resultObject);
     	log(logger, ctx, "Calculation progress: %d", ctx.getCalculationProgress().getCompletedFraction());
     	
