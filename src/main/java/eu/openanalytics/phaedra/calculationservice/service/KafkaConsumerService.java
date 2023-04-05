@@ -76,19 +76,19 @@ public class KafkaConsumerService {
 		scriptExecutionService.handleScriptExecutionUpdate(output);
     }
     
-    @KafkaListener(topics = KafkaConfig.TOPIC_RESULTDATA, groupId = KafkaConfig.GROUP_ID, filter = "resultSetUpdatedFilter")
+    @KafkaListener(topics = KafkaConfig.TOPIC_RESULTDATA, groupId = KafkaConfig.GROUP_ID + "_resSet", filter = "resultSetUpdatedFilter")
     public void onResultSetEvent(ResultSetDTO resultSet) {
     	logger.info(KafkaConfig.GROUP_ID + ": received a resultSet update event");
     	protocolExecutorService.handleResultSetUpdate(resultSet);
     }
  
-    @KafkaListener(topics = KafkaConfig.TOPIC_RESULTDATA, groupId = KafkaConfig.GROUP_ID, filter = "resultDataUpdatedFilter")
+    @KafkaListener(topics = KafkaConfig.TOPIC_RESULTDATA, groupId = KafkaConfig.GROUP_ID + "_resData", filter = "resultDataUpdatedFilter")
     public void onResultDataEvent(ResultDataDTO resultData) {
     	logger.info(KafkaConfig.GROUP_ID + ": received a resultData update event");
     	protocolExecutorService.handleResultSetUpdate(resultData);
     }
     
-    @KafkaListener(topics = KafkaConfig.TOPIC_RESULTDATA, groupId = KafkaConfig.GROUP_ID, filter = "resultFeatureStatUpdatedFilter")
+    @KafkaListener(topics = KafkaConfig.TOPIC_RESULTDATA, groupId = KafkaConfig.GROUP_ID + "_resStats", filter = "resultFeatureStatUpdatedFilter")
     public void onResultFeatureStatEvent(ResultFeatureStatDTO resultFeatureStat) {
     	logger.info(KafkaConfig.GROUP_ID + ": received a resultFeatureStat update event");
     	protocolExecutorService.handleResultSetUpdate(resultFeatureStat);
