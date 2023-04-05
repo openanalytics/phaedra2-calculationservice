@@ -139,7 +139,7 @@ public class ProtocolExecutorService {
     	
     	// Update progress information
     	ctx.getCalculationProgress().updateProgress(resultObject);
-    	log(logger, ctx, "Calculation progress: %d", ctx.getCalculationProgress().getCompletedFraction());
+    	log(logger, ctx, "Calculation progress: %f", ctx.getCalculationProgress().getCompletedFraction());
     	
     	if (ctx.getCalculationProgress().isComplete()) {
     		handleCalculationEnded(ctx);
