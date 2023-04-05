@@ -1,8 +1,13 @@
 package eu.openanalytics.phaedra.calculationservice.util;
 
+import static eu.openanalytics.phaedra.calculationservice.util.LoggerHelper.log;
+
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import eu.openanalytics.phaedra.calculationservice.model.CalculationContext;
 import eu.openanalytics.phaedra.plateservice.dto.WellDTO;
@@ -19,6 +24,8 @@ public class CalculationProgress {
 	private Map<Long, Boolean> featureDataUploaded;
 	private Map<Long, Map<String, Boolean>> featureStatsUploaded;
 
+	private final Logger logger = LoggerFactory.getLogger(getClass());
+	
 	public CalculationProgress(CalculationContext ctx) {
 		this.ctx = ctx;
 		this.featureDataUploaded = new HashMap<>();
@@ -57,6 +64,12 @@ public class CalculationProgress {
 				statsProgress.put(String.valueOf(fs.getFeatureStatId()), true);				
 			} else {
 				statsProgress.put(String.format("%d_%s", fs.getFeatureStatId(), fs.getWelltype()), true);
+			}
+		}
+		
+		for (Long id: featureStatsUploaded.keySet()) {
+			for (String key: featureStatsUploaded.get(id).keySet()) {
+				logger.info(String.format("%d_%s = %s", id, key, String.valueOf(featureStatsUploaded.get(id).get(key))));
 			}
 		}
 	}

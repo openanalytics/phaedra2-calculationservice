@@ -137,9 +137,7 @@ public class ProtocolExecutorService {
     	CalculationContext ctx = activeContexts.get(rsId);
     	if (ctx == null) return;
     	
-    	// Update progress information
     	ctx.getCalculationProgress().updateProgress(resultObject);
-    	log(logger, ctx, "Calculation progress: %f", ctx.getCalculationProgress().getCompletedFraction());
     	
     	if (ctx.getCalculationProgress().isComplete()) {
     		handleCalculationEnded(ctx);
