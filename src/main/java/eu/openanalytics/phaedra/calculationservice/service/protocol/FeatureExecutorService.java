@@ -101,6 +101,7 @@ public class FeatureExecutorService {
     	Formula formula = ctx.getProtocolData().formulas.get(feature.getFormulaId());
     	if (formula.getScope() != CalculationScope.WELL) {
     		ctx.getErrorCollector().addError("Invalid formula scope for feature calculation", feature, formula);
+        	ctx.getCalculationProgress().updateProgressFeature(feature.getId(), true);
     		return null;
     	}
     	
@@ -110,6 +111,7 @@ public class FeatureExecutorService {
     		inputVariables = collectInputVariables(ctx, feature, currentSequence);
     	} catch (CalculationException e) {
     		// Appropriate errors have already been added to the ErrorCollector.
+    		ctx.getCalculationProgress().updateProgressFeature(feature.getId(), true);
     		return null;
     	}
     	
@@ -139,7 +141,6 @@ public class FeatureExecutorService {
 	    			kafkaProducerService.initiateCurveFitting(curveFitRequest);
 	            } else {
 	            	ctx.getErrorCollector().addError(String.format("Script execution failed with status %s", output.getStatusCode()), output, feature, formula);
-	            	// Mark progress on this feature as done: no more stat calculations will be performed on this feature
 	            	ctx.getCalculationProgress().updateProgressFeature(feature.getId(), true);
 	            }
     	});
