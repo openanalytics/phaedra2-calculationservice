@@ -139,7 +139,8 @@ public class FeatureExecutorService {
 	    			kafkaProducerService.initiateCurveFitting(curveFitRequest);
 	            } else {
 	            	ctx.getErrorCollector().addError(String.format("Script execution failed with status %s", output.getStatusCode()), output, feature, formula);
-	            	ctx.getCalculationProgress().updateProgressFeature(feature.getId(), false);
+	            	// Mark progress on this feature as done: no more stat calculations will be performed on this feature
+	            	ctx.getCalculationProgress().updateProgressFeature(feature.getId(), true);
 	            }
     	});
     	return request;
