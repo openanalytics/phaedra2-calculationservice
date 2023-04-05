@@ -1,13 +1,8 @@
 package eu.openanalytics.phaedra.calculationservice.util;
 
-import static eu.openanalytics.phaedra.calculationservice.util.LoggerHelper.log;
-
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 import eu.openanalytics.phaedra.calculationservice.model.CalculationContext;
 import eu.openanalytics.phaedra.plateservice.dto.WellDTO;
@@ -24,8 +19,6 @@ public class CalculationProgress {
 	private Map<Long, Boolean> featureDataUploaded;
 	private Map<Long, Map<String, Boolean>> featureStatsUploaded;
 
-	private final Logger logger = LoggerFactory.getLogger(getClass());
-	
 	public CalculationProgress(CalculationContext ctx) {
 		this.ctx = ctx;
 		this.featureDataUploaded = new HashMap<>();
@@ -34,43 +27,45 @@ public class CalculationProgress {
 		incrementCurrentSequence();
 		
 		for (FeatureDTO f: ctx.getProtocolData().protocol.getFeatures()) {
-			featureDataUploaded.put(f.getId(), false);
-			
-			List<FeatureStatDTO> stats = ctx.getProtocolData().featureStats.get(f.getId());
-			List<String> wellTypes = ctx.getWells().stream().map(WellDTO::getWellType).toList();
-			
-			Map<String, Boolean> statsUploaded = new HashMap<>();
-			for (FeatureStatDTO stat: stats) {
-				if (stat.getPlateStat()) {
-					statsUploaded.put(String.valueOf(stat.getId()), false);
-				} else {
-					for (String wt: wellTypes) {
-						statsUploaded.put(String.format("%d_%s", stat.getId(), wt), false);	
-					}
-				}
-			}
-			featureStatsUploaded.put(f.getId(), statsUploaded);
+			updateProgressFeature(f.getId(), false);
 		}
 	}
 	
-	public synchronized void updateProgress(Object rsObject) {
-		if (rsObject instanceof ResultDataDTO) {
-			long fId = ((ResultDataDTO) rsObject).getFeatureId();
-			featureDataUploaded.put(fId, true);
-		} else if (rsObject instanceof ResultFeatureStatDTO) {
-			ResultFeatureStatDTO fs = (ResultFeatureStatDTO) rsObject;
-			Map<String, Boolean> statsProgress = featureStatsUploaded.get(fs.getFeatureId());
-			if (fs.getWelltype() == null) {
-				statsProgress.put(String.valueOf(fs.getFeatureStatId()), true);				
+	public void updateProgressFeature(long fId, boolean status) {
+		updateProgress(fId, null, null, status);
+		
+		List<FeatureStatDTO> stats = ctx.getProtocolData().featureStats.get(fId);
+		List<String> wellTypes = ctx.getWells().stream().map(WellDTO::getWellType).toList();
+		for (FeatureStatDTO stat: stats) {
+			if (stat.getPlateStat()) {
+				updateProgress(fId, stat.getId(), null, status);
 			} else {
-				statsProgress.put(String.format("%d_%s", fs.getFeatureStatId(), fs.getWelltype()), true);
+				for (String wt: wellTypes) {
+					updateProgress(fId, stat.getId(), wt, status);
+				}
 			}
 		}
-		
-		for (Long id: featureStatsUploaded.keySet()) {
-			for (String key: featureStatsUploaded.get(id).keySet()) {
-				logger.info(String.format("%d_%s = %s", id, key, String.valueOf(featureStatsUploaded.get(id).get(key))));
-			}
+	}
+	
+	public void updateProgress(Object rsObject) {
+		if (rsObject instanceof ResultDataDTO) {
+			ResultDataDTO rs = (ResultDataDTO) rsObject;
+			updateProgress(rs.getFeatureId(), null, null, true);
+		} else if (rsObject instanceof ResultFeatureStatDTO) {
+			ResultFeatureStatDTO fs = (ResultFeatureStatDTO) rsObject;
+			updateProgress(fs.getFeatureId(), fs.getFeatureStatId(), fs.getWelltype(), true);	
+		}
+	}
+	
+	private synchronized void updateProgress(long fId, Long statId, String wellType, boolean status) {
+		if (statId == null) {
+			featureDataUploaded.put(fId, status);
+		} else if (wellType == null) {
+			if (featureStatsUploaded.get(fId) == null) featureStatsUploaded.put(fId, new HashMap<>());
+			featureStatsUploaded.get(fId).put(String.valueOf(statId), status);
+		} else {
+			if (featureStatsUploaded.get(fId) == null) featureStatsUploaded.put(fId, new HashMap<>());
+			featureStatsUploaded.get(fId).put(String.format("%d_%s", statId, wellType), status);
 		}
 	}
 	
