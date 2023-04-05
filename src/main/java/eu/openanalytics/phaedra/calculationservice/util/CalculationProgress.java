@@ -4,35 +4,46 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
-import eu.openanalytics.phaedra.calculationservice.service.protocol.ProtocolDataCollector.ProtocolData;
+import eu.openanalytics.phaedra.calculationservice.model.CalculationContext;
+import eu.openanalytics.phaedra.plateservice.dto.WellDTO;
+import eu.openanalytics.phaedra.protocolservice.dto.FeatureDTO;
 import eu.openanalytics.phaedra.protocolservice.dto.FeatureStatDTO;
 import eu.openanalytics.phaedra.resultdataservice.dto.ResultDataDTO;
 import eu.openanalytics.phaedra.resultdataservice.dto.ResultFeatureStatDTO;
 
 public class CalculationProgress {
 
-	private ProtocolData protocolData;
+	private CalculationContext ctx;
 	private Integer currentSequence;
 	
 	private Map<Long, Boolean> featureDataUploaded;
-	private Map<Long, Map<Long, Boolean>> featureStatsUploaded;
+	private Map<Long, Map<String, Boolean>> featureStatsUploaded;
 
-	public CalculationProgress(ProtocolData protocolData) {
-		this.protocolData = protocolData;
+	public CalculationProgress(CalculationContext ctx) {
+		this.ctx = ctx;
 		this.featureDataUploaded = new HashMap<>();
 		this.featureStatsUploaded = new HashMap<>();
 		
 		incrementCurrentSequence();
 		
-		protocolData.protocol.getFeatures().forEach(f -> {
+		for (FeatureDTO f: ctx.getProtocolData().protocol.getFeatures()) {
 			featureDataUploaded.put(f.getId(), false);
-			Map<Long, Boolean> statsUploaded = new HashMap<>();
-			List<FeatureStatDTO> stats = protocolData.featureStats.get(f.getId());
-			if (stats != null) {
-				stats.forEach(fs -> statsUploaded.put(fs.getId(), false));
+			
+			List<FeatureStatDTO> stats = ctx.getProtocolData().featureStats.get(f.getId());
+			List<String> wellTypes = ctx.getWells().stream().map(WellDTO::getWellType).toList();
+			
+			Map<String, Boolean> statsUploaded = new HashMap<>();
+			for (FeatureStatDTO stat: stats) {
+				if (stat.getPlateStat()) {
+					statsUploaded.put(String.valueOf(stat.getId()), false);
+				} else {
+					for (String wt: wellTypes) {
+						statsUploaded.put(String.format("%d_%s", stat.getId(), wt), false);	
+					}
+				}
 			}
 			featureStatsUploaded.put(f.getId(), statsUploaded);
-		});
+		}
 	}
 	
 	public synchronized void updateProgress(Object rsObject) {
@@ -41,9 +52,12 @@ public class CalculationProgress {
 			featureDataUploaded.put(fId, true);
 		} else if (rsObject instanceof ResultFeatureStatDTO) {
 			ResultFeatureStatDTO fs = (ResultFeatureStatDTO) rsObject;
-			long fId = fs.getFeatureId();
-			Map<Long, Boolean> statsProgress = featureStatsUploaded.get(fId);
-			if (statsProgress != null) statsProgress.put(fs.getId(), true);
+			Map<String, Boolean> statsProgress = featureStatsUploaded.get(fs.getFeatureId());
+			if (fs.getWelltype() == null) {
+				statsProgress.put(String.valueOf(fs.getFeatureStatId()), true);				
+			} else {
+				statsProgress.put(String.format("%d_%s", fs.getFeatureStatId(), fs.getWelltype()), true);
+			}
 		}
 	}
 	
@@ -57,13 +71,13 @@ public class CalculationProgress {
 	
 	public synchronized boolean isCurrentSequenceComplete() {
 		if (currentSequence == null) return false;
-		return protocolData.protocol.getFeatures().stream()
+		return ctx.getProtocolData().protocol.getFeatures().stream()
 			.filter(f -> currentSequence.equals(f.getSequence()))
 			.allMatch(f -> isFeatureComplete(f.getId()));
 	}
 	
 	public synchronized void incrementCurrentSequence() {
-		List<Integer> sequences = protocolData.sequences.keySet().stream().sorted().toList();
+		List<Integer> sequences = ctx.getProtocolData().sequences.keySet().stream().sorted().toList();
 		if (sequences.isEmpty()) return;
 		if (currentSequence == null) {
 			currentSequence = sequences.get(0);

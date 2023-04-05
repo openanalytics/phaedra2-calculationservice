@@ -47,7 +47,8 @@ public class CalculationContext {
     CalculationProgress calculationProgress;
     
     public static CalculationContext newInstance(ProtocolData protocolData, PlateDTO plate, List<WellDTO> wells, Long resultSetId, Long measId) {
-    	CalculationContext ctx = new CalculationContext(protocolData, plate, wells, resultSetId, measId, null, new CalculationProgress(protocolData));
+    	CalculationContext ctx = new CalculationContext(protocolData, plate, wells, resultSetId, measId, null, null);
+    	ctx.calculationProgress = new CalculationProgress(ctx);
         ctx.errorCollector = new ErrorCollector(ctx);
         return ctx;
     }
