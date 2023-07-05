@@ -71,11 +71,15 @@ public class FormulaService {
         if (existingFormula.isEmpty()) {
             throw new FormulaNotFoundException(formulaId);
         }
+        
         LocalDateTime date = LocalDateTime.now(clock);
         Formula previousFormula = existingFormula.get();
+        Long previousFormulaId = previousFormula.getId();
+        
         Formula updatedFormula = modelMapper.map(formulaDTO, previousFormula)
                 .id(null) //To create new formula
                 .versionNumber(VersionUtils.generateNewVersion(formulaDTO.getVersionNumber()))
+                .previousVersionId(previousFormulaId)
                 .updatedBy(authService.getCurrentPrincipalName())
                 .updatedOn(date)
                 .build();

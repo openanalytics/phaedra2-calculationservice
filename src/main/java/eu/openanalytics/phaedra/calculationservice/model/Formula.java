@@ -60,7 +60,7 @@ public class Formula {
     @NotNull
     CalculationScope scope;
 
-    String previousVersion;
+    Long previousVersionId;
 
     @NotNull
     String versionNumber;

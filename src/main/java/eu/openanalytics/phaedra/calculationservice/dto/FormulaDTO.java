@@ -64,7 +64,7 @@ public class FormulaDTO {
     @NotNull(message = "Scope is mandatory", groups = {OnCreate.class})
     CalculationScope scope;
 
-    String previousVersion;
+    Long previousVersionId;
 
     String versionNumber;
 

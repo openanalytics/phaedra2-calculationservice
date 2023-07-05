@@ -71,7 +71,7 @@ public class FormulaIntegrationTest extends AbstractIntegrationTest {
         Assertions.assertEquals(ScriptLanguage.R, res1.getLanguage());
         Assertions.assertEquals(CalculationScope.WELL, res1.getScope());
         Assertions.assertEquals("1.0", res1.getVersionNumber().split("-")[0]);
-        Assertions.assertEquals(null, res1.getPreviousVersion());
+        Assertions.assertEquals(null, res1.getPreviousVersionId());
 
         // 2. get formula
         var res2 = performRequest(get("/formulas/1"), HttpStatus.OK, FormulaDTO.class);
@@ -83,7 +83,7 @@ public class FormulaIntegrationTest extends AbstractIntegrationTest {
         Assertions.assertEquals(ScriptLanguage.R, res2.getLanguage());
         Assertions.assertEquals(CalculationScope.WELL, res2.getScope());
         Assertions.assertEquals("1.0", res2.getVersionNumber().split("-")[0]);
-        Assertions.assertEquals(null, res2.getPreviousVersion());
+        Assertions.assertEquals(null, res2.getPreviousVersionId());
         Assertions.assertEquals("Anonymous", res2.getCreatedBy());
         Assertions.assertEquals("2042-12-31T23:59:59", res2.getCreatedOn().toString());
         Assertions.assertNull(res2.getUpdatedBy());
@@ -153,7 +153,7 @@ public class FormulaIntegrationTest extends AbstractIntegrationTest {
                 .language(ScriptLanguage.JAVASCRIPT)
                 .scope(CalculationScope.PLATE)
                 .versionNumber("2.0")
-                .previousVersion(res1.getVersionNumber())
+                .previousVersionId(res1.getId())
                 .build();
 
         var res2 = performRequest(put("/formulas/1", input2), HttpStatus.OK, FormulaDTO.class);
@@ -164,7 +164,7 @@ public class FormulaIntegrationTest extends AbstractIntegrationTest {
         Assertions.assertEquals(FormulaCategory.HIT_CALLING, res2.getCategory());
         Assertions.assertEquals(ScriptLanguage.JAVASCRIPT, res2.getLanguage());
         Assertions.assertEquals(CalculationScope.PLATE, res2.getScope());
-        Assertions.assertEquals(res1.getVersionNumber(), res2.getPreviousVersion());
+        Assertions.assertEquals(res1.getId(), res2.getPreviousVersionId());
         Assertions.assertEquals("2.0", res2.getVersionNumber().split("-")[0]);
         Assertions.assertEquals("Anonymous", res2.getCreatedBy());
         Assertions.assertEquals("2042-12-31T23:59:59", res2.getCreatedOn().toString());
@@ -180,7 +180,7 @@ public class FormulaIntegrationTest extends AbstractIntegrationTest {
         Assertions.assertEquals(FormulaCategory.HIT_CALLING, res2.getCategory());
         Assertions.assertEquals(ScriptLanguage.JAVASCRIPT, res2.getLanguage());
         Assertions.assertEquals(CalculationScope.PLATE, res2.getScope());
-        Assertions.assertEquals(res1.getVersionNumber(), res3.getPreviousVersion());
+        Assertions.assertEquals(res1.getId(), res2.getPreviousVersionId());
         Assertions.assertEquals("2.0", res3.getVersionNumber().split("-")[0]);
         Assertions.assertEquals("Anonymous", res2.getCreatedBy());
         Assertions.assertEquals("2042-12-31T23:59:59", res2.getCreatedOn().toString());

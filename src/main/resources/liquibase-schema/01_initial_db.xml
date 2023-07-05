@@ -62,5 +62,13 @@
     <changeSet id="4" author="sberberovic">
         <addNotNullConstraint tableName="formula" columnName="version_number"/>
     </changeSet>
+	<changeSet id="5" author="fmichielssen">
+		<addColumn tableName="formula">
+            <column name="previous_version_id" type="bigint"/>
+        </addColumn>
+        <dropColumn tableName="formula">
+            <column name="previous_version"/>
+        </dropColumn>
+    </changeSet>
 
 </databaseChangeLog>
