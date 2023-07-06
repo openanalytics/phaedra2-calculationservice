@@ -67,6 +67,8 @@ public class FormulaDTO {
     Long previousVersionId;
 
     String versionNumber;
+    
+    boolean deprecated;
 
     @Null(groups = {OnCreate.class, OnUpdate.class}, message = "CreatedBy must be null when creating a formula")
     String createdBy;

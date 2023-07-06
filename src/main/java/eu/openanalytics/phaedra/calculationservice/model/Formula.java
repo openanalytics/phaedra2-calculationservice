@@ -39,6 +39,7 @@ import lombok.With;
 @Builder(toBuilder = true)
 @AllArgsConstructor
 public class Formula {
+	
     @Id
     Long id;
 
@@ -64,6 +65,8 @@ public class Formula {
 
     @NotNull
     String versionNumber;
+    
+    boolean deprecated;
 
     @NotNull
     String createdBy;

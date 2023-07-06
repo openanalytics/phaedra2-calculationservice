@@ -58,7 +58,7 @@ public class FormulaService {
     public FormulaDTO createFormula(FormulaDTO formulaDTO) {
         LocalDateTime date = LocalDateTime.now(clock);
         var formula = modelMapper.map(formulaDTO)
-        		.versionNumber(VersionUtils.generateNewVersion(null))
+        		.versionNumber(VersionUtils.generateNewVersion(null, false))
                 .createdBy(authService.getCurrentPrincipalName())
                 .createdOn(date)
                 .build();
@@ -71,6 +71,7 @@ public class FormulaService {
         if (existingFormula.isEmpty()) {
             throw new FormulaNotFoundException(formulaId);
         }
+        authService.performOwnershipCheck(existingFormula.get().getCreatedBy());
         
         LocalDateTime date = LocalDateTime.now(clock);
         Formula previousFormula = existingFormula.get();
@@ -78,7 +79,7 @@ public class FormulaService {
         
         Formula updatedFormula = modelMapper.map(formulaDTO, previousFormula)
                 .id(null) //To create new formula
-                .versionNumber(VersionUtils.generateNewVersion(formulaDTO.getVersionNumber()))
+                .versionNumber(VersionUtils.generateNewVersion(formulaDTO.getVersionNumber(), false))
                 .previousVersionId(previousFormulaId)
                 .updatedBy(authService.getCurrentPrincipalName())
                 .updatedOn(date)
@@ -91,7 +92,8 @@ public class FormulaService {
         if (formula.isEmpty()) {
             throw new FormulaNotFoundException(formulaId);
         }
-        formulaRepository.deleteById(formulaId);
+        authService.performOwnershipCheck(formula.get().getCreatedBy());
+       	formulaRepository.deleteById(formulaId);
     }
 
     public FormulaDTO getFormulaById(long formulaId) throws FormulaNotFoundException {

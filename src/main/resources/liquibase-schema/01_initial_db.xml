@@ -70,5 +70,10 @@
             <column name="previous_version"/>
         </dropColumn>
     </changeSet>
+    <changeSet id="6" author="fmichielssen">
+		<addColumn tableName="formula">
+            <column name="deprecated" type="boolean" defaultValue="false" />
+        </addColumn>
+    </changeSet>
 
 </databaseChangeLog>
