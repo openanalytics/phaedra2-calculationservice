@@ -38,7 +38,7 @@ import eu.openanalytics.phaedra.calculationservice.service.KafkaProducerService;
 import eu.openanalytics.phaedra.plateservice.client.PlateServiceClient;
 import eu.openanalytics.phaedra.plateservice.client.exception.PlateUnresolvableException;
 import eu.openanalytics.phaedra.plateservice.dto.PlateCalculationStatusDTO;
-import eu.openanalytics.phaedra.plateservice.enumartion.CalculationStatus;
+import eu.openanalytics.phaedra.plateservice.enumeration.CalculationStatus;
 import eu.openanalytics.phaedra.protocolservice.client.exception.ProtocolUnresolvableException;
 import eu.openanalytics.phaedra.resultdataservice.client.ResultDataServiceClient;
 import eu.openanalytics.phaedra.resultdataservice.client.exception.ResultSetUnresolvableException;

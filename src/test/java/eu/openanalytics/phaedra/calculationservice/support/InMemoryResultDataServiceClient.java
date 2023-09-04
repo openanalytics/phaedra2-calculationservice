@@ -115,11 +115,6 @@ public class InMemoryResultDataServiceClient implements ResultDataServiceClient 
     }
 
     @Override
-    public ResultSetDTO getLatestResultSet(long plateId, long measId) throws ResultSetUnresolvableException {
-        return null;
-    }
-
-    @Override
     public List<ResultSetDTO> getResultSet(StatusCode outcome) throws ResultSetUnresolvableException {
         return null;
     }
@@ -133,5 +128,20 @@ public class InMemoryResultDataServiceClient implements ResultDataServiceClient 
     public List<ResultFeatureStatDTO> getResultFeatureStat(long resultSetId) {
         return null;
     }
+
+	@Override
+	public ResultSetDTO getLatestResultSetByPlateId(long plateId) throws ResultSetUnresolvableException {
+		return null;
+	}
+
+	@Override
+	public ResultSetDTO getLatestResultSetByPlateIdAndMeasId(long plateId, long measId) throws ResultSetUnresolvableException {
+		return null;
+	}
+
+	@Override
+	public ResultSetDTO getLatestResultSetByPlateIdAndProtocolId(long plateId, long protocolId) throws ResultSetUnresolvableException {
+		return null;
+	}
 
 }
