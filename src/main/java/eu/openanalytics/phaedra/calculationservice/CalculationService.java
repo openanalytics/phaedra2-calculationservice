@@ -27,8 +27,6 @@ import javax.sql.DataSource;
 import org.apache.commons.lang3.StringUtils;
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
-import org.springframework.cloud.client.discovery.EnableDiscoveryClient;
-import org.springframework.cloud.client.loadbalancer.LoadBalanced;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Import;
 import org.springframework.core.env.Environment;
@@ -57,7 +55,6 @@ import io.swagger.v3.oas.models.servers.Server;
 import liquibase.integration.spring.SpringLiquibase;
 
 @SpringBootApplication
-@EnableDiscoveryClient
 @EnableScheduling
 @EnableWebSecurity
 @EnableKafka
@@ -107,7 +104,6 @@ public class CalculationService {
     }
 
     @Bean
-    @LoadBalanced
     public PhaedraRestTemplate restTemplate() {
         PhaedraRestTemplate restTemplate = new PhaedraRestTemplate();
         return restTemplate;
