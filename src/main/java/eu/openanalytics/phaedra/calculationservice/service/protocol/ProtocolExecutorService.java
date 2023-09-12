@@ -33,6 +33,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
 
+import eu.openanalytics.phaedra.calculationservice.dto.event.CalculationEvent;
 import eu.openanalytics.phaedra.calculationservice.model.CalculationContext;
 import eu.openanalytics.phaedra.calculationservice.service.KafkaProducerService;
 import eu.openanalytics.phaedra.plateservice.client.PlateServiceClient;
@@ -107,7 +108,7 @@ public class ProtocolExecutorService {
         
         CalculationContext ctx = CalculationContext.newInstance(protocolData, plate, wells, resultSet.getId(), measId);
         log(logger, ctx, "Executing protocol %d", protocolId);
-        emitPlateCalcStatus(plateId, CalculationStatus.CALCULATION_IN_PROGRESS);
+        emitCalculationEvent(ctx, CalculationStatus.CALCULATION_IN_PROGRESS);
         activeContexts.put(resultSet.getId(), ctx);
 
         // Start the first sequence
@@ -158,7 +159,7 @@ public class ProtocolExecutorService {
     	ResultSetDTO rs = null;
         if (ctx.getErrorCollector().hasError()) {
         	logger.warn("Calculation failed with errors:\n" + ctx.getErrorCollector().getErrorDescription());
-            emitPlateCalcStatus(ctx.getPlate().getId(), CalculationStatus.CALCULATION_ERROR);
+        	emitCalculationEvent(ctx, CalculationStatus.CALCULATION_ERROR);
 			try {
 				rs = resultDataServiceClient.completeResultDataSet(ctx.getResultSetId(), StatusCode.FAILURE, ctx.getErrorCollector().getErrors(), ctx.getErrorCollector().getErrorDescription());
 			} catch (ResultSetUnresolvableException e) {
@@ -166,7 +167,7 @@ public class ProtocolExecutorService {
 			}
         } else {
         	log(logger, ctx, "Calculation finished: SUCCESS");
-        	emitPlateCalcStatus(ctx.getPlate().getId(), CalculationStatus.CALCULATION_OK);
+        	emitCalculationEvent(ctx, CalculationStatus.CALCULATION_OK);
 			try {
 				rs = resultDataServiceClient.completeResultDataSet(ctx.getResultSetId(), StatusCode.SUCCESS, new ArrayList<>(), "");
 			} catch (ResultSetUnresolvableException e) {
@@ -176,9 +177,20 @@ public class ProtocolExecutorService {
         return rs;
     }
     
-    private void emitPlateCalcStatus(Long plateId, CalculationStatus calculationStatus) {
-        PlateCalculationStatusDTO plateCalcStatus = PlateCalculationStatusDTO.builder().plateId(plateId).calculationStatus(calculationStatus).build();
-        kafkaProducerService.sendPlateCalculationStatus(plateCalcStatus);
-    }
 
+    private void emitCalculationEvent(CalculationContext ctx, CalculationStatus calculationStatus) {
+    	CalculationEvent event = CalculationEvent.builder()
+    			.plateId(ctx.getPlate().getId())
+    			.measurementId(ctx.getMeasId())
+    			.protocolId(ctx.getProtocolData().protocol.getId())
+    			.calculationStatus(calculationStatus)
+    			.build();
+    	kafkaProducerService.notifyCalculationEvent(event);
+    	
+    	//TODO: deprecate, have plate-service consume CalculationEvents instead
+    	PlateCalculationStatusDTO plateCalcStatus = PlateCalculationStatusDTO.builder()
+    			.plateId(ctx.getPlate().getId())
+    			.calculationStatus(calculationStatus).build();
+    	kafkaProducerService.sendPlateCalculationStatus(plateCalcStatus);
+    }
 }

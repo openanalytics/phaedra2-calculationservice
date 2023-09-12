@@ -44,6 +44,8 @@ public class KafkaConfig {
     public static final String EVENT_UPDATE_PLATE_STATUS = "requestPlateCalculationStatusUpdate";
     public static final String EVENT_SAVE_CURVE = "saveCurve";
     
+    public static final String EVENT_NOTIFY_CALCULATION_EVENT = "notifyCalculationEvent";
+    
     public static final String EVENT_SAVE_RESULT_DATA = "saveResultData";
     public static final String EVENT_SAVE_RESULT_STATS = "saveResultStats";
     public static final String EVENT_RESULT_SET_UPDATED = "resultSetUpdated";

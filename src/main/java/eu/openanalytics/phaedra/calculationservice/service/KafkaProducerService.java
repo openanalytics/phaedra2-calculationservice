@@ -28,6 +28,7 @@ import org.springframework.stereotype.Service;
 import eu.openanalytics.curvedataservice.dto.CurveDTO;
 import eu.openanalytics.phaedra.calculationservice.config.KafkaConfig;
 import eu.openanalytics.phaedra.calculationservice.dto.CurveFittingRequestDTO;
+import eu.openanalytics.phaedra.calculationservice.dto.event.CalculationEvent;
 import eu.openanalytics.phaedra.plateservice.dto.PlateCalculationStatusDTO;
 import eu.openanalytics.phaedra.resultdataservice.dto.ResultDataDTO;
 import eu.openanalytics.phaedra.resultdataservice.dto.ResultFeatureStatDTO;
@@ -42,6 +43,10 @@ public class KafkaProducerService {
         this.kafkaTemplate = kafkaTemplate;
     }
 
+    public void notifyCalculationEvent(CalculationEvent event) {
+        kafkaTemplate.send(KafkaConfig.TOPIC_CALCULATIONS, KafkaConfig.EVENT_NOTIFY_CALCULATION_EVENT, event);
+    }
+    
     public void sendPlateCalculationStatus(PlateCalculationStatusDTO plateCalculationStatusDTO) {
         kafkaTemplate.send(KafkaConfig.TOPIC_PLATES, KafkaConfig.EVENT_UPDATE_PLATE_STATUS, plateCalculationStatusDTO);
     }
