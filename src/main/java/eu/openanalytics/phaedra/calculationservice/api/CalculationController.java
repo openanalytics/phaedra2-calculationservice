@@ -22,6 +22,8 @@ package eu.openanalytics.phaedra.calculationservice.api;
 
 import java.util.concurrent.ExecutionException;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -48,13 +50,22 @@ public class CalculationController {
     private final ProtocolExecutorService protocolExecutorService;
     private final CalculationStatusService calculationStatusService;
 
+    private final Logger logger = LoggerFactory.getLogger(getClass());
+    
     @PostMapping("/calculation")
     public ResponseEntity<Long> calculate(@RequestBody CalculationRequestDTO calculationRequestDTO) throws ExecutionException, InterruptedException {
-        var execution = protocolExecutorService.execute(
-                calculationRequestDTO.getProtocolId(),
-                calculationRequestDTO.getPlateId(),
-                calculationRequestDTO.getMeasId());
-        return new ResponseEntity<>(execution.get(), HttpStatus.CREATED);
+        Long rsId = null;
+        try {
+        	var execution = protocolExecutorService.execute(
+        			calculationRequestDTO.getProtocolId(),
+        			calculationRequestDTO.getPlateId(),
+        			calculationRequestDTO.getMeasId());
+        	rsId = execution.get();
+        } catch (Exception e) {
+        	logger.error("Calculation request failed", e);
+        	return ResponseEntity.internalServerError().build();
+        }
+        return new ResponseEntity<>(rsId, HttpStatus.CREATED);
     }
 
     @GetMapping("/status")
