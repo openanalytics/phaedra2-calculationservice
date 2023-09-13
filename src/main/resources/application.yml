@@ -3,12 +3,8 @@ keycloak-base-url: http://keycloak:8080
 server:
   servlet:
     context-path: /phaedra/calculation-service
-  port: 6010
 
 spring:
-  cloud:
-    kubernetes:
-      enabled: false
   application:
     name: phaedra-calculation-service
   security:
