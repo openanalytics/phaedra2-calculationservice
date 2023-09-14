@@ -53,7 +53,7 @@ public class KafkaConsumerService {
     
     private final Logger logger = LoggerFactory.getLogger(getClass());
 
-    @KafkaListener(topics = KafkaConfig.TOPIC_CALCULATIONS, groupId = KafkaConfig.GROUP_ID, filter = "requestPlateCalculationFilter")
+    @KafkaListener(topics = KafkaConfig.TOPIC_CALCULATIONS, groupId = KafkaConfig.GROUP_ID + "_reqPlateCalc", filter = "requestPlateCalculationFilter")
     public void onRequestPlateCalculation(CalculationRequestDTO calculationRequestDTO, @Header(KafkaHeaders.RECEIVED_KEY) String msgKey) throws ExecutionException, InterruptedException {
         logger.info(KafkaConfig.GROUP_ID + ": received a plate calculation event");
         protocolExecutorService.execute(
@@ -62,7 +62,7 @@ public class KafkaConsumerService {
                 calculationRequestDTO.getMeasId());
     }
 
-    @KafkaListener(topics = KafkaConfig.TOPIC_CALCULATIONS, groupId = KafkaConfig.GROUP_ID, filter = "requestCurveFitFilter")
+    @KafkaListener(topics = KafkaConfig.TOPIC_CALCULATIONS, groupId = KafkaConfig.GROUP_ID + "_reqCurveFit", filter = "requestCurveFitFilter")
     public void onCurveFitEvent(CurveFittingRequestDTO curveFittingRequestDTO) throws ExecutionException, InterruptedException {
         logger.info(KafkaConfig.GROUP_ID + ": received a curve fit event");
         curveFittingExecutorService.execute(

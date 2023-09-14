@@ -24,6 +24,7 @@ import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.kafka.annotation.EnableKafka;
 import org.springframework.kafka.listener.adapter.RecordFilterStrategy;
+import org.springframework.kafka.support.converter.BytesJsonMessageConverter;
 
 @Configuration
 @EnableKafka
@@ -83,5 +84,10 @@ public class KafkaConfig {
     @Bean
     public RecordFilterStrategy<String, Object> resultFeatureStatUpdatedFilter() {
         return rec -> !(rec.key().equalsIgnoreCase(EVENT_RESULT_FEATURE_STAT_UPDATED));
+    }
+    
+    @Bean
+    public BytesJsonMessageConverter messageConverter() {
+    	return new BytesJsonMessageConverter();
     }
 }
