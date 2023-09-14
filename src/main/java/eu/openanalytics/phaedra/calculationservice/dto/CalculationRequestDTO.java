@@ -20,13 +20,17 @@
  */
 package eu.openanalytics.phaedra.calculationservice.dto;
 
-import lombok.*;
-@Builder
-@Value
+import lombok.AllArgsConstructor;
+import lombok.Data;
+import lombok.NoArgsConstructor;
+
+@Data
 @AllArgsConstructor
-@NoArgsConstructor(force = true, access = AccessLevel.PRIVATE) // Jackson deserialize compatibility
+@NoArgsConstructor
 public class CalculationRequestDTO {
-    long protocolId;
-    long plateId;
-    long measId;
+	
+    private Long protocolId;
+    private Long plateId;
+    private Long measId;
+
 }
