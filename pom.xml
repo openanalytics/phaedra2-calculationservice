@@ -13,6 +13,10 @@
     <artifactId>phaedra2-calculationservice</artifactId>
     <name>phaedra2-calculationservice</name>
 
+	<properties>
+		<docker.filter>${docker.imageName}</docker.filter> <!-- Only build app docker image, no liquibase image -->
+	</properties>
+	
     <dependencies>
         <!-- Apache kafka dependencies-->
         <dependency>
