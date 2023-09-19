@@ -195,28 +195,23 @@
                     <aggregate>true</aggregate>
                     <strictCheck>true</strictCheck>
                     <excludes>
-                        <exclude>*.log</exclude>
-                        <exclude>mvnw.cmd</exclude>
-                        <exclude>mvnw</exclude>
+                        <exclude>**/*.log</exclude>
                         <exclude>**/*.properties</exclude>
                         <exclude>**/*.yml</exclude>
                         <exclude>**/*.yaml</exclude>
                         <exclude>**/*.config</exclude>
                         <exclude>**/*.xml</exclude>
+                        <exclude>**/*.json</exclude>
+                        <exclude>**/*.sql</exclude>
+                        <exclude>**/*.sh</exclude>
                         <exclude>LICENSE</exclude>
                         <exclude>LICENSE_HEADER</exclude>
-                        <exclude>Dockerfile</exclude>
                         <exclude>README.md</exclude>
-                        <exclude>**/*.json</exclude>
                         <exclude>.gitignore</exclude>
-                        <exclude>src/deb/**</exclude>
-                        <exclude>templates/**</exclude>
-                        <exclude>src/main/resources/static/handlebars/node_modules/**</exclude>
-                        <exclude>**/*.sql</exclude>
+                        <exclude>Dockerfile</exclude>
                         <exclude>Dockerfile.app</exclude>
                         <exclude>Dockerfile.db</exclude>
                         <exclude>Jenkinsfile</exclude>
-                        <exclude>**/*.sh</exclude>
                     </excludes>
                 </configuration>
                 <executions>
@@ -227,13 +222,13 @@
                             <goal>format</goal>
                         </goals>
                     </execution>
-                    <!--                    <execution>-->
-                    <!--                        <id>check-copyright-headers</id>-->
-                    <!--                        <phase>package</phase>-->
-                    <!--                        <goals>-->
-                    <!--                            <goal>check</goal>-->
-                    <!--                        </goals>-->
-                    <!--                    </execution>-->
+                    <execution>
+                    	<id>check-copyright-headers</id>
+                    	<phase>package</phase>
+                    	<goals>
+                    		<goal>check</goal>
+                    	</goals>
+                    </execution>
                 </executions>
             </plugin>
         </plugins>
