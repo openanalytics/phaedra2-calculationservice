@@ -41,10 +41,10 @@ public class CurveFittingController {
     public CurveFittingController(CurveFittingExecutorService curveFittingExecutorService) {
         this.curveFittingExecutorService = curveFittingExecutorService;
     }
-    
+
     @PostMapping("/curvefit")
     public ResponseEntity<List<CurveDTO>> fitCurve(@RequestBody CurveFittingRequestDTO curveFittingRequestDTO) throws ExecutionException, InterruptedException {
-        var execution = curveFittingExecutorService.execute(curveFittingRequestDTO.getPlateId(), curveFittingRequestDTO.getFeatureResultData());
+        var execution = curveFittingExecutorService.execute(curveFittingRequestDTO);
         return new ResponseEntity<>(execution.curves().get(), HttpStatus.CREATED);
     }
 }

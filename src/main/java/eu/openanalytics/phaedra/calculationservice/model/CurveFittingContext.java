@@ -39,38 +39,16 @@ import lombok.Setter;
 public class CurveFittingContext {
     @NonNull
     PlateDTO plate;
-
     @NonNull
     List<WellDTO> wells;
-
     @NonNull
     List<WellSubstanceDTO> wellSubstances;
-
     @NonNull
     List<String> uniqueSubstances;
-
-//    @NonNull
-//    List<FeatureDTO> curveFeatures;
     @NonNull
     FeatureDTO feature;
     @NonNull
     DRCModelDTO drcModel;
-
-//    @NonNull
-//    Long resultSetId;
-//
-//    @NonNull
-//    Long protocolId;
-
-//    public static CurveFittingContext newInstance(PlateDTO plate,
-//                                                  List<WellDTO> wells,
-//                                                  List<WellSubstanceDTO> wellSubstances,
-//                                                  List<String> uniqueSubstances,
-//                                                  List<FeatureDTO> curveFeatures,
-//                                                  Long resultSetId, Long protocolId) {
-//        CurveFittingContext curveFittingContext = new CurveFittingContext(plate, wells, wellSubstances, uniqueSubstances, curveFeatures, resultSetId, protocolId);
-//        return curveFittingContext;
-//    }
 
     public static CurveFittingContext newInstance(PlateDTO plate,
                                                   List<WellDTO> wells,

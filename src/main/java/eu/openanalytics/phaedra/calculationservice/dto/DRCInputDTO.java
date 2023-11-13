@@ -21,6 +21,7 @@
 package eu.openanalytics.phaedra.calculationservice.dto;
 
 import eu.openanalytics.phaedra.protocolservice.dto.DRCModelDTO;
+import eu.openanalytics.phaedra.protocolservice.dto.FeatureDTO;
 import lombok.*;
 
 import java.util.Optional;
@@ -32,12 +33,12 @@ import java.util.Optional;
 public class DRCInputDTO {
     String substance;
     long plateId;
-    long featureId;
     long protocolId;
     long resultSetId;
     long[] wells;
     float[] values;
     float[] concs;
     float[] accepts;
+    FeatureDTO feature;
     Optional<DRCModelDTO> drcModel;
 }
