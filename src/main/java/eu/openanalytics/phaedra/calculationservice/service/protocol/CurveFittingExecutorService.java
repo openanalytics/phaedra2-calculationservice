@@ -122,7 +122,7 @@ public class CurveFittingExecutorService {
             return null;
         }
 
-        var wellSubstances = wells.stream().map(wellDTO -> wellDTO.getWellSubstance()).toList();
+        var wellSubstances = wells.stream().filter(wellDTO -> wellDTO.getWellSubstance() != null).map(wellDTO -> wellDTO.getWellSubstance()).toList();
         var wellSubstancesNames = wellSubstances.stream().map(ws -> ws.getName()).collect(Collectors.toList());
         logger.info("All wellSubstances found: " + wellSubstancesNames);
         var wellSubstancesUnique = wellSubstances
