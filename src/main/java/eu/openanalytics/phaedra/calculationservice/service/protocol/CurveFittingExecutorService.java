@@ -297,10 +297,10 @@ public class CurveFittingExecutorService {
                 "dose <- input$doses\n" +
                 "response <- input$responses\n" +
                 "accept <- input$accepts\n" +
-                "if (input$fixedBottom == 'NA') fixedBottom <- NA else fixedBottom <- as.numeric(input$fixedBottom)\n" +
-                "if (input$fixedTop == 'NA') fixedTop <- NA else fixedTop <- as.numeric(input$fixedTop)\n" +
-                "if (input$fixedSlope == 'NA') fixedSlope <- NA else fixedSlope <- as.numeric(input$fixedSlope)\n" +
-                "confLevel <- as.numeric(input$confLevel)\n" +
+                "if (is.null(input$fixedBottom) == TRUE) fixedBottom <- NA else fixedBottom <- as.numeric(input$fixedBottom)\n" +
+                "if (is.null(input$fixedTop) == TRUE) fixedTop <- NA else fixedTop <- as.numeric(input$fixedTop)\n" +
+                "if (is.null(input$fixedSlope) == TRUE) fixedSlope <- NA else fixedSlope <- as.numeric(input$fixedSlope)\n" +
+                "if (is.null(input$confLevel) == TRUE) confLevel <- 0.95 else confLevel <- as.numeric(input$confLevel)\n" +
                 "robustMethod <- input$robustMethod\n" +
                 "responseName <- input$responseName\n" +
                 "slopeType <- input$slopeType\n" +
