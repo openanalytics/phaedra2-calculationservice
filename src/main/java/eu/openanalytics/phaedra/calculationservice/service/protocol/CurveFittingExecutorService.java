@@ -53,6 +53,7 @@ import java.util.*;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
+import java.util.stream.Collectors;
 
 import static java.lang.Float.NaN;
 import static java.lang.Float.parseFloat;
@@ -122,6 +123,8 @@ public class CurveFittingExecutorService {
         }
 
         var wellSubstances = wells.stream().map(wellDTO -> wellDTO.getWellSubstance()).toList();
+        var wellSubstancesNames = wellSubstances.stream().map(ws -> ws.getName()).collect(Collectors.toList());
+        logger.info("All wellSubstances found: " + wellSubstancesNames);
         var wellSubstancesUnique = wellSubstances
                 .stream()
                 .map(WellSubstanceDTO::getName)
