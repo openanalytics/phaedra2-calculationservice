@@ -279,13 +279,13 @@ public class CurveFittingExecutorService {
         if (inputDTO.getDrcModel().isPresent()) {
             DRCModelDTO drcModel = inputDTO.getDrcModel().get();
             logger.info("Input DRCModel: " + drcModel);
-            inputVariables.put("fixedBottom", drcModel.getInputParameters().containsKey("fixedBottom") ? drcModel.getInputParameters().get("fixedBottom") : "NA");
-            inputVariables.put("fixedTop", drcModel.getInputParameters().containsKey("fixedTop") ? drcModel.getInputParameters().get("fixedTop") : "NA");
-            inputVariables.put("fixedSlope", drcModel.getInputParameters().containsKey("fixedSlope") ? drcModel.getInputParameters().get("fixedSlope") : "NA");
-            inputVariables.put("confLevel", drcModel.getInputParameters().containsKey("confLevel") ? drcModel.getInputParameters().get("confLevel") : "0.95");
-            inputVariables.put("robustMethod", drcModel.getInputParameters().containsKey("robustMethod") ? drcModel.getInputParameters().get("robustMethod") : "mean");
+            inputVariables.put("fixedBottom", drcModel.getInputParameters().get("fixedBottom") != null ? drcModel.getInputParameters().get("fixedBottom") : "NA");
+            inputVariables.put("fixedTop", drcModel.getInputParameters().get("fixedTop") != null ? drcModel.getInputParameters().get("fixedTop") : "NA");
+            inputVariables.put("fixedSlope", drcModel.getInputParameters().get("fixedSlope") != null ? drcModel.getInputParameters().get("fixedSlope") : "NA");
+            inputVariables.put("confLevel", drcModel.getInputParameters().get("confLevel") != null ? drcModel.getInputParameters().get("confLevel") : "0.95");
+            inputVariables.put("robustMethod", drcModel.getInputParameters().get("robustMethod") != null ? drcModel.getInputParameters().get("robustMethod") : "mean");
             inputVariables.put("responseName", inputDTO.getFeature().getName());
-            inputVariables.put("slopeType", drcModel.getInputParameters().containsKey("slopeType") ? drcModel.getInputParameters().get("slopeType") : "ascending");
+            inputVariables.put("slopeType", drcModel.getInputParameters().get("slopeType") != null ? drcModel.getInputParameters().get("slopeType") : "ascending");
         } else {
             throw new NoDRCModelDefinedForFeature("No DRCModel defined for feature %s (%d)", inputDTO.getFeature().getName(), inputDTO.getFeature().getId());
         }
@@ -316,21 +316,21 @@ public class CurveFittingExecutorService {
                 "\tresponseName = responseName,\n" +
                 "\tslope = slopeType)\n" +
                 "\n" +
-                "output <- value\n";
-//                "output$pIC50toReport <- value$pIC50toReport\n" +
-//                "output$validpIC50 <- value$validpIC50\n" +
-//                "output$rangeResults$eMin <- value$rangeResults[c(\"eMin\"),]\n" +
-//                "output$rangeResults$eMax <- value$rangeResults[c(\"eMax\"),]\n" +
-//                "output$validpIC20 <- value$validpIC20[c(\"e:1:20\"),]\n" +
-//                "output$validpIC80 <- value$validpIC80[c(\"e:1:80\"),]\n" +
-//                "output$dataPredict2Plot <- value$dataPredict2Plot \n" +
-//                "output$weights <- value$weights\n" +
-//                "output$modelCoefs$Slope <- value$modelCoefs[c(\"Slope\"),]\n" +
-//                "output$modelCoefs$Bottom <- value$modelCoefs[c(\"Bottom\"),]\n" +
-//                "output$modelCoefs$Top <- value$modelCoefs[c(\"Top\"),]\n" +
-//                "output$modelCoefs$negLog10ED50 <- value$modelCoefs[c(\"-log10ED50\"),]\n" +
-//                "output$residulaVariance <- value$residulaVariance\n" +
-//                "output$warningFit <- value$warningFit\n";
+                "output <- NULL\n" +
+                "output$pIC50toReport <- value$pIC50toReport\n" +
+                "output$validpIC50 <- value$validpIC50\n" +
+                "output$rangeResults$eMin <- value$rangeResults[c(\"eMin\"),]\n" +
+                "output$rangeResults$eMax <- value$rangeResults[c(\"eMax\"),]\n" +
+                "output$validpIC20 <- value$validpIC20[c(\"e:1:20\"),]\n" +
+                "output$validpIC80 <- value$validpIC80[c(\"e:1:80\"),]\n" +
+                "output$dataPredict2Plot <- value$dataPredict2Plot \n" +
+                "output$weights <- value$weights\n" +
+                "output$modelCoefs$Slope <- value$modelCoefs[c(\"Slope\"),]\n" +
+                "output$modelCoefs$Bottom <- value$modelCoefs[c(\"Bottom\"),]\n" +
+                "output$modelCoefs$Top <- value$modelCoefs[c(\"Top\"),]\n" +
+                "output$modelCoefs$negLog10ED50 <- value$modelCoefs[c(\"-log10ED50\"),]\n" +
+                "output$residulaVariance <- value$residulaVariance\n" +
+                "output$warningFit <- value$warningFit\n";
                 // TODO: Later include pIC50Location value(s)
                 // "output$pIC50Location <- value$pIC50Location[1]\n" +
                 // "output$pIC50LocationPrediction <- value$pIC50Location[2]\n" +
