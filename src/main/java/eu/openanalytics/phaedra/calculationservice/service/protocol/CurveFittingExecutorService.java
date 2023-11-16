@@ -279,10 +279,10 @@ public class CurveFittingExecutorService {
         if (inputDTO.getDrcModel().isPresent()) {
             DRCModelDTO drcModel = inputDTO.getDrcModel().get();
             logger.info("Input DRCModel: " + drcModel);
-            inputVariables.put("fixedBottom", drcModel.getInputParameters().get("fixedBottom") != null ? drcModel.getInputParameters().get("fixedBottom") : "NA");
-            inputVariables.put("fixedTop", drcModel.getInputParameters().get("fixedTop") != null ? drcModel.getInputParameters().get("fixedTop") : "NA");
-            inputVariables.put("fixedSlope", drcModel.getInputParameters().get("fixedSlope") != null ? drcModel.getInputParameters().get("fixedSlope") : "NA");
-            inputVariables.put("confLevel", drcModel.getInputParameters().get("confLevel") != null ? drcModel.getInputParameters().get("confLevel") : "0.95");
+            inputVariables.put("fixedBottom", drcModel.getInputParameters().get("fixedBottom"));
+            inputVariables.put("fixedTop", drcModel.getInputParameters().get("fixedTop"));
+            inputVariables.put("fixedSlope", drcModel.getInputParameters().get("fixedSlope"));
+            inputVariables.put("confLevel", drcModel.getInputParameters().get("confLevel"));
             inputVariables.put("robustMethod", drcModel.getInputParameters().get("robustMethod") != null ? drcModel.getInputParameters().get("robustMethod") : "mean");
             inputVariables.put("responseName", inputDTO.getFeature().getName());
             inputVariables.put("slopeType", drcModel.getInputParameters().get("slopeType") != null ? drcModel.getInputParameters().get("slopeType") : "ascending");
@@ -296,18 +296,18 @@ public class CurveFittingExecutorService {
                 "\n" +
                 "dose <- input$doses\n" +
                 "response <- input$responses\n" +
-                "accepts <- input$accepts\n" +
-                "fixedBottom <- input$fixedBottom\n" +
-                "fixedTop <- input$fixedTop\n" +
-                "fixedSlope <- input$fixedSlope\n" +
-                "confLevel <- input$confLevel\n" +
+                "accept <- input$accepts\n" +
+                "if (input$fixedBottom == 'NA') fixedBottom <- NA else fixedBottom <- as.numeric(input$fixedBottom)\n" +
+                "if (input$fixedTop == 'NA') fixedTop <- NA else fixedTop <- as.numeric(input$fixedTop)\n" +
+                "if (input$fixedSlope == 'NA') fixedSlope <- NA else fixedSlope <- as.numeric(input$fixedSlope)\n" +
+                "confLevel <- as.numeric(input$confLevel)\n" +
                 "robustMethod <- input$robustMethod\n" +
                 "responseName <- input$responseName\n" +
                 "slopeType <- input$slopeType\n" +
                 "\n" +
                 "value <- fittingLogisticModel(\n" +
                 "\tinputData = data.frame(dose, response),\n" +
-                "\taccept = accepts,\n" +
+                "\taccept = accept,\n" +
                 "\tfixedBottom = fixedBottom,\n" +
                 "\tfixedTop = fixedTop,\n" +
                 "\tfixedSlope = fixedSlope,\n" +
