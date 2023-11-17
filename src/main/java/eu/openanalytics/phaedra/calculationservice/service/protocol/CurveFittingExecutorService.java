@@ -123,15 +123,6 @@ public class CurveFittingExecutorService {
             return null;
         }
 
-//        var wellSubstances = wells.stream()
-//                .filter(wellDTO -> (wellDTO.getWellSubstance() != null && wellDTO.getWellSubstance().getType() == "COMPOUND")).toList()
-//                .stream()
-//                .map(wellDTO -> wellDTO.getWellSubstance()).toList();
-//        var wellSubstancesNames = wellSubstances.stream().map(ws -> ws.getName()).toList();
-//        logger.info("All wellSubstances found: " + wellSubstancesNames);
-//        var wellSubstancesUnique = wellSubstancesNames.stream().distinct().toList();
-//        logger.info("Number of unique substances for plate " + plate + " is " + wellSubstancesUnique.size());
-
         var wellSubstances = substances.stream().filter(s -> "COMPOUND".equalsIgnoreCase(s.getType())).toList();
         logger.info("Nr of 'COMPOUND' substances found for plate " + plate.getId() + ": " + wellSubstances.size());
         var wellSubstancesUnique = wellSubstances.stream().map(s -> s.getName()).toList().stream().distinct().toList();
@@ -237,22 +228,6 @@ public class CurveFittingExecutorService {
                 .curveProperties(curvePropertieDTOs)
                 .build();
         kafkaProducerService.sendCurveData(curveDTO);
-
-//                .pIC50(drcOutput.pIC50toReport)
-//                .pIC50StdErr(drcOutput.validpIC50.stdError)
-//                .eMax(isCreatable(drcOutput.rangeResults.eMax.response) ? parseFloat(drcOutput.rangeResults.eMax.response) : NaN)
-//                .eMin(isCreatable(drcOutput.rangeResults.eMin.response) ? parseFloat(drcOutput.rangeResults.eMin.response) : NaN)
-//                .eMaxConc(isCreatable(drcOutput.rangeResults.eMax.dose) ? parseFloat(drcOutput.rangeResults.eMax.dose) : NaN)
-//                .eMinConc(isCreatable(drcOutput.rangeResults.eMin.dose) ? parseFloat(drcOutput.rangeResults.eMin.dose) : NaN)
-//                .pIC20(isCreatable(drcOutput.validpIC20.estimate) ? parseFloat(drcOutput.validpIC20.estimate) : NaN)
-//                .pIC80(isCreatable(drcOutput.validpIC80.estimate) ? parseFloat(drcOutput.validpIC80.estimate) : NaN)
-//                .slope(isCreatable(drcOutput.modelCoefs.slope.estimate) ? parseFloat(drcOutput.modelCoefs.slope.estimate) : NaN)
-//                .bottom(isCreatable(drcOutput.modelCoefs.bottom.estimate) ? parseFloat(drcOutput.modelCoefs.bottom.estimate) : NaN)
-//                .top(isCreatable(drcOutput.modelCoefs.top.estimate) ? parseFloat(drcOutput.modelCoefs.top.estimate) : NaN)
-//                .slopeLowerCI(isCreatable(drcOutput.modelCoefs.slope.lowerCI) ? parseFloat(drcOutput.modelCoefs.slope.lowerCI) : NaN)
-//                .slopeUpperCI(isCreatable(drcOutput.modelCoefs.slope.upperCI) ? parseFloat(drcOutput.modelCoefs.slope.upperCI) : NaN)
-//                .residualVariance(isCreatable(drcOutput.residualVariance) ? parseFloat(drcOutput.residualVariance) : NaN)
-//                .warning(drcOutput.warning)
     }
 
     private DRCInputDTO collectCurveFitInputData(CurveFittingContext ctx, String substanceName, ResultDataDTO featureResult) {
@@ -272,7 +247,7 @@ public class CurveFittingExecutorService {
 
             // Set the well substance concentration value
             float conc = wells.get(i).getWellSubstance().getConcentration().floatValue();
-            concs[i] = (float) Precision.round(-Math.log10(conc), 3);
+            concs[i] = conc;
 
             // Set the well accept value (true or false)
             accepts[i] = (wells.get(i).getStatus().getCode() >= 0 && ctx.getPlate().getValidationStatus().getCode() >= 0 && ctx.getPlate().getApprovalStatus().getCode() >= 0) ? 1 : 0;
