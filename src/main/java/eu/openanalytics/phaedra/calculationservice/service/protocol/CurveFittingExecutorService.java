@@ -266,7 +266,7 @@ public class CurveFittingExecutorService {
         float[] accepts = new float[wells.size()];
         float[] values = new float[wells.size()];
 
-        range(0, wells.size()).forEachOrdered(i -> {
+        range(0, wells.size()).forEach(i -> {
             // Set the well id
             wellIds[i] = wells.get(i).getId();
 
