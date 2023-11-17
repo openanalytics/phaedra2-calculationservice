@@ -331,6 +331,7 @@ public class CurveFittingExecutorService {
                 "output$rangeResults$eMin <- value$rangeResults[c(\"eMin\"),]\n" +
                 "output$rangeResults$eMax <- value$rangeResults[c(\"eMax\"),]\n" +
                 "output$dataPredict2Plot <- value$dataPredict2Plot \n" +
+                "output$dataPredict2Plot$dose <- -value$dataPredict2Plot$dose / 2.303 \n" +
                 "output$weights <- value$weights\n" +
                 "output$modelCoefs$Slope <- value$modelCoefs[c(\"Slope\"),]\n" +
                 "output$modelCoefs$Bottom <- value$modelCoefs[c(\"Bottom\"),]\n" +
