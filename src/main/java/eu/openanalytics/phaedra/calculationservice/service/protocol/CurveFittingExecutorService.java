@@ -247,7 +247,7 @@ public class CurveFittingExecutorService {
 
             // Set the well substance concentration value
             float conc = wells.get(i).getWellSubstance().getConcentration().floatValue();
-            concs[i] = conc;
+            concs[i] = (float) Precision.round(-Math.log10(conc), 3);
 
             // Set the well accept value (true or false)
             accepts[i] = (wells.get(i).getStatus().getCode() >= 0 && ctx.getPlate().getValidationStatus().getCode() >= 0 && ctx.getPlate().getApprovalStatus().getCode() >= 0) ? 1 : 0;
@@ -300,8 +300,6 @@ public class CurveFittingExecutorService {
         } else {
             throw new NoDRCModelDefinedForFeature("No DRCModel defined for feature %s (%d)", inputDTO.getFeature().getName(), inputDTO.getFeature().getId());
         }
-
-//        var slope  = inputDTO.getDrcModel().isPresent() ? inputDTO.getDrcModel().get().getInputParameters().get("slopeType") : "ascending";
 
         var script = "library(receptor2)\n" +
                 "\n" +
