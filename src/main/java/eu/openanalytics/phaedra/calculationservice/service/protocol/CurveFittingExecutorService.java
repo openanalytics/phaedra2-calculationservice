@@ -109,6 +109,7 @@ public class CurveFittingExecutorService {
     private List<CurveDTO> executeCurveFit(CurveFittingRequestDTO curveFittingRequestDTO) throws PlateUnresolvableException, FeatureUnresolvableException {
         var plate  = plateServiceClient.getPlate(curveFittingRequestDTO.getPlateId());
         var wells = plateServiceClient.getWells(curveFittingRequestDTO.getPlateId());
+        var substances = plateServiceClient.getWellSubstances(curveFittingRequestDTO.getPlateId());
 
         if (curveFittingRequestDTO.getFeatureResultData() == null) {
             logger.info("Feature result data is null!!");
@@ -122,11 +123,19 @@ public class CurveFittingExecutorService {
             return null;
         }
 
-        var wellSubstances = wells.stream().filter(wellDTO -> wellDTO.getWellSubstance() != null).map(wellDTO -> wellDTO.getWellSubstance()).toList();
-        var wellSubstancesNames = wellSubstances.stream().map(ws -> ws.getName()).toList();
-        logger.info("All wellSubstances found: " + wellSubstancesNames);
-        var wellSubstancesUnique = wellSubstancesNames.stream().distinct().toList();
-        logger.info("Number of unique substances for plate " + plate + " is " + wellSubstancesUnique.size());
+//        var wellSubstances = wells.stream()
+//                .filter(wellDTO -> (wellDTO.getWellSubstance() != null && wellDTO.getWellSubstance().getType() == "COMPOUND")).toList()
+//                .stream()
+//                .map(wellDTO -> wellDTO.getWellSubstance()).toList();
+//        var wellSubstancesNames = wellSubstances.stream().map(ws -> ws.getName()).toList();
+//        logger.info("All wellSubstances found: " + wellSubstancesNames);
+//        var wellSubstancesUnique = wellSubstancesNames.stream().distinct().toList();
+//        logger.info("Number of unique substances for plate " + plate + " is " + wellSubstancesUnique.size());
+
+        var wellSubstances = substances.stream().filter(s -> "COMPOUND".equalsIgnoreCase(s.getType())).toList();
+        logger.info("Nr of 'COMPOUND' substances found for plate " + plate.getId() + ": " + wellSubstances.size());
+        var wellSubstancesUnique = wellSubstances.stream().map(s -> s.getName()).toList().stream().distinct().toList();
+        logger.info("Nr of unique 'COMPOUND' substances found for plate " + plate.getId() + ": " + wellSubstancesUnique.size());
 
         if (CollectionUtils.isEmpty(wellSubstancesUnique))
             return null; //TODO: Return a proper error
