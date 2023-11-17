@@ -171,17 +171,43 @@ public class CurveFittingExecutorService {
         else
             curvePropertieDTOs.add(CurvePropertyDTO.builder().name("pIC50 StdErr").numericValue(NaN).build());
 
-        curvePropertieDTOs.add(CurvePropertyDTO.builder().name("Bottom").numericValue(isCreatable(drcOutput.modelCoefs.bottom.estimate) ? parseFloat(drcOutput.modelCoefs.bottom.estimate) : NaN).build());
-        curvePropertieDTOs.add(CurvePropertyDTO.builder().name("Top").numericValue(isCreatable(drcOutput.modelCoefs.top.estimate) ? parseFloat(drcOutput.modelCoefs.top.estimate) : NaN).build());
-        curvePropertieDTOs.add(CurvePropertyDTO.builder().name("Slope").numericValue(isCreatable(drcOutput.modelCoefs.slope.estimate) ? parseFloat(drcOutput.modelCoefs.slope.estimate) : NaN).build());
-        curvePropertieDTOs.add(CurvePropertyDTO.builder().name("Slope Lower CI").numericValue(isCreatable(drcOutput.modelCoefs.slope.lowerCI) ? parseFloat(drcOutput.modelCoefs.slope.lowerCI) : NaN).build());
-        curvePropertieDTOs.add(CurvePropertyDTO.builder().name("Slope Upper CI").numericValue(isCreatable(drcOutput.modelCoefs.slope.upperCI) ? parseFloat(drcOutput.modelCoefs.slope.upperCI) : NaN).build());
-        curvePropertieDTOs.add(CurvePropertyDTO.builder().name("eMin").numericValue(isCreatable(drcOutput.rangeResults.eMin.response) ? parseFloat(drcOutput.rangeResults.eMin.response) : NaN).build());
-        curvePropertieDTOs.add(CurvePropertyDTO.builder().name("eMin Conc").numericValue(isCreatable(drcOutput.rangeResults.eMin.dose) ? parseFloat(drcOutput.rangeResults.eMin.dose) : NaN).build());
-        curvePropertieDTOs.add(CurvePropertyDTO.builder().name("eMax").numericValue(isCreatable(drcOutput.rangeResults.eMax.response) ? parseFloat(drcOutput.rangeResults.eMax.response) : NaN).build());
-        curvePropertieDTOs.add(CurvePropertyDTO.builder().name("eMax Conc").numericValue(isCreatable(drcOutput.rangeResults.eMax.dose) ? parseFloat(drcOutput.rangeResults.eMax.dose) : NaN).build());
-        curvePropertieDTOs.add(CurvePropertyDTO.builder().name("pIC20").numericValue(isCreatable(drcOutput.validpIC20.estimate) ? parseFloat(drcOutput.validpIC20.estimate) : NaN).build());
-        curvePropertieDTOs.add(CurvePropertyDTO.builder().name("pIC80").numericValue(isCreatable(drcOutput.validpIC80.estimate) ? parseFloat(drcOutput.validpIC80.estimate) : NaN).build());
+        if (drcOutput.modelCoefs != null) {
+            curvePropertieDTOs.add(CurvePropertyDTO.builder().name("Bottom").numericValue(isCreatable(drcOutput.modelCoefs.bottom.estimate) ? parseFloat(drcOutput.modelCoefs.bottom.estimate) : NaN).build());
+            curvePropertieDTOs.add(CurvePropertyDTO.builder().name("Top").numericValue(isCreatable(drcOutput.modelCoefs.top.estimate) ? parseFloat(drcOutput.modelCoefs.top.estimate) : NaN).build());
+            curvePropertieDTOs.add(CurvePropertyDTO.builder().name("Slope").numericValue(isCreatable(drcOutput.modelCoefs.slope.estimate) ? parseFloat(drcOutput.modelCoefs.slope.estimate) : NaN).build());
+            curvePropertieDTOs.add(CurvePropertyDTO.builder().name("Slope Lower CI").numericValue(isCreatable(drcOutput.modelCoefs.slope.lowerCI) ? parseFloat(drcOutput.modelCoefs.slope.lowerCI) : NaN).build());
+            curvePropertieDTOs.add(CurvePropertyDTO.builder().name("Slope Upper CI").numericValue(isCreatable(drcOutput.modelCoefs.slope.upperCI) ? parseFloat(drcOutput.modelCoefs.slope.upperCI) : NaN).build());
+        } else {
+            curvePropertieDTOs.add(CurvePropertyDTO.builder().name("Bottom").numericValue(NaN).build());
+            curvePropertieDTOs.add(CurvePropertyDTO.builder().name("Top").numericValue(NaN).build());
+            curvePropertieDTOs.add(CurvePropertyDTO.builder().name("Slope").numericValue(NaN).build());
+            curvePropertieDTOs.add(CurvePropertyDTO.builder().name("Slope Lower CI").numericValue(NaN).build());
+            curvePropertieDTOs.add(CurvePropertyDTO.builder().name("Slope Upper CI").numericValue(NaN).build());
+        }
+
+        if (drcOutput.rangeResults != null) {
+            curvePropertieDTOs.add(CurvePropertyDTO.builder().name("eMin").numericValue(isCreatable(drcOutput.rangeResults.eMin.response) ? parseFloat(drcOutput.rangeResults.eMin.response) : NaN).build());
+            curvePropertieDTOs.add(CurvePropertyDTO.builder().name("eMin Conc").numericValue(isCreatable(drcOutput.rangeResults.eMin.dose) ? parseFloat(drcOutput.rangeResults.eMin.dose) : NaN).build());
+            curvePropertieDTOs.add(CurvePropertyDTO.builder().name("eMax").numericValue(isCreatable(drcOutput.rangeResults.eMax.response) ? parseFloat(drcOutput.rangeResults.eMax.response) : NaN).build());
+            curvePropertieDTOs.add(CurvePropertyDTO.builder().name("eMax Conc").numericValue(isCreatable(drcOutput.rangeResults.eMax.dose) ? parseFloat(drcOutput.rangeResults.eMax.dose) : NaN).build());
+        } else {
+            curvePropertieDTOs.add(CurvePropertyDTO.builder().name("eMin").numericValue(NaN).build());
+            curvePropertieDTOs.add(CurvePropertyDTO.builder().name("eMin Conc").numericValue(NaN).build());
+            curvePropertieDTOs.add(CurvePropertyDTO.builder().name("eMax").numericValue(NaN).build());
+            curvePropertieDTOs.add(CurvePropertyDTO.builder().name("eMax Conc").numericValue(NaN).build());
+        }
+
+        if (drcOutput.validpIC20 != null)
+            curvePropertieDTOs.add(CurvePropertyDTO.builder().name("pIC20").numericValue(isCreatable(drcOutput.validpIC20.estimate) ? parseFloat(drcOutput.validpIC20.estimate) : NaN).build());
+        else
+            curvePropertieDTOs.add(CurvePropertyDTO.builder().name("pIC20").numericValue(NaN).build());
+
+
+        if (drcOutput.validpIC80 != null)
+            curvePropertieDTOs.add(CurvePropertyDTO.builder().name("pIC80").numericValue(isCreatable(drcOutput.validpIC80.estimate) ? parseFloat(drcOutput.validpIC80.estimate) : NaN).build());
+        else
+            curvePropertieDTOs.add(CurvePropertyDTO.builder().name("pIC80").numericValue(NaN).build());
+
         curvePropertieDTOs.add(CurvePropertyDTO.builder().name("Residual Variance").numericValue(isCreatable(drcOutput.residualVariance) ? parseFloat(drcOutput.residualVariance) : NaN).build());
         curvePropertieDTOs.add(CurvePropertyDTO.builder().name("Warning").stringValue(drcOutput.warning).build());
 
@@ -199,24 +225,25 @@ public class CurveFittingExecutorService {
                 .plotDoseData(drcOutput.dataPredict2Plot.dose)
                 .plotPredictionData(drcOutput.dataPredict2Plot.prediction)
                 .weights(drcOutput.weights)
-                .pIC50(drcOutput.pIC50toReport)
-                .pIC50StdErr(drcOutput.validpIC50.stdError)
-                .eMax(isCreatable(drcOutput.rangeResults.eMax.response) ? parseFloat(drcOutput.rangeResults.eMax.response) : NaN)
-                .eMin(isCreatable(drcOutput.rangeResults.eMin.response) ? parseFloat(drcOutput.rangeResults.eMin.response) : NaN)
-                .eMaxConc(isCreatable(drcOutput.rangeResults.eMax.dose) ? parseFloat(drcOutput.rangeResults.eMax.dose) : NaN)
-                .eMinConc(isCreatable(drcOutput.rangeResults.eMin.dose) ? parseFloat(drcOutput.rangeResults.eMin.dose) : NaN)
-                .pIC20(isCreatable(drcOutput.validpIC20.estimate) ? parseFloat(drcOutput.validpIC20.estimate) : NaN)
-                .pIC80(isCreatable(drcOutput.validpIC80.estimate) ? parseFloat(drcOutput.validpIC80.estimate) : NaN)
-                .slope(isCreatable(drcOutput.modelCoefs.slope.estimate) ? parseFloat(drcOutput.modelCoefs.slope.estimate) : NaN)
-                .bottom(isCreatable(drcOutput.modelCoefs.bottom.estimate) ? parseFloat(drcOutput.modelCoefs.bottom.estimate) : NaN)
-                .top(isCreatable(drcOutput.modelCoefs.top.estimate) ? parseFloat(drcOutput.modelCoefs.top.estimate) : NaN)
-                .slopeLowerCI(isCreatable(drcOutput.modelCoefs.slope.lowerCI) ? parseFloat(drcOutput.modelCoefs.slope.lowerCI) : NaN)
-                .slopeUpperCI(isCreatable(drcOutput.modelCoefs.slope.upperCI) ? parseFloat(drcOutput.modelCoefs.slope.upperCI) : NaN)
-                .residualVariance(isCreatable(drcOutput.residualVariance) ? parseFloat(drcOutput.residualVariance) : NaN)
-                .warning(drcOutput.warning)
                 .curveProperties(curvePropertieDTOs)
                 .build();
         kafkaProducerService.sendCurveData(curveDTO);
+
+//                .pIC50(drcOutput.pIC50toReport)
+//                .pIC50StdErr(drcOutput.validpIC50.stdError)
+//                .eMax(isCreatable(drcOutput.rangeResults.eMax.response) ? parseFloat(drcOutput.rangeResults.eMax.response) : NaN)
+//                .eMin(isCreatable(drcOutput.rangeResults.eMin.response) ? parseFloat(drcOutput.rangeResults.eMin.response) : NaN)
+//                .eMaxConc(isCreatable(drcOutput.rangeResults.eMax.dose) ? parseFloat(drcOutput.rangeResults.eMax.dose) : NaN)
+//                .eMinConc(isCreatable(drcOutput.rangeResults.eMin.dose) ? parseFloat(drcOutput.rangeResults.eMin.dose) : NaN)
+//                .pIC20(isCreatable(drcOutput.validpIC20.estimate) ? parseFloat(drcOutput.validpIC20.estimate) : NaN)
+//                .pIC80(isCreatable(drcOutput.validpIC80.estimate) ? parseFloat(drcOutput.validpIC80.estimate) : NaN)
+//                .slope(isCreatable(drcOutput.modelCoefs.slope.estimate) ? parseFloat(drcOutput.modelCoefs.slope.estimate) : NaN)
+//                .bottom(isCreatable(drcOutput.modelCoefs.bottom.estimate) ? parseFloat(drcOutput.modelCoefs.bottom.estimate) : NaN)
+//                .top(isCreatable(drcOutput.modelCoefs.top.estimate) ? parseFloat(drcOutput.modelCoefs.top.estimate) : NaN)
+//                .slopeLowerCI(isCreatable(drcOutput.modelCoefs.slope.lowerCI) ? parseFloat(drcOutput.modelCoefs.slope.lowerCI) : NaN)
+//                .slopeUpperCI(isCreatable(drcOutput.modelCoefs.slope.upperCI) ? parseFloat(drcOutput.modelCoefs.slope.upperCI) : NaN)
+//                .residualVariance(isCreatable(drcOutput.residualVariance) ? parseFloat(drcOutput.residualVariance) : NaN)
+//                .warning(drcOutput.warning)
     }
 
     private DRCInputDTO collectCurveFitInputData(CurveFittingContext ctx, String substanceName, ResultDataDTO featureResult) {
