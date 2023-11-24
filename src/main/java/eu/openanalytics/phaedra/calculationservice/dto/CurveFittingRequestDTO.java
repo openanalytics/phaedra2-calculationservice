@@ -34,7 +34,6 @@ public class CurveFittingRequestDTO {
 //    long measId;
 
     long plateId;
-
     long featureId;
 
     ResultDataDTO featureResultData;

@@ -20,36 +20,16 @@
  */
 package eu.openanalytics.phaedra.calculationservice.service.protocol;
 
-import static java.lang.Float.NaN;
-import static java.lang.Float.parseFloat;
-import static org.apache.commons.lang3.StringUtils.isNotBlank;
-import static org.apache.commons.lang3.math.NumberUtils.isCreatable;
-
-import java.util.ArrayList;
-import java.util.Date;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Optional;
-import java.util.concurrent.CompletableFuture;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
-import java.util.concurrent.Future;
-import java.util.stream.Collectors;
-
-import org.apache.commons.collections4.CollectionUtils;
-import org.apache.commons.math3.util.Precision;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-import org.springframework.stereotype.Service;
-
 import com.fasterxml.jackson.annotation.JsonCreator;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
-
 import eu.openanalytics.curvedataservice.dto.CurveDTO;
+import eu.openanalytics.curvedataservice.dto.CurvePropertyDTO;
+import eu.openanalytics.phaedra.calculationservice.dto.CurveFittingRequestDTO;
 import eu.openanalytics.phaedra.calculationservice.dto.DRCInputDTO;
 import eu.openanalytics.phaedra.calculationservice.enumeration.ScriptLanguage;
+import eu.openanalytics.phaedra.calculationservice.exception.NoDRCModelDefinedForFeature;
 import eu.openanalytics.phaedra.calculationservice.model.CurveFittingContext;
 import eu.openanalytics.phaedra.calculationservice.service.KafkaProducerService;
 import eu.openanalytics.phaedra.calculationservice.service.script.ScriptExecutionRequest;
@@ -59,19 +39,37 @@ import eu.openanalytics.phaedra.plateservice.client.exception.PlateUnresolvableE
 import eu.openanalytics.phaedra.plateservice.dto.WellSubstanceDTO;
 import eu.openanalytics.phaedra.protocolservice.client.ProtocolServiceClient;
 import eu.openanalytics.phaedra.protocolservice.client.exception.FeatureUnresolvableException;
+import eu.openanalytics.phaedra.protocolservice.dto.DRCModelDTO;
 import eu.openanalytics.phaedra.resultdataservice.dto.ResultDataDTO;
 import eu.openanalytics.phaedra.scriptengine.dto.ScriptExecutionOutputDTO;
 import eu.openanalytics.phaedra.util.WellNumberUtils;
+import org.apache.commons.collections4.CollectionUtils;
+import org.apache.commons.math3.util.Precision;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.springframework.stereotype.Service;
+
+import java.util.*;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.Future;
+import java.util.stream.Collectors;
+
+import static java.lang.Float.NaN;
+import static java.lang.Float.parseFloat;
+import static java.util.stream.IntStream.range;
+import static org.apache.commons.lang3.StringUtils.isNotBlank;
+import static org.apache.commons.lang3.math.NumberUtils.isCreatable;
 
 @Service
 public class CurveFittingExecutorService {
-	
+
     private final PlateServiceClient plateServiceClient;
     private final ProtocolServiceClient protocolServiceClient;
-    
+
     private final KafkaProducerService kafkaProducerService;
     private final ScriptExecutionService scriptExecutionService;
-    
+
     private final ObjectMapper objectMapper;
     private final ExecutorService executorService;
     private final Logger logger = LoggerFactory.getLogger(getClass());
@@ -82,25 +80,24 @@ public class CurveFittingExecutorService {
     		KafkaProducerService kafkaProducerService,
     		ScriptExecutionService scriptExecutionService,
     		ObjectMapper objectMapper) {
-    	
+
         this.plateServiceClient = plateServiceClient;
         this.protocolServiceClient = protocolServiceClient;
-        
+
         this.kafkaProducerService = kafkaProducerService;
         this.scriptExecutionService = scriptExecutionService;
-        
+
         this.objectMapper = objectMapper;
-        
+
         executorService = Executors.newCachedThreadPool();
     }
 
-    public record CurveFittingExecution(CompletableFuture<Long> curveId, Future<List<CurveDTO>> curves) {};
+    public record CurveFittingExecution(Future<List<CurveDTO>> curves) {};
 
-    public CurveFittingExecution execute(long plateId, ResultDataDTO featureResultData) {
-        var curveIdFuture = new CompletableFuture<Long>();
-        return new CurveFittingExecution(curveIdFuture, executorService.submit(() -> {
+    public CurveFittingExecution execute(CurveFittingRequestDTO curveFittingRequestDTO) {
+        return new CurveFittingExecution(executorService.submit(() -> {
             try {
-                return executeCurveFit(curveIdFuture, plateId, featureResultData);
+                return executeCurveFit(curveFittingRequestDTO);
             } catch (Throwable ex) {
                 // print the stack strace. Since the future may never be awaited, we may not see the error otherwise
                 ex.printStackTrace();
@@ -109,62 +106,47 @@ public class CurveFittingExecutorService {
         }));
     }
 
-    private List<CurveDTO> executeCurveFit(CompletableFuture<Long> curveIdFuture, long plateId, ResultDataDTO featureResultData) throws PlateUnresolvableException, FeatureUnresolvableException {
-        var plate  = plateServiceClient.getPlate(plateId);
-        var wells = plateServiceClient.getWells(plateId);
+    private List<CurveDTO> executeCurveFit(CurveFittingRequestDTO curveFittingRequestDTO) throws PlateUnresolvableException, FeatureUnresolvableException {
+        var plate  = plateServiceClient.getPlate(curveFittingRequestDTO.getPlateId());
+        var wells = plateServiceClient.getWells(curveFittingRequestDTO.getPlateId());
+        var substances = plateServiceClient.getWellSubstances(curveFittingRequestDTO.getPlateId());
 
-        if (featureResultData == null) {
+        if (curveFittingRequestDTO.getFeatureResultData() == null) {
             logger.info("Feature result data is null!!");
             return null;
         }
 
-        logger.info("Get feature by featureId: " + featureResultData.getFeatureId());
-        var feature = protocolServiceClient.getFeature(featureResultData.getFeatureId());
+        logger.info("Get feature by featureId: " + curveFittingRequestDTO.getFeatureId());
+        var feature = protocolServiceClient.getFeature(curveFittingRequestDTO.getFeatureId());
         if (feature.getDrcModel() == null) {
-            logger.info("No drcModel found featureId: " + featureResultData.getFeatureId());
+            logger.info("No drcModel found featureId: " + curveFittingRequestDTO.getFeatureId());
             return null;
         }
 
-        var wellSubstances = plateServiceClient.getWellSubstances(plateId);
-        var wellSubstancesUnique = wellSubstances
-                .stream()
-                .map(WellSubstanceDTO::getName)
-                .collect(Collectors.toList())
-                .stream()
-                .distinct()
-                .collect(Collectors.toList());
-        logger.info("Number of unique substances for plate " + plate + " is " + wellSubstancesUnique.size());
+        var wellSubstances = substances.stream().filter(s -> "COMPOUND".equalsIgnoreCase(s.getType())).toList();
+        logger.info("Nr of 'COMPOUND' substances found for plate " + plate.getId() + ": " + wellSubstances.size());
+        var wellSubstancesUnique = wellSubstances.stream().map(s -> s.getName()).toList().stream().distinct().toList();
+        logger.info("Nr of unique 'COMPOUND' substances found for plate " + plate.getId() + ": " + wellSubstancesUnique.size());
 
         if (CollectionUtils.isEmpty(wellSubstancesUnique))
             return null; //TODO: Return a proper error
 
-        List<Object[]> curvesToFit = new ArrayList<>();
-            for (String wellSubstance: wellSubstancesUnique) {
-                curvesToFit.add(new Object[] { wellSubstance, feature.getId() });
-            }
         var cfCtx = CurveFittingContext.newInstance(plate, wells, wellSubstances, wellSubstancesUnique, feature, feature.getDrcModel());
 
         List<CurveDTO> results = new ArrayList<>();
-        for (Object[] o : curvesToFit) {
-            String substance = (String) o[0];
-            logger.info("Fit curve for substance " + substance + " and featureId " + featureResultData.getFeatureId());
-            DRCInputDTO drcInput = collectCurveFitInputData(cfCtx, substance, featureResultData);
-            
+        for (String substance: wellSubstancesUnique) {
+            logger.info("Fit curve for substance " + substance + " and featureId " + curveFittingRequestDTO.getFeatureId());
+            DRCInputDTO drcInput = collectCurveFitInputData(cfCtx, substance, curveFittingRequestDTO.getFeatureResultData());
+
             ScriptExecutionRequest request = executeReceptor2CurveFit(drcInput);
             try { request.awaitOutput(); } catch (InterruptedException e) {}
-            
+
             ScriptExecutionOutputDTO outputDTO = request.getOutput();
             if (isNotBlank(outputDTO.getOutput())) {
                 logger.info("Output is " + outputDTO.getOutput());
-                try {
-                    OutputWrapper outputWrapper = objectMapper.readValue(outputDTO.getOutput(), OutputWrapper.class);
-                    if (outputWrapper.output != null) {
-                        createNewCurve(drcInput, outputWrapper.output);
-                    }
-                } catch (JsonProcessingException e) {
-                	//TODO: Process error correctly
-                	logger.error("No curve is created due to " + e.getMessage());
-                }
+                DRCOutputDTO drcOutput = collectCurveFitOutputData(outputDTO);
+                if (drcOutput != null)
+                    createNewCurve(drcInput, drcOutput);
             } else {
                 logger.info("Not output is created!!");
             }
@@ -174,11 +156,66 @@ public class CurveFittingExecutorService {
     }
 
     private void createNewCurve(DRCInputDTO drcInput, DRCOutputDTO drcOutput) {
+        List<CurvePropertyDTO> curvePropertieDTOs = new ArrayList<>();
+        if (isCreatable(drcOutput.pIC50toReport))
+            curvePropertieDTOs.add(CurvePropertyDTO.builder().name("pIC50").numericValue(parseFloat(drcOutput.pIC50toReport)).build());
+        else {
+            if (drcOutput.pIC50toReport.startsWith("<") || drcOutput.pIC50toReport.startsWith(">")) {
+                curvePropertieDTOs.add(CurvePropertyDTO.builder().name("pIC50").numericValue(parseFloat(drcOutput.pIC50toReport.substring(1).trim())).build());
+                curvePropertieDTOs.add(CurvePropertyDTO.builder().name("pIC50 Censor").stringValue(drcOutput.pIC50toReport.substring(0,1)).build());
+            }
+        }
+
+        if (isCreatable(drcOutput.validpIC50.stdError))
+            curvePropertieDTOs.add(CurvePropertyDTO.builder().name("pIC50 StdErr").numericValue(parseFloat(drcOutput.validpIC50.stdError)).build());
+        else
+            curvePropertieDTOs.add(CurvePropertyDTO.builder().name("pIC50 StdErr").numericValue(NaN).build());
+
+        if (drcOutput.modelCoefs != null) {
+            curvePropertieDTOs.add(CurvePropertyDTO.builder().name("Bottom").numericValue(isCreatable(drcOutput.modelCoefs.bottom.estimate) ? parseFloat(drcOutput.modelCoefs.bottom.estimate) : NaN).build());
+            curvePropertieDTOs.add(CurvePropertyDTO.builder().name("Top").numericValue(isCreatable(drcOutput.modelCoefs.top.estimate) ? parseFloat(drcOutput.modelCoefs.top.estimate) : NaN).build());
+            curvePropertieDTOs.add(CurvePropertyDTO.builder().name("Slope").numericValue(isCreatable(drcOutput.modelCoefs.slope.estimate) ? parseFloat(drcOutput.modelCoefs.slope.estimate) : NaN).build());
+            curvePropertieDTOs.add(CurvePropertyDTO.builder().name("Slope Lower CI").numericValue(isCreatable(drcOutput.modelCoefs.slope.lowerCI) ? parseFloat(drcOutput.modelCoefs.slope.lowerCI) : NaN).build());
+            curvePropertieDTOs.add(CurvePropertyDTO.builder().name("Slope Upper CI").numericValue(isCreatable(drcOutput.modelCoefs.slope.upperCI) ? parseFloat(drcOutput.modelCoefs.slope.upperCI) : NaN).build());
+        } else {
+            curvePropertieDTOs.add(CurvePropertyDTO.builder().name("Bottom").numericValue(NaN).build());
+            curvePropertieDTOs.add(CurvePropertyDTO.builder().name("Top").numericValue(NaN).build());
+            curvePropertieDTOs.add(CurvePropertyDTO.builder().name("Slope").numericValue(NaN).build());
+            curvePropertieDTOs.add(CurvePropertyDTO.builder().name("Slope Lower CI").numericValue(NaN).build());
+            curvePropertieDTOs.add(CurvePropertyDTO.builder().name("Slope Upper CI").numericValue(NaN).build());
+        }
+
+        if (drcOutput.rangeResults != null) {
+            curvePropertieDTOs.add(CurvePropertyDTO.builder().name("eMin").numericValue(isCreatable(drcOutput.rangeResults.eMin.response) ? parseFloat(drcOutput.rangeResults.eMin.response) : NaN).build());
+            curvePropertieDTOs.add(CurvePropertyDTO.builder().name("eMin Conc").numericValue(isCreatable(drcOutput.rangeResults.eMin.dose) ? parseFloat(drcOutput.rangeResults.eMin.dose) : NaN).build());
+            curvePropertieDTOs.add(CurvePropertyDTO.builder().name("eMax").numericValue(isCreatable(drcOutput.rangeResults.eMax.response) ? parseFloat(drcOutput.rangeResults.eMax.response) : NaN).build());
+            curvePropertieDTOs.add(CurvePropertyDTO.builder().name("eMax Conc").numericValue(isCreatable(drcOutput.rangeResults.eMax.dose) ? parseFloat(drcOutput.rangeResults.eMax.dose) : NaN).build());
+        } else {
+            curvePropertieDTOs.add(CurvePropertyDTO.builder().name("eMin").numericValue(NaN).build());
+            curvePropertieDTOs.add(CurvePropertyDTO.builder().name("eMin Conc").numericValue(NaN).build());
+            curvePropertieDTOs.add(CurvePropertyDTO.builder().name("eMax").numericValue(NaN).build());
+            curvePropertieDTOs.add(CurvePropertyDTO.builder().name("eMax Conc").numericValue(NaN).build());
+        }
+
+        if (drcOutput.validpIC20 != null)
+            curvePropertieDTOs.add(CurvePropertyDTO.builder().name("pIC20").numericValue(isCreatable(drcOutput.validpIC20.estimate) ? parseFloat(drcOutput.validpIC20.estimate) : NaN).build());
+        else
+            curvePropertieDTOs.add(CurvePropertyDTO.builder().name("pIC20").numericValue(NaN).build());
+
+
+        if (drcOutput.validpIC80 != null)
+            curvePropertieDTOs.add(CurvePropertyDTO.builder().name("pIC80").numericValue(isCreatable(drcOutput.validpIC80.estimate) ? parseFloat(drcOutput.validpIC80.estimate) : NaN).build());
+        else
+            curvePropertieDTOs.add(CurvePropertyDTO.builder().name("pIC80").numericValue(NaN).build());
+
+        curvePropertieDTOs.add(CurvePropertyDTO.builder().name("Residual Variance").numericValue(isCreatable(drcOutput.residualVariance) ? parseFloat(drcOutput.residualVariance) : NaN).build());
+        curvePropertieDTOs.add(CurvePropertyDTO.builder().name("Warning").stringValue(drcOutput.warning).build());
+
         CurveDTO curveDTO = CurveDTO.builder()
                 .substanceName(drcInput.getSubstance())
                 .plateId(drcInput.getPlateId())
                 .protocolId(drcInput.getProtocolId())
-                .featureId(drcInput.getFeatureId())
+                .featureId(drcInput.getFeature().getId())
                 .resultSetId(drcInput.getResultSetId())
                 .wells(drcInput.getWells())
                 .wellConcentrations(drcInput.getConcs())
@@ -188,21 +225,7 @@ public class CurveFittingExecutorService {
                 .plotDoseData(drcOutput.dataPredict2Plot.dose)
                 .plotPredictionData(drcOutput.dataPredict2Plot.prediction)
                 .weights(drcOutput.weights)
-                .pIC50(drcOutput.pIC50toReport)
-                .pIC50StdErr(drcOutput.validpIC50.stdError)
-                .eMax(isCreatable(drcOutput.rangeResults.eMax.response) ? parseFloat(drcOutput.rangeResults.eMax.response) : NaN)
-                .eMin(isCreatable(drcOutput.rangeResults.eMin.response) ? parseFloat(drcOutput.rangeResults.eMin.response) : NaN)
-                .eMaxConc(isCreatable(drcOutput.rangeResults.eMax.dose) ? parseFloat(drcOutput.rangeResults.eMax.dose) : NaN)
-                .eMinConc(isCreatable(drcOutput.rangeResults.eMin.dose) ? parseFloat(drcOutput.rangeResults.eMin.dose) : NaN)
-                .pIC20(isCreatable(drcOutput.validpIC20.estimate) ? parseFloat(drcOutput.validpIC20.estimate) : NaN)
-                .pIC80(isCreatable(drcOutput.validpIC80.estimate) ? parseFloat(drcOutput.validpIC80.estimate) : NaN)
-                .slope(isCreatable(drcOutput.modelCoefs.slope.estimate) ? parseFloat(drcOutput.modelCoefs.slope.estimate) : NaN)
-                .bottom(isCreatable(drcOutput.modelCoefs.bottom.estimate) ? parseFloat(drcOutput.modelCoefs.bottom.estimate) : NaN)
-                .top(isCreatable(drcOutput.modelCoefs.top.estimate) ? parseFloat(drcOutput.modelCoefs.top.estimate) : NaN)
-                .slopeLowerCI(isCreatable(drcOutput.modelCoefs.slope.lowerCI) ? parseFloat(drcOutput.modelCoefs.slope.lowerCI) : NaN)
-                .slopeUpperCI(isCreatable(drcOutput.modelCoefs.slope.upperCI) ? parseFloat(drcOutput.modelCoefs.slope.upperCI) : NaN)
-                .residualVariance(isCreatable(drcOutput.residualVariance) ? parseFloat(drcOutput.residualVariance) : NaN)
-                .warning(drcOutput.warning)
+                .curveProperties(curvePropertieDTOs)
                 .build();
         kafkaProducerService.sendCurveData(curveDTO);
     }
@@ -210,15 +233,15 @@ public class CurveFittingExecutorService {
     private DRCInputDTO collectCurveFitInputData(CurveFittingContext ctx, String substanceName, ResultDataDTO featureResult) {
         var wells = ctx.getWells().stream()
                 .filter(w -> w.getWellSubstance() != null && w.getWellSubstance().getName().equals(substanceName))
-                .collect(Collectors.toList());
+                .toList();
         var drcModelDTO = ctx.getDrcModel();
 
         long[] wellIds = new long[wells.size()];
-        float[] values = new float[wells.size()];
         float[] concs = new float[wells.size()];
         float[] accepts = new float[wells.size()];
+        float[] values = new float[wells.size()];
 
-        for (int i = 0; i < wells.size(); i++) {
+        range(0, wells.size()).forEach(i -> {
             // Set the well id
             wellIds[i] = wells.get(i).getId();
 
@@ -232,12 +255,12 @@ public class CurveFittingExecutorService {
             // Set the well feature value
             var valueIndex = WellNumberUtils.getWellNr(wells.get(i).getRow(), wells.get(i).getColumn(), ctx.getPlate().getColumns()) - 1;
             values[i] = featureResult.getValues()[valueIndex];
-        }
+        });
 
         return DRCInputDTO.builder()
                 .substance(substanceName)
                 .plateId(ctx.getPlate().getId())
-                .featureId(featureResult.getFeatureId())
+                .feature(ctx.getFeature())
                 .wells(wellIds)
                 .values(values)
                 .concs(concs)
@@ -246,42 +269,69 @@ public class CurveFittingExecutorService {
                 .build();
     }
 
+    private DRCOutputDTO collectCurveFitOutputData(ScriptExecutionOutputDTO outputDTO) {
+        try {
+            OutputWrapper outputWrapper = objectMapper.readValue(outputDTO.getOutput(), OutputWrapper.class);
+            return outputWrapper.output;
+        } catch (JsonProcessingException e) {
+            return null;
+        }
+    }
+
     private ScriptExecutionRequest executeReceptor2CurveFit(DRCInputDTO inputDTO) {
-        logger.info(String.format("Fitting curve for substance %s and feature ID %s", inputDTO.getSubstance(), inputDTO.getFeatureId()));
+        logger.info(String.format("Fitting curve for substance %s and feature ID %s", inputDTO.getSubstance(), inputDTO.getFeature().getId()));
 
         var inputVariables = new HashMap<String, Object>();
         inputVariables.put("doses", inputDTO.getConcs());
         inputVariables.put("responses", inputDTO.getValues());
         inputVariables.put("accepts", inputDTO.getAccepts());
 
-        var slope  = inputDTO.getDrcModel().isPresent() ? inputDTO.getDrcModel().get().getSlope() : "ascending";
-        
+
+        if (inputDTO.getDrcModel().isPresent()) {
+            DRCModelDTO drcModel = inputDTO.getDrcModel().get();
+            logger.info("Input DRCModel: " + drcModel);
+            inputVariables.put("fixedBottom", drcModel.getInputParameters().get("fixedBottom"));
+            inputVariables.put("fixedTop", drcModel.getInputParameters().get("fixedTop"));
+            inputVariables.put("fixedSlope", drcModel.getInputParameters().get("fixedSlope"));
+            inputVariables.put("confLevel", drcModel.getInputParameters().get("confLevel"));
+            inputVariables.put("robustMethod", drcModel.getInputParameters().get("robustMethod") != null ? drcModel.getInputParameters().get("robustMethod") : "mean");
+            inputVariables.put("responseName", inputDTO.getFeature().getName());
+            inputVariables.put("slopeType", drcModel.getInputParameters().get("slopeType") != null ? drcModel.getInputParameters().get("slopeType") : "ascending");
+        } else {
+            throw new NoDRCModelDefinedForFeature("No DRCModel defined for feature %s (%d)", inputDTO.getFeature().getName(), inputDTO.getFeature().getId());
+        }
+
         var script = "library(receptor2)\n" +
                 "\n" +
                 "dose <- input$doses\n" +
                 "response <- input$responses\n" +
                 "accept <- input$accepts\n" +
+                "if (is.null(input$fixedBottom) == TRUE) fixedBottom <- NA else fixedBottom <- as.numeric(input$fixedBottom)\n" +
+                "if (is.null(input$fixedTop) == TRUE) fixedTop <- NA else fixedTop <- as.numeric(input$fixedTop)\n" +
+                "if (is.null(input$fixedSlope) == TRUE) fixedSlope <- NA else fixedSlope <- as.numeric(input$fixedSlope)\n" +
+                "if (is.null(input$confLevel) == TRUE) confLevel <- 0.95 else confLevel <- as.numeric(input$confLevel)\n" +
+                "robustMethod <- input$robustMethod\n" +
+                "responseName <- input$responseName\n" +
+                "slopeType <- input$slopeType\n" +
                 "\n" +
                 "value <- fittingLogisticModel(\n" +
                 "\tinputData = data.frame(dose, response),\n" +
                 "\taccept = accept,\n" +
-                "\tfixedBottom = 0.0,\n" +
-                "\tfixedTop = NA,\n" +
-                "\tfixedSlope = NA,\n" +
-                "\tconfLevel = 0.95,\n" +
-                "\trobustMethod = 'tukey',\n" +
-                "\tresponseName = 'Effect',\n" +
-                "\tslope = \""+ slope +"\"\n" +
-                ")\n" +
+                "\tfixedBottom = fixedBottom,\n" +
+                "\tfixedTop = fixedTop,\n" +
+                "\tfixedSlope = fixedSlope,\n" +
+                "\tconfLevel = confLevel,\n" +
+                "\trobustMethod = robustMethod,\n" +
+                "\tresponseName = responseName,\n" +
+                "\tslope = slopeType)\n" +
                 "\n" +
                 "output <- NULL\n" +
                 "output$pIC50toReport <- value$pIC50toReport\n" +
                 "output$validpIC50 <- value$validpIC50\n" +
                 "output$rangeResults$eMin <- value$rangeResults[c(\"eMin\"),]\n" +
                 "output$rangeResults$eMax <- value$rangeResults[c(\"eMax\"),]\n" +
-                "output$validpIC20 <- value$validpIC20[c(\"e:1:20\"),]\n" +
-                "output$validpIC80 <- value$validpIC80[c(\"e:1:80\"),]\n" +
                 "output$dataPredict2Plot <- value$dataPredict2Plot \n" +
+                "output$dataPredict2Plot$dose <- -value$dataPredict2Plot$dose / 2.303 \n" +
                 "output$weights <- value$weights\n" +
                 "output$modelCoefs$Slope <- value$modelCoefs[c(\"Slope\"),]\n" +
                 "output$modelCoefs$Bottom <- value$modelCoefs[c(\"Bottom\"),]\n" +
@@ -289,10 +339,12 @@ public class CurveFittingExecutorService {
                 "output$modelCoefs$negLog10ED50 <- value$modelCoefs[c(\"-log10ED50\"),]\n" +
                 "output$residulaVariance <- value$residulaVariance\n" +
                 "output$warningFit <- value$warningFit\n";
-                // TODO: Later include pIC50Location value(s)
-                // "output$pIC50Location <- value$pIC50Location[1]\n" +
-                // "output$pIC50LocationPrediction <- value$pIC50Location[2]\n" +
-        
+//                 TODO: Later include pIC50Location value(s)
+//                 "output$pIC50Location <- value$pIC50Location[1]\n" +
+//                 "output$pIC50LocationPrediction <- value$pIC50Location[2]\n" +
+//                 "output$validpIC20 <- value$validpIC20[c(\"e:1:20\"),]\n" +
+//                 "output$validpIC80 <- value$validpIC80[c(\"e:1:80\"),]\n" +
+
         return scriptExecutionService.submit(ScriptLanguage.R, script, inputVariables);
     }
 
@@ -340,7 +392,7 @@ public class CurveFittingExecutorService {
             this.warning = warning;
         }
     }
-    
+
     private static class DataPredict2PlotDTO {
 
         public float[] dose;
@@ -443,7 +495,7 @@ public class CurveFittingExecutorService {
             this.upper = upper;
         }
     }
-    
+
     private static class ValidICDTO {
         public String estimate;
         public String stdError;
