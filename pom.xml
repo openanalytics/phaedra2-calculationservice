@@ -6,7 +6,7 @@
     <parent>
         <groupId>eu.openanalytics.phaedra</groupId>
         <artifactId>phaedra2-parent</artifactId>
-        <version>2.0.2</version>
+        <version>2.0.3-SNAPSHOT</version>
     </parent>
 
     <artifactId>phaedra2-calculationservice</artifactId>
@@ -32,37 +32,37 @@
         <dependency>
             <groupId>eu.openanalytics.phaedra</groupId>
             <artifactId>phaedra2-resultdataservice-client</artifactId>
-            <version>2.0.2</version>
+            <version>2.0.3-SNAPSHOT</version>
         </dependency>
         <dependency>
             <groupId>eu.openanalytics.phaedra</groupId>
             <artifactId>phaedra2-scriptengine-dto</artifactId>
-            <version>2.0.2</version>
+            <version>2.0.3-SNAPSHOT</version>
         </dependency>
         <dependency>
             <groupId>eu.openanalytics.phaedra</groupId>
             <artifactId>phaedra2-protocolservice-client</artifactId>
-            <version>2.0.2</version>
+            <version>2.0.3-SNAPSHOT</version>
         </dependency>
         <dependency>
             <groupId>eu.openanalytics.phaedra</groupId>
             <artifactId>phaedra2-plateservice-client</artifactId>
-            <version>2.0.2</version>
+            <version>2.0.3-SNAPSHOT</version>
         </dependency>
         <dependency>
             <groupId>eu.openanalytics.phaedra</groupId>
             <artifactId>phaedra2-measurementservice-client</artifactId>
-            <version>2.0.2</version>
+            <version>2.0.3-SNAPSHOT</version>
         </dependency>
         <dependency>
             <groupId>eu.openanalytics.phaedra</groupId>
             <artifactId>phaedra2-curvedataservice-client</artifactId>
-            <version>2.0.2</version>
+            <version>2.0.3-SNAPSHOT</version>
         </dependency>
         <dependency>
             <groupId>eu.openanalytics.phaedra</groupId>
             <artifactId>phaedra2-metadataservice-client</artifactId>
-            <version>2.0.2</version>
+            <version>2.0.3-SNAPSHOT</version>
         </dependency>
 
         <!-- Test dependencies -->
