@@ -36,10 +36,10 @@ import eu.openanalytics.phaedra.calculationservice.service.script.ScriptExecutio
 import eu.openanalytics.phaedra.calculationservice.service.script.ScriptExecutionService;
 import eu.openanalytics.phaedra.plateservice.client.PlateServiceClient;
 import eu.openanalytics.phaedra.plateservice.client.exception.PlateUnresolvableException;
-import eu.openanalytics.phaedra.plateservice.dto.WellSubstanceDTO;
 import eu.openanalytics.phaedra.protocolservice.client.ProtocolServiceClient;
 import eu.openanalytics.phaedra.protocolservice.client.exception.FeatureUnresolvableException;
 import eu.openanalytics.phaedra.protocolservice.dto.DRCModelDTO;
+import eu.openanalytics.phaedra.protocolservice.record.InputParameter;
 import eu.openanalytics.phaedra.resultdataservice.dto.ResultDataDTO;
 import eu.openanalytics.phaedra.scriptengine.dto.ScriptExecutionOutputDTO;
 import eu.openanalytics.phaedra.util.WellNumberUtils;
@@ -53,7 +53,6 @@ import java.util.*;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
-import java.util.stream.Collectors;
 
 import static java.lang.Float.NaN;
 import static java.lang.Float.parseFloat;
@@ -290,13 +289,19 @@ public class CurveFittingExecutorService {
         if (inputDTO.getDrcModel().isPresent()) {
             DRCModelDTO drcModel = inputDTO.getDrcModel().get();
             logger.info("Input DRCModel: " + drcModel);
-            inputVariables.put("fixedBottom", drcModel.getInputParameters().get("fixedBottom"));
-            inputVariables.put("fixedTop", drcModel.getInputParameters().get("fixedTop"));
-            inputVariables.put("fixedSlope", drcModel.getInputParameters().get("fixedSlope"));
-            inputVariables.put("confLevel", drcModel.getInputParameters().get("confLevel"));
-            inputVariables.put("robustMethod", drcModel.getInputParameters().get("robustMethod") != null ? drcModel.getInputParameters().get("robustMethod") : "mean");
+//            inputVariables.put("fixedBottom", drcModel.getInputParameters().get("fixedBottom"));
+            inputVariables.put("fixedBottom", drcModel.getInputParameters().stream().filter(inParam -> inParam.equals("fixedBottom")).findFirst().get().value());
+//            inputVariables.put("fixedTop", drcModel.getInputParameters().get("fixedTop"));
+            inputVariables.put("fixedTop", drcModel.getInputParameters().stream().filter(inParam -> inParam.equals("fixedTop")).findFirst().get().value());
+//            inputVariables.put("fixedSlope", drcModel.getInputParameters().get("fixedSlope"));
+            inputVariables.put("fixedSlope", drcModel.getInputParameters().stream().filter(inParam -> inParam.equals("fixedSlope")).findFirst().get().value());
+//            inputVariables.put("confLevel", drcModel.getInputParameters().get("confLevel"));
+            inputVariables.put("confLevel", drcModel.getInputParameters().stream().filter(inParam -> inParam.equals("confLevel")).findFirst().get().value());
+//            inputVariables.put("robustMethod", drcModel.getInputParameters().get("robustMethod") != null ? drcModel.getInputParameters().get("robustMethod") : "mean");
+            inputVariables.put("robustMethod", drcModel.getInputParameters().stream().filter(inParam -> inParam.equals("robustMethod")).findFirst().orElseGet(() -> new InputParameter("robustMethod", "mean")).value());
             inputVariables.put("responseName", inputDTO.getFeature().getName());
-            inputVariables.put("slopeType", drcModel.getInputParameters().get("slopeType") != null ? drcModel.getInputParameters().get("slopeType") : "ascending");
+//            inputVariables.put("slopeType", drcModel.getInputParameters().get("slopeType") != null ? drcModel.getInputParameters().get("slopeType") : "ascending");
+            inputVariables.put("slopeType", drcModel.getInputParameters().stream().filter(inParam -> inParam.equals("slopeType")).findFirst().orElseGet(() -> new InputParameter("slopeType", "ascending")).value());
         } else {
             throw new NoDRCModelDefinedForFeature("No DRCModel defined for feature %s (%d)", inputDTO.getFeature().getName(), inputDTO.getFeature().getId());
         }
