@@ -1,7 +1,7 @@
 /**
  * Phaedra II
  *
- * Copyright (C) 2016-2023 Open Analytics
+ * Copyright (C) 2016-2024 Open Analytics
  *
  * ===========================================================================
  *
@@ -51,10 +51,10 @@ public class ProtocolDataCollector {
     }
 
     public ProtocolData getProtocolData(long protocolId) throws ProtocolUnresolvableException {
-    	
+
     	ProtocolData data = new ProtocolData();
     	data.protocol = protocolServiceClient.getProtocol(protocolId);
-    
+
         var featureStats = protocolServiceClient.getFeatureStatsOfProtocol(protocolId);
         data.featureStats = featureStats.stream().collect(Collectors.groupingBy(FeatureStatDTO::getFeatureId));
 
@@ -64,7 +64,7 @@ public class ProtocolDataCollector {
         data.formulas = formulaService.getFormulasByIds(formulaIds);
 
         data.sequences = data.protocol.getFeatures().stream().collect(Collectors.groupingBy(FeatureDTO::getSequence));
-        
+
         return data;
     }
 

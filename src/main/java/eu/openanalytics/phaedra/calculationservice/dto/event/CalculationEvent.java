@@ -1,7 +1,7 @@
 /**
  * Phaedra II
  *
- * Copyright (C) 2016-2023 Open Analytics
+ * Copyright (C) 2016-2024 Open Analytics
  *
  * ===========================================================================
  *
@@ -38,6 +38,6 @@ public class CalculationEvent {
 	private Long plateId;
 	private Long measurementId;
 	private Long protocolId;
-	
+
 	private CalculationStatus calculationStatus;
 }

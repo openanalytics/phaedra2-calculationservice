@@ -1,7 +1,7 @@
 /**
  * Phaedra II
  *
- * Copyright (C) 2016-2023 Open Analytics
+ * Copyright (C) 2016-2024 Open Analytics
  *
  * ===========================================================================
  *
@@ -35,22 +35,22 @@ import lombok.Data;
 public class ScriptExecutionRequest {
 
 	private String id;
-	
+
 	private ScriptExecutionInputDTO input;
 	private volatile ScriptExecutionOutputDTO output;
 	private volatile boolean outputAvailable;
-	
+
 	private int currentTry;
 	private int maxRetryCount;
-	
+
 	private List<Consumer<ScriptExecutionOutputDTO>> callbacks;
-	
+
 	public synchronized ScriptExecutionRequest addCallback(Consumer<ScriptExecutionOutputDTO> callback) {
 		if (callbacks == null) callbacks = new ArrayList<>();
 		callbacks.add(callback);
 		return this;
 	}
-	
+
 	public void signalOutputAvailable(ScriptExecutionOutputDTO output) {
 		synchronized(this) {
             outputAvailable = true;
@@ -61,7 +61,7 @@ public class ScriptExecutionRequest {
         	ForkJoinPool.commonPool().submit(() -> callbacks.forEach(c -> c.accept(output)));
         }
 	}
-	
+
 	public synchronized ScriptExecutionOutputDTO awaitOutput() throws InterruptedException {
 		while (!this.outputAvailable) {
             wait();

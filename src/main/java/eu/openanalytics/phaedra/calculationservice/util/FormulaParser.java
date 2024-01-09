@@ -1,7 +1,7 @@
 /**
  * Phaedra II
  *
- * Copyright (C) 2016-2023 Open Analytics
+ * Copyright (C) 2016-2024 Open Analytics
  *
  * ===========================================================================
  *
@@ -32,14 +32,14 @@ import eu.openanalytics.phaedra.calculationservice.model.Formula;
 public class FormulaParser {
 
 	private static final Pattern R_INPUT_PATTERN = Pattern.compile("(?s).*?input\\$(\\w+).*");
-	
+
 	public List<String> parseInputNames(Formula formula) {
 		return parseInputNames(formula.getFormula(), formula.getLanguage());
 	}
-	
+
 	public List<String> parseInputNames(String formula, ScriptLanguage language) {
     	Set<String> names = new HashSet<>();
-    	
+
     	if (language  == ScriptLanguage.R) {
     		String bodyToParse = formula;
     		Matcher matcher = R_INPUT_PATTERN.matcher(bodyToParse);

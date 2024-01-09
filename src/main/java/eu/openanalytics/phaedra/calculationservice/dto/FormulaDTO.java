@@ -1,7 +1,7 @@
 /**
  * Phaedra II
  *
- * Copyright (C) 2016-2023 Open Analytics
+ * Copyright (C) 2016-2024 Open Analytics
  *
  * ===========================================================================
  *
@@ -67,7 +67,7 @@ public class FormulaDTO {
     Long previousVersionId;
 
     String versionNumber;
-    
+
     boolean deprecated;
 
     @Null(groups = {OnCreate.class, OnUpdate.class}, message = "CreatedBy must be null when creating a formula")
