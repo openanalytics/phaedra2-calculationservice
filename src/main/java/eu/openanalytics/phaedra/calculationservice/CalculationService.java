@@ -30,7 +30,6 @@ import org.springframework.boot.autoconfigure.SpringBootApplication;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Import;
 import org.springframework.core.env.Environment;
-import org.springframework.jdbc.datasource.DriverManagerDataSource;
 import org.springframework.kafka.annotation.EnableKafka;
 import org.springframework.scheduling.annotation.EnableScheduling;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
@@ -79,28 +78,7 @@ public class CalculationService {
 
     @Bean
     public DataSource dataSource() {
-        String url = environment.getProperty("DB_URL");
-        String username = environment.getProperty("DB_USER");
-        String password = environment.getProperty("DB_PASSWORD");
-        String schema = environment.getProperty("DB_SCHEMA");
-
-        if (StringUtils.isEmpty(url)) {
-            throw new RuntimeException("No database URL configured: " + url);
-        }
-        String driverClassName = JDBCUtils.getDriverClassName(url);
-        if (driverClassName == null) {
-            throw new RuntimeException("Unsupported database type: " + url);
-        }
-
-        DriverManagerDataSource dataSource = new DriverManagerDataSource();
-        dataSource.setDriverClassName(driverClassName);
-        dataSource.setUrl(url);
-        dataSource.setUsername(username);
-        dataSource.setPassword(password);
-        if (!StringUtils.isEmpty(schema)) {
-            dataSource.setSchema(schema);
-        }
-        return dataSource;
+    	return JDBCUtils.createDataSource(environment);
     }
 
     @Bean
