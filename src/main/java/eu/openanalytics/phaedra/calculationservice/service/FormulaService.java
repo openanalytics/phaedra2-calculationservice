@@ -56,13 +56,12 @@ public class FormulaService {
     }
 
     public FormulaDTO createFormula(FormulaDTO formulaDTO) {
-        LocalDateTime date = LocalDateTime.now(clock);
         var formula = modelMapper.map(formulaDTO)
         		.versionNumber(VersionUtils.generateNewVersion(null, false))
+        		.category(FormulaCategory.CALCULATION)
                 .createdBy(authService.getCurrentPrincipalName())
-                .createdOn(date)
+                .createdOn(LocalDateTime.now(clock))
                 .build();
-
         return save(formula);
     }
 
