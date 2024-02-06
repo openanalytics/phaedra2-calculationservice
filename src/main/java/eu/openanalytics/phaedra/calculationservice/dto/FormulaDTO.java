@@ -52,7 +52,6 @@ public class FormulaDTO {
 
     String description;
 
-    @NotNull(message = "Category is mandatory", groups = {OnCreate.class})
     FormulaCategory category;
 
     @NotBlank(message = "Formula is mandatory", groups = {OnCreate.class})
