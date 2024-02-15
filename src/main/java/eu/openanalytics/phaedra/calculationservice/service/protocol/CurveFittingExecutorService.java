@@ -122,15 +122,15 @@ public class CurveFittingExecutorService {
             return null;
         }
 
-        var wellSubstances = substances.stream().filter(s -> "COMPOUND".equalsIgnoreCase(s.getType())).toList();
-        logger.info("Nr of 'COMPOUND' substances found for plate " + plate.getId() + ": " + wellSubstances.size());
-        var wellSubstancesUnique = wellSubstances.stream().map(s -> s.getName()).toList().stream().distinct().toList();
-        logger.info("Nr of unique 'COMPOUND' substances found for plate " + plate.getId() + ": " + wellSubstancesUnique.size());
+//        var wellSubstances = substances.stream().filter(s -> "COMPOUND".equalsIgnoreCase(s.getType())).toList();
+        logger.info("Nr of substances found for plate " + plate.getId() + ": " + substances.size());
+        var wellSubstancesUnique = substances.stream().map(s -> s.getName()).toList().stream().distinct().toList();
+        logger.info("Nr of unique substances found for plate " + plate.getId() + ": " + wellSubstancesUnique.size());
 
         if (CollectionUtils.isEmpty(wellSubstancesUnique))
             return null; //TODO: Return a proper error
 
-        var cfCtx = CurveFittingContext.newInstance(plate, wells, wellSubstances, wellSubstancesUnique, feature, feature.getDrcModel());
+        var cfCtx = CurveFittingContext.newInstance(plate, wells, substances, wellSubstancesUnique, feature, feature.getDrcModel());
 
         List<CurveDTO> results = new ArrayList<>();
         for (String substance: wellSubstancesUnique) {
