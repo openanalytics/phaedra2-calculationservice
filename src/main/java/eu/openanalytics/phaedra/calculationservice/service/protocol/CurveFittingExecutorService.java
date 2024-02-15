@@ -260,6 +260,8 @@ public class CurveFittingExecutorService {
                 .substance(substanceName)
                 .plateId(ctx.getPlate().getId())
                 .feature(ctx.getFeature())
+                .protocolId(ctx.getFeature().getProtocolId())
+                .resultSetId(featureResult.getResultSetId())
                 .wells(wellIds)
                 .values(values)
                 .concs(concs)

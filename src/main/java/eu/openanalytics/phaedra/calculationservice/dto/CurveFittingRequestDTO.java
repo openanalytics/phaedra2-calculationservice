@@ -28,11 +28,6 @@ import lombok.*;
 @AllArgsConstructor
 @NoArgsConstructor(force = true, access = AccessLevel.PRIVATE) // Jackson deserialize compatibility
 public class CurveFittingRequestDTO {
-//    long protocolId;
-//    long plateId;
-//    long resultSetId;
-//    long measId;
-
     long plateId;
     long featureId;
 
