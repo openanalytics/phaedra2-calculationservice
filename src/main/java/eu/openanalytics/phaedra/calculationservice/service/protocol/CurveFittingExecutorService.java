@@ -231,7 +231,7 @@ public class CurveFittingExecutorService {
 
     private DRCInputDTO collectCurveFitInputData(CurveFittingContext ctx, String substanceName, ResultDataDTO featureResult) {
         var wells = ctx.getWells().stream()
-                .filter(w -> w.getWellSubstance() != null && w.getWellSubstance().getName().equals(substanceName))
+                .filter(w -> w.getWellSubstance() != null && substanceName.equals(w.getWellSubstance().getName()))
                 .toList();
         var drcModelDTO = ctx.getDrcModel();
 
