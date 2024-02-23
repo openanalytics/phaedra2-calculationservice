@@ -1,7 +1,7 @@
 /**
  * Phaedra II
  *
- * Copyright (C) 2016-2023 Open Analytics
+ * Copyright (C) 2016-2024 Open Analytics
  *
  * ===========================================================================
  *
@@ -36,10 +36,10 @@ import eu.openanalytics.phaedra.calculationservice.service.script.ScriptExecutio
 import eu.openanalytics.phaedra.calculationservice.service.script.ScriptExecutionService;
 import eu.openanalytics.phaedra.plateservice.client.PlateServiceClient;
 import eu.openanalytics.phaedra.plateservice.client.exception.PlateUnresolvableException;
-import eu.openanalytics.phaedra.plateservice.dto.WellSubstanceDTO;
 import eu.openanalytics.phaedra.protocolservice.client.ProtocolServiceClient;
 import eu.openanalytics.phaedra.protocolservice.client.exception.FeatureUnresolvableException;
 import eu.openanalytics.phaedra.protocolservice.dto.DRCModelDTO;
+import eu.openanalytics.phaedra.protocolservice.record.InputParameter;
 import eu.openanalytics.phaedra.resultdataservice.dto.ResultDataDTO;
 import eu.openanalytics.phaedra.scriptengine.dto.ScriptExecutionOutputDTO;
 import eu.openanalytics.phaedra.util.WellNumberUtils;
@@ -53,7 +53,6 @@ import java.util.*;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
-import java.util.stream.Collectors;
 
 import static java.lang.Float.NaN;
 import static java.lang.Float.parseFloat;
@@ -123,15 +122,15 @@ public class CurveFittingExecutorService {
             return null;
         }
 
-        var wellSubstances = substances.stream().filter(s -> "COMPOUND".equalsIgnoreCase(s.getType())).toList();
-        logger.info("Nr of 'COMPOUND' substances found for plate " + plate.getId() + ": " + wellSubstances.size());
-        var wellSubstancesUnique = wellSubstances.stream().map(s -> s.getName()).toList().stream().distinct().toList();
-        logger.info("Nr of unique 'COMPOUND' substances found for plate " + plate.getId() + ": " + wellSubstancesUnique.size());
+//        var wellSubstances = substances.stream().filter(s -> "COMPOUND".equalsIgnoreCase(s.getType())).toList();
+        logger.info("Nr of substances found for plate " + plate.getId() + ": " + substances.size());
+        var wellSubstancesUnique = substances.stream().map(s -> s.getName()).toList().stream().distinct().toList();
+        logger.info("Nr of unique substances found for plate " + plate.getId() + ": " + wellSubstancesUnique.size());
 
         if (CollectionUtils.isEmpty(wellSubstancesUnique))
             return null; //TODO: Return a proper error
 
-        var cfCtx = CurveFittingContext.newInstance(plate, wells, wellSubstances, wellSubstancesUnique, feature, feature.getDrcModel());
+        var cfCtx = CurveFittingContext.newInstance(plate, wells, substances, wellSubstancesUnique, feature, feature.getDrcModel());
 
         List<CurveDTO> results = new ArrayList<>();
         for (String substance: wellSubstancesUnique) {
@@ -232,7 +231,7 @@ public class CurveFittingExecutorService {
 
     private DRCInputDTO collectCurveFitInputData(CurveFittingContext ctx, String substanceName, ResultDataDTO featureResult) {
         var wells = ctx.getWells().stream()
-                .filter(w -> w.getWellSubstance() != null && w.getWellSubstance().getName().equals(substanceName))
+                .filter(w -> w.getWellSubstance() != null && substanceName.equals(w.getWellSubstance().getName()))
                 .toList();
         var drcModelDTO = ctx.getDrcModel();
 
@@ -261,6 +260,8 @@ public class CurveFittingExecutorService {
                 .substance(substanceName)
                 .plateId(ctx.getPlate().getId())
                 .feature(ctx.getFeature())
+                .protocolId(ctx.getFeature().getProtocolId())
+                .resultSetId(featureResult.getResultSetId())
                 .wells(wellIds)
                 .values(values)
                 .concs(concs)
@@ -290,13 +291,19 @@ public class CurveFittingExecutorService {
         if (inputDTO.getDrcModel().isPresent()) {
             DRCModelDTO drcModel = inputDTO.getDrcModel().get();
             logger.info("Input DRCModel: " + drcModel);
-            inputVariables.put("fixedBottom", drcModel.getInputParameters().get("fixedBottom"));
-            inputVariables.put("fixedTop", drcModel.getInputParameters().get("fixedTop"));
-            inputVariables.put("fixedSlope", drcModel.getInputParameters().get("fixedSlope"));
-            inputVariables.put("confLevel", drcModel.getInputParameters().get("confLevel"));
-            inputVariables.put("robustMethod", drcModel.getInputParameters().get("robustMethod") != null ? drcModel.getInputParameters().get("robustMethod") : "mean");
+//            inputVariables.put("fixedBottom", drcModel.getInputParameters().get("fixedBottom"));
+            inputVariables.put("fixedBottom", drcModel.getInputParameters().stream().filter(inParam -> inParam.name().equals("fixedBottom")).findFirst().get().value());
+//            inputVariables.put("fixedTop", drcModel.getInputParameters().get("fixedTop"));
+            inputVariables.put("fixedTop", drcModel.getInputParameters().stream().filter(inParam -> inParam.name().equals("fixedTop")).findFirst().get().value());
+//            inputVariables.put("fixedSlope", drcModel.getInputParameters().get("fixedSlope"));
+            inputVariables.put("fixedSlope", drcModel.getInputParameters().stream().filter(inParam -> inParam.name().equals("fixedSlope")).findFirst().get().value());
+//            inputVariables.put("confLevel", drcModel.getInputParameters().get("confLevel"));
+            inputVariables.put("confLevel", drcModel.getInputParameters().stream().filter(inParam -> inParam.name().equals("confLevel")).findFirst().get().value());
+//            inputVariables.put("robustMethod", drcModel.getInputParameters().get("robustMethod") != null ? drcModel.getInputParameters().get("robustMethod") : "mean");
+            inputVariables.put("robustMethod", drcModel.getInputParameters().stream().filter(inParam -> inParam.name().equals("robustMethod")).findFirst().orElseGet(() -> new InputParameter("robustMethod", "mean")).value());
             inputVariables.put("responseName", inputDTO.getFeature().getName());
-            inputVariables.put("slopeType", drcModel.getInputParameters().get("slopeType") != null ? drcModel.getInputParameters().get("slopeType") : "ascending");
+//            inputVariables.put("slopeType", drcModel.getInputParameters().get("slopeType") != null ? drcModel.getInputParameters().get("slopeType") : "ascending");
+            inputVariables.put("slopeType", drcModel.getInputParameters().stream().filter(inParam -> inParam.name().equals("slopeType")).findFirst().orElseGet(() -> new InputParameter("slopeType", "ascending")).value());
         } else {
             throw new NoDRCModelDefinedForFeature("No DRCModel defined for feature %s (%d)", inputDTO.getFeature().getName(), inputDTO.getFeature().getId());
         }

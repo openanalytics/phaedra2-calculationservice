@@ -1,7 +1,7 @@
 /**
  * Phaedra II
  *
- * Copyright (C) 2016-2023 Open Analytics
+ * Copyright (C) 2016-2024 Open Analytics
  *
  * ===========================================================================
  *
@@ -36,7 +36,7 @@ import eu.openanalytics.phaedra.scriptengine.dto.ScriptExecutionInputDTO;
 
 @Service
 public class KafkaProducerService {
-	
+
     private final KafkaTemplate<String, Object> kafkaTemplate;
 
     public KafkaProducerService(KafkaTemplate<String, Object> kafkaTemplate) {
@@ -46,7 +46,7 @@ public class KafkaProducerService {
     public void notifyCalculationEvent(CalculationEvent event) {
         kafkaTemplate.send(KafkaConfig.TOPIC_CALCULATIONS, KafkaConfig.EVENT_NOTIFY_CALCULATION_EVENT, event);
     }
-    
+
     public void sendPlateCalculationStatus(PlateCalculationStatusDTO plateCalculationStatusDTO) {
         kafkaTemplate.send(KafkaConfig.TOPIC_PLATES, KafkaConfig.EVENT_UPDATE_PLATE_STATUS, plateCalculationStatusDTO);
     }
@@ -68,7 +68,7 @@ public class KafkaProducerService {
             kafkaTemplate.send(KafkaConfig.TOPIC_RESULTDATA, KafkaConfig.EVENT_SAVE_RESULT_STATS, resultFeatureStatDTO.withResultSetId(resultSetId));
         }
     }
-    
+
     public void sendScriptExecutionRequest(ScriptExecutionInputDTO scriptRequest) {
     	kafkaTemplate.send(KafkaConfig.TOPIC_SCRIPTENGINE, KafkaConfig.EVENT_REQUEST_SCRIPT_EXECUTION, scriptRequest);
     }

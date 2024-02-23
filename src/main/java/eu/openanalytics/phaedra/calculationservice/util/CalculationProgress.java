@@ -1,7 +1,7 @@
 /**
  * Phaedra II
  *
- * Copyright (C) 2016-2023 Open Analytics
+ * Copyright (C) 2016-2024 Open Analytics
  *
  * ===========================================================================
  *
@@ -35,7 +35,7 @@ public class CalculationProgress {
 
 	private CalculationContext ctx;
 	private Integer currentSequence;
-	
+
 	private Map<Long, Boolean> featureDataUploaded;
 	private Map<Long, Map<String, Boolean>> featureStatsUploaded;
 
@@ -43,17 +43,17 @@ public class CalculationProgress {
 		this.ctx = ctx;
 		this.featureDataUploaded = new HashMap<>();
 		this.featureStatsUploaded = new HashMap<>();
-		
+
 		incrementCurrentSequence();
-		
+
 		for (FeatureDTO f: ctx.getProtocolData().protocol.getFeatures()) {
 			updateProgressFeature(f.getId(), false);
 		}
 	}
-	
+
 	public void updateProgressFeature(long fId, boolean status) {
 		updateProgress(fId, null, null, status);
-		
+
 		List<FeatureStatDTO> stats = ctx.getProtocolData().featureStats.get(fId);
 		List<String> wellTypes = ctx.getWells().stream().map(WellDTO::getWellType).toList();
 		for (FeatureStatDTO stat: stats) {
@@ -66,17 +66,17 @@ public class CalculationProgress {
 			}
 		}
 	}
-	
+
 	public void updateProgress(Object rsObject) {
 		if (rsObject instanceof ResultDataDTO) {
 			ResultDataDTO rs = (ResultDataDTO) rsObject;
 			updateProgress(rs.getFeatureId(), null, null, true);
 		} else if (rsObject instanceof ResultFeatureStatDTO) {
 			ResultFeatureStatDTO fs = (ResultFeatureStatDTO) rsObject;
-			updateProgress(fs.getFeatureId(), fs.getFeatureStatId(), fs.getWelltype(), true);	
+			updateProgress(fs.getFeatureId(), fs.getFeatureStatId(), fs.getWelltype(), true);
 		}
 	}
-	
+
 	private synchronized void updateProgress(long fId, Long statId, String wellType, boolean status) {
 		if (statId == null) {
 			featureDataUploaded.put(fId, status);
@@ -88,22 +88,22 @@ public class CalculationProgress {
 			featureStatsUploaded.get(fId).put(String.format("%d_%s", statId, wellType), status);
 		}
 	}
-	
+
 	public synchronized boolean isFeatureComplete(long featureId) {
 		return featureDataUploaded.get(featureId) && featureStatsUploaded.get(featureId).values().stream().allMatch(v -> v);
 	}
-	
+
 	public Integer getCurrentSequence() {
 		return currentSequence;
 	}
-	
+
 	public synchronized boolean isCurrentSequenceComplete() {
 		if (currentSequence == null) return false;
 		return ctx.getProtocolData().protocol.getFeatures().stream()
 			.filter(f -> currentSequence.equals(f.getSequence()))
 			.allMatch(f -> isFeatureComplete(f.getId()));
 	}
-	
+
 	public synchronized void incrementCurrentSequence() {
 		List<Integer> sequences = ctx.getProtocolData().sequences.keySet().stream().sorted().toList();
 		if (sequences.isEmpty()) return;
@@ -114,16 +114,16 @@ public class CalculationProgress {
 			if (sIndex + 1 < sequences.size()) currentSequence = sequences.get(sIndex + 1);
 		}
 	}
-	
+
 	public synchronized float getCompletedFraction() {
 		long calcCount = featureDataUploaded.size() + featureStatsUploaded.values().stream().flatMap(m -> m.values().stream()).count();
-		long completeCount = 
+		long completeCount =
 				featureDataUploaded.values().stream().filter(v -> v).count()
 				+
 				featureStatsUploaded.values().stream().flatMap(m -> m.values().stream()).filter(v -> v).count();
 		return (float) completeCount / calcCount;
 	}
-	
+
 	public synchronized boolean isComplete() {
 		return getCompletedFraction() == 1.0f;
 	}

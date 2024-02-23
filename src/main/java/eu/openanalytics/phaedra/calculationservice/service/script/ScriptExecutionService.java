@@ -1,7 +1,7 @@
 /**
  * Phaedra II
  *
- * Copyright (C) 2016-2023 Open Analytics
+ * Copyright (C) 2016-2024 Open Analytics
  *
  * ===========================================================================
  *
@@ -39,15 +39,15 @@ import eu.openanalytics.phaedra.scriptengine.dto.ScriptExecutionOutputDTO;
 public class ScriptExecutionService {
 
 	private static final int DEFAULT_RETRIES = 3;
-	
+
 	@Autowired
 	private KafkaProducerService kafkaProducer;
-	
+
 	@Autowired
 	private ObjectMapper objectMapper;
-	
+
 	private ConcurrentHashMap<String, ScriptExecutionRequest> trackedExecutions = new ConcurrentHashMap<>();
-	
+
 	public ScriptExecutionRequest submit(ScriptLanguage lang, String script, Object inputData) {
     	String inputDocument = null;
     	try {
@@ -55,21 +55,21 @@ public class ScriptExecutionService {
         } catch (JsonProcessingException e) {
         	throw new CalculationException("Failed to serialize input data", e);
         }
-    	
+
     	ScriptExecutionInputDTO input = ScriptExecutionInputDTO.builder()
     			.language(lang.name())
     			.script(script)
     			.input(inputDocument)
     			.build();
-    	
+
     	ScriptExecutionRequest request = ScriptExecutionRequest.builder()
     			.input(input)
     			.maxRetryCount(DEFAULT_RETRIES)
     			.build();
-    	
+
     	return submit(request);
 	}
-	
+
 	public ScriptExecutionRequest submit(ScriptExecutionRequest request) {
 		if (request.getId() == null) {
 			request.setId(UUID.randomUUID().toString());
@@ -80,7 +80,7 @@ public class ScriptExecutionService {
 		kafkaProducer.sendScriptExecutionRequest(request.getInput());
 		return request;
 	}
-	
+
 	public void handleScriptExecutionUpdate(ScriptExecutionOutputDTO output) {
 		ScriptExecutionRequest request = trackedExecutions.get(output.getInputId());
 		if (request == null) return;
@@ -94,5 +94,5 @@ public class ScriptExecutionService {
 			trackedExecutions.remove(request.getId());
 		}
 	}
-	
+
 }

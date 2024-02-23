@@ -1,7 +1,7 @@
 /**
  * Phaedra II
  *
- * Copyright (C) 2016-2023 Open Analytics
+ * Copyright (C) 2016-2024 Open Analytics
  *
  * ===========================================================================
  *
@@ -51,7 +51,7 @@ import eu.openanalytics.phaedra.resultdataservice.enumeration.StatusCode;
 /**
  * This service is responsible for executing, and tracking the progress of execution for,
  * an entire protocol on a plate. This is also called "plate calculation".
- * 
+ *
  * A protocol consists of a list of features, which must be executed in the correct order.
  * Therefore, the features are grouped into "sequences", and each sequence must be completed
  * before the next sequence can start.
@@ -60,15 +60,15 @@ import eu.openanalytics.phaedra.resultdataservice.enumeration.StatusCode;
 public class ProtocolExecutorService {
 
 	private final FeatureExecutorService featureExecutorService;
-	
+
     private final ResultDataServiceClient resultDataServiceClient;
     private final PlateServiceClient plateServiceClient;
 
     private final ProtocolDataCollector protocolDataCollector;
     private final KafkaProducerService kafkaProducerService;
-    
+
     private final Map<Long, CalculationContext> activeContexts = new ConcurrentHashMap<>();
-    
+
     private final Logger logger = LoggerFactory.getLogger(getClass());
 
     public ProtocolExecutorService(
@@ -77,8 +77,8 @@ public class ProtocolExecutorService {
     		ProtocolDataCollector protocolDataCollector,
     		PlateServiceClient plateServiceClient,
     		KafkaProducerService kafkaProducerService) {
-    	
-    	this.featureExecutorService= featureExecutorService; 
+
+    	this.featureExecutorService= featureExecutorService;
         this.resultDataServiceClient = resultDataServiceClient;
         this.protocolDataCollector = protocolDataCollector;
         this.plateServiceClient = plateServiceClient;
@@ -105,7 +105,7 @@ public class ProtocolExecutorService {
         var wells = plateServiceClient.getWells(plateId);
         var resultSet = resultDataServiceClient.createResultDataSet(protocolId, plateId, measId);
         resultSetIdFuture.complete(resultSet.getId());
-        
+
         CalculationContext ctx = CalculationContext.newInstance(protocolData, plate, wells, resultSet.getId(), measId);
         log(logger, ctx, "Executing protocol %d", protocolId);
         emitCalculationEvent(ctx, CalculationStatus.CALCULATION_IN_PROGRESS);
@@ -114,7 +114,7 @@ public class ProtocolExecutorService {
         // Start the first sequence
         triggerSequenceExecution(ctx, ctx.getCalculationProgress().getCurrentSequence());
     }
-    
+
     private void triggerSequenceExecution(CalculationContext ctx, Integer sequence) {
     	log(logger, ctx, "Executing sequence %d", sequence);
     	ctx.getProtocolData().protocol.getFeatures().parallelStream()
@@ -123,7 +123,7 @@ public class ProtocolExecutorService {
         		.filter(r -> r != null)
         		.toList();
     }
-    
+
     public void handleResultSetUpdate(Object resultObject) {
     	Long rsId = null;
     	if (resultObject instanceof ResultSetDTO) {
@@ -134,13 +134,13 @@ public class ProtocolExecutorService {
     		rsId = ((ResultFeatureStatDTO) resultObject).getResultSetId();
     	}
     	if (rsId == null) return;
-    	
+
     	CalculationContext ctx = activeContexts.get(rsId);
     	if (ctx == null) return;
-    	
+
     	ctx.getCalculationProgress().updateProgress(resultObject);
     	log(logger, ctx, "Calculation progress: %f", ctx.getCalculationProgress().getCompletedFraction());
-    	
+
     	if (ctx.getCalculationProgress().isComplete()) {
     		handleCalculationEnded(ctx);
     	} else if (ctx.getCalculationProgress().isCurrentSequenceComplete()) {
@@ -152,10 +152,10 @@ public class ProtocolExecutorService {
     		}
     	}
     }
-    
+
     private ResultSetDTO handleCalculationEnded(CalculationContext ctx) {
     	activeContexts.remove(ctx.getResultSetId());
-    	
+
     	ResultSetDTO rs = null;
         if (ctx.getErrorCollector().hasError()) {
         	logger.warn("Calculation failed with errors:\n" + ctx.getErrorCollector().getErrorDescription());
@@ -176,7 +176,7 @@ public class ProtocolExecutorService {
         }
         return rs;
     }
-    
+
 
     private void emitCalculationEvent(CalculationContext ctx, CalculationStatus calculationStatus) {
     	CalculationEvent event = CalculationEvent.builder()
@@ -186,7 +186,7 @@ public class ProtocolExecutorService {
     			.calculationStatus(calculationStatus)
     			.build();
     	kafkaProducerService.notifyCalculationEvent(event);
-    	
+
     	//TODO: deprecate, have plate-service consume CalculationEvents instead
     	PlateCalculationStatusDTO plateCalcStatus = PlateCalculationStatusDTO.builder()
     			.plateId(ctx.getPlate().getId())

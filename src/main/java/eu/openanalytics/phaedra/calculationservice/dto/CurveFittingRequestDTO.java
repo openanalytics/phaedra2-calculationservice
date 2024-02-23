@@ -1,7 +1,7 @@
 /**
  * Phaedra II
  *
- * Copyright (C) 2016-2023 Open Analytics
+ * Copyright (C) 2016-2024 Open Analytics
  *
  * ===========================================================================
  *
@@ -28,11 +28,6 @@ import lombok.*;
 @AllArgsConstructor
 @NoArgsConstructor(force = true, access = AccessLevel.PRIVATE) // Jackson deserialize compatibility
 public class CurveFittingRequestDTO {
-//    long protocolId;
-//    long plateId;
-//    long resultSetId;
-//    long measId;
-
     long plateId;
     long featureId;
 

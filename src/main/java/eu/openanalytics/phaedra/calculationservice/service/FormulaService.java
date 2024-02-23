@@ -1,7 +1,7 @@
 /**
  * Phaedra II
  *
- * Copyright (C) 2016-2023 Open Analytics
+ * Copyright (C) 2016-2024 Open Analytics
  *
  * ===========================================================================
  *
@@ -56,13 +56,12 @@ public class FormulaService {
     }
 
     public FormulaDTO createFormula(FormulaDTO formulaDTO) {
-        LocalDateTime date = LocalDateTime.now(clock);
         var formula = modelMapper.map(formulaDTO)
         		.versionNumber(VersionUtils.generateNewVersion(null, false))
+        		.category(FormulaCategory.CALCULATION)
                 .createdBy(authService.getCurrentPrincipalName())
-                .createdOn(date)
+                .createdOn(LocalDateTime.now(clock))
                 .build();
-
         return save(formula);
     }
 
@@ -72,11 +71,11 @@ public class FormulaService {
             throw new FormulaNotFoundException(formulaId);
         }
         authService.performOwnershipCheck(existingFormula.get().getCreatedBy());
-        
+
         LocalDateTime date = LocalDateTime.now(clock);
         Formula previousFormula = existingFormula.get();
         Long previousFormulaId = previousFormula.getId();
-        
+
         Formula updatedFormula = modelMapper.map(formulaDTO, previousFormula)
                 .id(null) //To create new formula
                 .versionNumber(VersionUtils.generateNewVersion(formulaDTO.getVersionNumber(), false))

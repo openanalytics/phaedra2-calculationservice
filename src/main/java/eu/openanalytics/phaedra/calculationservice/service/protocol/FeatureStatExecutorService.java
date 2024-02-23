@@ -1,7 +1,7 @@
 /**
  * Phaedra II
  *
- * Copyright (C) 2016-2023 Open Analytics
+ * Copyright (C) 2016-2024 Open Analytics
  *
  * ===========================================================================
  *
@@ -51,10 +51,10 @@ import eu.openanalytics.phaedra.scriptengine.dto.ScriptExecutionOutputDTO;
 
 /**
  * Feature Stats are sets of statistical values about a feature.
- * 
+ *
  * Typically this includes min/mean/median/max values for the whole plate,
  * but also stats for each welltype present in the plate.
- * 
+ *
  * Feature Stats can be calculated as soon as the Feature itself has been calculated.
  */
 @Service
@@ -65,7 +65,7 @@ public class FeatureStatExecutorService {
 
     private final ObjectMapper objectMapper;
     private final ModelMapper modelMapper;
-    
+
     private final Logger logger = LoggerFactory.getLogger(getClass());
 
     public FeatureStatExecutorService(ObjectMapper objectMapper, ModelMapper modelMapper, KafkaProducerService kafkaProducerService, ScriptExecutionService scriptExecutionService) {
@@ -83,7 +83,7 @@ public class FeatureStatExecutorService {
         for (FeatureStatDTO fs: statsToCalculate) {
         	Formula formula = ctx.getProtocolData().formulas.get(fs.getFormulaId());
         	Map<String, Object> inputData = collectStatInputData(ctx, feature, fs, values);
-        	
+
         	scriptExecutionService
         		.submit(formula.getLanguage(), formula.getFormula(), inputData)
         		.addCallback(output -> {
@@ -111,9 +111,9 @@ public class FeatureStatExecutorService {
 
     private List<ResultFeatureStatDTO> parseResults(CalculationContext ctx, FeatureDTO feature, FeatureStatDTO featureStat, ScriptExecutionOutputDTO output) throws JsonProcessingException {
     	List<ResultFeatureStatDTO> results = new ArrayList<>();
-    	
+
 		OutputWrapper outputWrapper = objectMapper.readValue(output.getOutput(), OutputWrapper.class);
-        
+
 		if (featureStat.getPlateStat()) {
 			results.add(parseResult(feature, featureStat, output, outputWrapper.getPlateValue().orElse(Float.NaN), null));
 		} else if (featureStat.getWelltypeStat()) {
@@ -126,10 +126,10 @@ public class FeatureStatExecutorService {
 		} else {
 			throw new CalculationException(String.format("Invalid feature stat: %s", featureStat.getName()), feature);
 		}
-    	
+
     	return results;
     }
-    
+
     private ResultFeatureStatDTO parseResult(FeatureDTO feature, FeatureStatDTO featureStat, ScriptExecutionOutputDTO output, Float value, String wellType) {
     	return ResultFeatureStatDTO.builder()
 	        .featureId(feature.getId())
@@ -140,7 +140,7 @@ public class FeatureStatExecutorService {
 	        .statusCode(modelMapper.map(output.getStatusCode()))
 	        .statusMessage(output.getStatusMessage())
 	        .exitCode(output.getExitCode())
-	        .build();	
+	        .build();
     }
 
     private static class OutputWrapper {

@@ -1,7 +1,7 @@
 /**
  * Phaedra II
  *
- * Copyright (C) 2016-2023 Open Analytics
+ * Copyright (C) 2016-2024 Open Analytics
  *
  * ===========================================================================
  *
@@ -30,7 +30,7 @@ import eu.openanalytics.phaedra.plateservice.dto.WellDTO;
 import eu.openanalytics.phaedra.util.WellNumberUtils;
 
 public class CalculationInputHelper {
-	
+
 	public static enum InputName {
 		lowWellType,
 		highWellType,
@@ -51,10 +51,10 @@ public class CalculationInputHelper {
 			// Sort wells by wellNumber
 			List<WellDTO> wells = new ArrayList<>(ctx.getWells());
 			int columnCount = ctx.getPlate().getColumns();
-			wells.sort((w1, w2) -> { 
+			wells.sort((w1, w2) -> {
 				return WellNumberUtils.getWellNr(w1.getRow(), w1.getColumn(), columnCount) - WellNumberUtils.getWellNr(w2.getRow(), w2.getColumn(), columnCount);
 			});
-			
+
 			inputMap.put(InputName.wellNumbers.name(), wells.stream().map(w -> WellNumberUtils.getWellNr(w.getRow(), w.getColumn(), columnCount)).toList());
 			inputMap.put(InputName.wellTypes.name(), wells.stream().map(WellDTO::getWellType).toList());
 			inputMap.put(InputName.wellRows.name(), wells.stream().map(WellDTO::getRow).toList());
@@ -62,11 +62,11 @@ public class CalculationInputHelper {
 			inputMap.put(InputName.wellStatus.name(), wells.stream().map(w -> w.getStatus().getCode()).toList());
 		}
 	}
-	
+
 	public static List<String> getReservedInputNames() {
 		return Arrays.stream(InputName.values()).map(n -> n.name()).toList();
 	}
-	
+
 	public static boolean isReservedInputName(String name) {
 		return getReservedInputNames().contains(name);
 	}

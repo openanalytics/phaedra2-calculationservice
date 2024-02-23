@@ -1,7 +1,7 @@
 /**
  * Phaedra II
  *
- * Copyright (C) 2016-2023 Open Analytics
+ * Copyright (C) 2016-2024 Open Analytics
  *
  * ===========================================================================
  *
@@ -32,22 +32,22 @@ public class CalculationException extends RuntimeException {
 	public CalculationException(String msg) {
 		super(msg);
 	}
-	
+
 	public CalculationException(String msg, Object... args) {
 		super(String.format(msg, args));
 	}
-	
+
 	public static void doThrow(String msg, Object...args) {
 		StringBuilder errorMessage = new StringBuilder();
     	errorMessage.append(msg);
-    	
+
     	for (Object arg: args) {
     		if (arg instanceof FeatureDTO) errorMessage.append(String.format(" [feature %s (%d)]", ((FeatureDTO) arg).getName(), ((FeatureDTO) arg).getId()));
     		if (arg instanceof Formula) errorMessage.append(String.format(" [formula %s (%d)]", ((Formula) arg).getName(), ((Formula) arg).getId()));
     		if (arg instanceof CalculationInputValueDTO) errorMessage.append(String.format(" [variable %s (%d)]", ((CalculationInputValueDTO) arg).getVariableName()));
     		if (arg instanceof FeatureStatDTO) errorMessage.append(String.format(" [stat %s (%d)]", ((FeatureStatDTO) arg).getName(), ((FeatureStatDTO) arg).getId()));
     	}
-    	
+
     	throw new CalculationException(errorMessage.toString());
 	}
 }

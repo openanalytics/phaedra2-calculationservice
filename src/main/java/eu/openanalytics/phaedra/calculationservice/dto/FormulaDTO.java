@@ -1,7 +1,7 @@
 /**
  * Phaedra II
  *
- * Copyright (C) 2016-2023 Open Analytics
+ * Copyright (C) 2016-2024 Open Analytics
  *
  * ===========================================================================
  *
@@ -52,7 +52,6 @@ public class FormulaDTO {
 
     String description;
 
-    @NotNull(message = "Category is mandatory", groups = {OnCreate.class})
     FormulaCategory category;
 
     @NotBlank(message = "Formula is mandatory", groups = {OnCreate.class})
@@ -67,7 +66,7 @@ public class FormulaDTO {
     Long previousVersionId;
 
     String versionNumber;
-    
+
     boolean deprecated;
 
     @Null(groups = {OnCreate.class, OnUpdate.class}, message = "CreatedBy must be null when creating a formula")

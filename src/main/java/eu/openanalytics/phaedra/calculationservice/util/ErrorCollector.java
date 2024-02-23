@@ -1,7 +1,7 @@
 /**
  * Phaedra II
  *
- * Copyright (C) 2016-2023 Open Analytics
+ * Copyright (C) 2016-2024 Open Analytics
  *
  * ===========================================================================
  *
@@ -111,7 +111,7 @@ public class ErrorCollector {
 
         var error = errorBuilder.build();
         errors.add(error);
-        
+
         if (exception.isPresent()) {
             log(logger, ctx, "Error added to ErrorCollector" + error.toString(), exception.get());
         } else {

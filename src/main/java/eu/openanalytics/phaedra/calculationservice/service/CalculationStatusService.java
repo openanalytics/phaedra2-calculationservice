@@ -1,7 +1,7 @@
 /**
  * Phaedra II
  *
- * Copyright (C) 2016-2023 Open Analytics
+ * Copyright (C) 2016-2024 Open Analytics
  *
  * ===========================================================================
  *
@@ -106,7 +106,7 @@ public class CalculationStatusService {
      * @throws PlateUnresolvableException
      */
     public CalculationStatus getStatus(long resultSetId) throws ResultDataUnresolvableException, ResultSetUnresolvableException, ResultFeatureStatUnresolvableException, ProtocolUnresolvableException, PlateUnresolvableException {
-    	
+
         var resultSet = resultDataServiceClient.getResultSet(resultSetId);
         var protocolData = protocolInfoCollector.getProtocolData(resultSet.getProtocolId());
         var wells = plateServiceClient.getWells(resultSet.getPlateId());
@@ -154,7 +154,7 @@ public class CalculationStatusService {
 
         var sequenceFeatures = ctx.getProtocolData().protocol.getFeatures().stream()
         		.filter(f -> f.getSequence() == sequence).toList();
-        
+
         for (var feature : sequenceFeatures) {
             var statusCode = getFeatureStatus(resultData.get(feature.getId()), defaultIfMissing);
             HashMap<Long, CalculationStatus.StatusDescription> statStatuses;
@@ -214,7 +214,7 @@ public class CalculationStatusService {
         var featureStats = ctx.getProtocolData().featureStats.get(feature.getId());
         var statResultsByStatId = Objects.requireNonNullElse(statData, new ArrayList<ResultFeatureStatDTO>()).stream().collect(Collectors.groupingBy(ResultFeatureStatDTO::getFeatureStatId, Collectors.toList()));
         int numberOfWellTypes = (int) ctx.getWells().stream().map(WellDTO::getWellType).distinct().count();
-        
+
         for (var featureStat : featureStats) {
             var numOfExpectedResults = getNumOfExpectedFeatureStats(featureStat, numberOfWellTypes);
             var statResults = statResultsByStatId.get(featureStat.getId());
@@ -244,7 +244,7 @@ public class CalculationStatusService {
     }
 
     private CalculationStatus.CalculationComplexityDTO getComplexity(CalculationContext ctx) {
-    	
+
         int numberOfFeatures = ctx.getProtocolData().protocol.getFeatures().size();
         int numberOfFeatureStats = (int) ctx.getProtocolData().featureStats.values().stream().flatMap(l -> l.stream()).count();
         int numberOfWellTypes = (int) ctx.getWells().stream().map(WellDTO::getWellType).distinct().count();
@@ -262,7 +262,7 @@ public class CalculationStatusService {
                 numberOfSequences
         );
     }
-    
+
     /**
      * Calculates the StatusDescription for a sequence based on the statuses of the feature and featueStats of the sequence.
      * @param featureStatuses the statuses of the features in this sequence
