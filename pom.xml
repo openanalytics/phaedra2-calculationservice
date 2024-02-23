@@ -6,7 +6,7 @@
     <parent>
         <groupId>eu.openanalytics.phaedra</groupId>
         <artifactId>phaedra2-parent</artifactId>
-        <version>2.0.3-SNAPSHOT</version>
+        <version>2.0.3</version>
     </parent>
 
     <artifactId>phaedra2-calculationservice</artifactId>
@@ -15,6 +15,13 @@
 
 	<properties>
 		<docker.filter>${docker.imageName}</docker.filter> <!-- Only build app docker image, no liquibase image -->
+		<phaedra2-scriptengine-dto.version>2.0.3</phaedra2-scriptengine-dto.version>
+		<phaedra2-resultdataservice-client.version>2.0.3</phaedra2-resultdataservice-client.version>
+		<phaedra2-protocolservice-client.version>2.0.3</phaedra2-protocolservice-client.version>
+		<phaedra2-plateservice-client.version>2.0.3</phaedra2-plateservice-client.version>
+        <phaedra2-measurementservice-client.version>2.0.3</phaedra2-measurementservice-client.version>
+        <phaedra2-curvedataservice-client.version>2.0.3</phaedra2-curvedataservice-client.version>
+        <phaedra2-metadataservice-client.version>2.0.3</phaedra2-metadataservice-client.version>
 	</properties>
 
     <dependencies>
@@ -32,37 +39,37 @@
         <dependency>
             <groupId>eu.openanalytics.phaedra</groupId>
             <artifactId>phaedra2-resultdataservice-client</artifactId>
-            <version>2.0.3-SNAPSHOT</version>
+            <version>${phaedra2-resultdataservice-client.version}</version>
         </dependency>
         <dependency>
             <groupId>eu.openanalytics.phaedra</groupId>
             <artifactId>phaedra2-scriptengine-dto</artifactId>
-            <version>2.0.3-SNAPSHOT</version>
+            <version>${phaedra2-scriptengine-dto.version}</version>
         </dependency>
         <dependency>
             <groupId>eu.openanalytics.phaedra</groupId>
             <artifactId>phaedra2-protocolservice-client</artifactId>
-            <version>2.0.3-SNAPSHOT</version>
+            <version>${phaedra2-protocolservice-client.version}</version>
         </dependency>
         <dependency>
             <groupId>eu.openanalytics.phaedra</groupId>
             <artifactId>phaedra2-plateservice-client</artifactId>
-            <version>2.0.3-SNAPSHOT</version>
+            <version>${phaedra2-plateservice-client.version}</version>
         </dependency>
         <dependency>
             <groupId>eu.openanalytics.phaedra</groupId>
             <artifactId>phaedra2-measurementservice-client</artifactId>
-            <version>2.0.3-SNAPSHOT</version>
+            <version>${phaedra2-measurementservice-client.version}</version>
         </dependency>
         <dependency>
             <groupId>eu.openanalytics.phaedra</groupId>
             <artifactId>phaedra2-curvedataservice-client</artifactId>
-            <version>2.0.3-SNAPSHOT</version>
+            <version>${phaedra2-curvedataservice-client.version}</version>
         </dependency>
         <dependency>
             <groupId>eu.openanalytics.phaedra</groupId>
             <artifactId>phaedra2-metadataservice-client</artifactId>
-            <version>2.0.3-SNAPSHOT</version>
+            <version>${phaedra2-metadataservice-client.version}</version>
         </dependency>
 
         <!-- Test dependencies -->
