@@ -14,7 +14,7 @@
     <version>2.0.4-SNAPSHOT</version>
 
 	<properties>
-		<docker.filter>${docker.imageName}</docker.filter> <!-- Only build app docker image, no liquibase image -->
+		<docker.filter>${docker.imageName}${docker.imageNameSuffix}</docker.filter> <!-- Only build app docker image, no liquibase image -->
 		<phaedra2-scriptengine-dto.version>2.0.4-SNAPSHOT</phaedra2-scriptengine-dto.version>
 		<phaedra2-resultdataservice-client.version>2.0.4-SNAPSHOT</phaedra2-resultdataservice-client.version>
 		<phaedra2-protocolservice-client.version>2.0.4-SNAPSHOT</phaedra2-protocolservice-client.version>
@@ -97,6 +97,10 @@
                 <groupId>org.springframework.boot</groupId>
                 <artifactId>spring-boot-maven-plugin</artifactId>
             </plugin>
+            <plugin>
+			    <groupId>org.codehaus.mojo</groupId>
+			    <artifactId>build-helper-maven-plugin</artifactId>
+			</plugin>
             <plugin>
                 <groupId>io.fabric8</groupId>
 				<artifactId>docker-maven-plugin</artifactId>
