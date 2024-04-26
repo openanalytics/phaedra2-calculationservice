@@ -24,5 +24,6 @@ public enum FormulaCategory {
     CALCULATION,
     HIT_CALLING,
     OUTLIER_DETECTION,
-    POLISHING
+    POLISHING,
+    CURVE_FITTING
 }

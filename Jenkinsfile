@@ -78,7 +78,7 @@ pipeline {
                 container('builder') {
                     withDockerRegistry([credentialsId: "oa-sa-jenkins-registry", url: "https://registry.openanalytics.eu"]) {
                         configFileProvider([configFile(fileId: 'maven-settings-rsb', variable: 'MAVEN_SETTINGS_RSB')]) {
-                            sh "mvn -s \$MAVEN_SETTINGS_RSB docker:build ${env.MVN_ARGS}"
+                            sh "mvn -s \$MAVEN_SETTINGS_RSB validate docker:build ${env.MVN_ARGS}"
                         }
                     }
                 }
@@ -90,7 +90,7 @@ pipeline {
                 container('builder') {
                     withDockerRegistry([credentialsId: "oa-sa-jenkins-registry", url: "https://registry.openanalytics.eu"]) {
                         configFileProvider([configFile(fileId: 'maven-settings-rsb', variable: 'MAVEN_SETTINGS_RSB')]) {
-                            sh "mvn -s \$MAVEN_SETTINGS_RSB docker:push -Ddocker.push.registry=${REGISTRY} ${env.MVN_ARGS}"
+                            sh "mvn -s \$MAVEN_SETTINGS_RSB validate docker:push -Ddocker.push.registry=${REGISTRY} ${env.MVN_ARGS}"
                         }
                     }
                 }

@@ -75,5 +75,7 @@
             <column name="deprecated" type="boolean" defaultValue="false" />
         </addColumn>
     </changeSet>
-
+    <changeSet id="7" author="sberberovic">
+        <sql>ALTER TYPE category ADD VALUE IF NOT EXISTS 'CURVE_FITTING'</sql>
+    </changeSet>
 </databaseChangeLog>
