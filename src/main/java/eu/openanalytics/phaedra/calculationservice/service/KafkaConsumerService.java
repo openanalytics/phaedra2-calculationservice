@@ -33,9 +33,9 @@ import org.springframework.stereotype.Service;
 import eu.openanalytics.phaedra.calculationservice.config.KafkaConfig;
 import eu.openanalytics.phaedra.calculationservice.dto.CalculationRequestDTO;
 import eu.openanalytics.phaedra.calculationservice.dto.CurveFittingRequestDTO;
+import eu.openanalytics.phaedra.calculationservice.execution.script.ScriptExecutionService;
 import eu.openanalytics.phaedra.calculationservice.service.protocol.CurveFittingExecutorService;
 import eu.openanalytics.phaedra.calculationservice.service.protocol.ProtocolExecutorService;
-import eu.openanalytics.phaedra.calculationservice.service.script.ScriptExecutionService;
 import eu.openanalytics.phaedra.resultdataservice.dto.ResultDataDTO;
 import eu.openanalytics.phaedra.resultdataservice.dto.ResultFeatureStatDTO;
 import eu.openanalytics.phaedra.resultdataservice.dto.ResultSetDTO;
@@ -77,18 +77,18 @@ public class KafkaConsumerService {
     @KafkaListener(topics = KafkaConfig.TOPIC_RESULTDATA, groupId = KafkaConfig.GROUP_ID + "_resSet", filter = "resultSetUpdatedFilter")
     public void onResultSetEvent(ResultSetDTO resultSet) {
     	logger.info(KafkaConfig.GROUP_ID + ": received a resultSet update event");
-    	protocolExecutorService.handleResultSetUpdate(resultSet);
+    	protocolExecutorService.handleResultSetUpdate(resultSet.getId(), resultSet);
     }
 
     @KafkaListener(topics = KafkaConfig.TOPIC_RESULTDATA, groupId = KafkaConfig.GROUP_ID + "_resData", filter = "resultDataUpdatedFilter")
     public void onResultDataEvent(ResultDataDTO resultData) {
     	logger.info(KafkaConfig.GROUP_ID + ": received a resultData update event");
-    	protocolExecutorService.handleResultSetUpdate(resultData);
+    	protocolExecutorService.handleResultSetUpdate(resultData.getResultSetId(), resultData);
     }
 
     @KafkaListener(topics = KafkaConfig.TOPIC_RESULTDATA, groupId = KafkaConfig.GROUP_ID + "_resStats", filter = "resultFeatureStatUpdatedFilter")
     public void onResultFeatureStatEvent(ResultFeatureStatDTO resultFeatureStat) {
     	logger.info(KafkaConfig.GROUP_ID + ": received a resultFeatureStat update event");
-    	protocolExecutorService.handleResultSetUpdate(resultFeatureStat);
+    	protocolExecutorService.handleResultSetUpdate(resultFeatureStat.getResultSetId(), resultFeatureStat);
     }
 }

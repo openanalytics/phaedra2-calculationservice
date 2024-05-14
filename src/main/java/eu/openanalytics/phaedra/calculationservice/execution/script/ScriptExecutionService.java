@@ -18,7 +18,7 @@
  * You should have received a copy of the Apache License
  * along with this program.  If not, see <http://www.apache.org/licenses/>
  */
-package eu.openanalytics.phaedra.calculationservice.service.script;
+package eu.openanalytics.phaedra.calculationservice.execution.script;
 
 import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;

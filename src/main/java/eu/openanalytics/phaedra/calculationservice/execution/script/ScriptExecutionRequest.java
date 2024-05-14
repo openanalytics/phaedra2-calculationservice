@@ -18,7 +18,7 @@
  * You should have received a copy of the Apache License
  * along with this program.  If not, see <http://www.apache.org/licenses/>
  */
-package eu.openanalytics.phaedra.calculationservice.service.script;
+package eu.openanalytics.phaedra.calculationservice.execution.script;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -38,7 +38,6 @@ public class ScriptExecutionRequest {
 
 	private ScriptExecutionInputDTO input;
 	private volatile ScriptExecutionOutputDTO output;
-	private volatile boolean outputAvailable;
 
 	private int currentTry;
 	private int maxRetryCount;
@@ -53,7 +52,6 @@ public class ScriptExecutionRequest {
 
 	public void signalOutputAvailable(ScriptExecutionOutputDTO output) {
 		synchronized(this) {
-            outputAvailable = true;
             this.output = output;
             notifyAll();
         }
@@ -62,10 +60,10 @@ public class ScriptExecutionRequest {
         }
 	}
 
-	public synchronized ScriptExecutionOutputDTO awaitOutput() throws InterruptedException {
-		while (!this.outputAvailable) {
-            wait();
-        }
-		return output;
-	}
+//	public synchronized ScriptExecutionOutputDTO awaitOutput() throws InterruptedException {
+//		while (!this.outputAvailable) {
+//            wait();
+//        }
+//		return output;
+//	}
 }

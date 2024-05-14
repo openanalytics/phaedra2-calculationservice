@@ -34,7 +34,9 @@ import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
 
 import eu.openanalytics.phaedra.calculationservice.dto.event.CalculationEvent;
-import eu.openanalytics.phaedra.calculationservice.model.CalculationContext;
+import eu.openanalytics.phaedra.calculationservice.execution.CalculationContext;
+import eu.openanalytics.phaedra.calculationservice.execution.progress.CalculationStage;
+import eu.openanalytics.phaedra.calculationservice.execution.progress.CalculationStateEventCode;
 import eu.openanalytics.phaedra.calculationservice.service.KafkaProducerService;
 import eu.openanalytics.phaedra.plateservice.client.PlateServiceClient;
 import eu.openanalytics.phaedra.plateservice.client.exception.PlateUnresolvableException;
@@ -43,14 +45,11 @@ import eu.openanalytics.phaedra.plateservice.enumeration.CalculationStatus;
 import eu.openanalytics.phaedra.protocolservice.client.exception.ProtocolUnresolvableException;
 import eu.openanalytics.phaedra.resultdataservice.client.ResultDataServiceClient;
 import eu.openanalytics.phaedra.resultdataservice.client.exception.ResultSetUnresolvableException;
-import eu.openanalytics.phaedra.resultdataservice.dto.ResultDataDTO;
-import eu.openanalytics.phaedra.resultdataservice.dto.ResultFeatureStatDTO;
-import eu.openanalytics.phaedra.resultdataservice.dto.ResultSetDTO;
 import eu.openanalytics.phaedra.resultdataservice.enumeration.StatusCode;
 
 /**
- * This service is responsible for executing, and tracking the progress of execution for,
- * an entire protocol on a plate. This is also called "plate calculation".
+ * This service is responsible for executing an entire protocol on a plate-measurement.
+ * This is also called "plate calculation".
  *
  * A protocol consists of a list of features, which must be executed in the correct order.
  * Therefore, the features are grouped into "sequences", and each sequence must be completed
@@ -98,86 +97,60 @@ public class ProtocolExecutorService {
         return resultSetIdFuture;
     }
 
+    /**
+     * Process the update of a ResultSet. Should only be called by Kafka message processing.
+     */
+    public void handleResultSetUpdate(Long resultSetId, Object payload) {
+    	CalculationContext ctx = activeContexts.get(resultSetId);
+    	if (ctx == null) return;
+    	ctx.getStateTracker().handleResultSetUpdate(payload);
+    }
+    
     private void triggerProtocolExecution(CompletableFuture<Long> resultSetIdFuture, long protocolId, long plateId, long measId) throws ProtocolUnresolvableException, ResultSetUnresolvableException, PlateUnresolvableException {
     	// Collect all required input data and create a ResultSet instance
         var protocolData = protocolDataCollector.getProtocolData(protocolId);
         var plate = plateServiceClient.getPlate(plateId);
         var wells = plateServiceClient.getWells(plateId);
+        
         var resultSet = resultDataServiceClient.createResultDataSet(protocolId, plateId, measId);
         resultSetIdFuture.complete(resultSet.getId());
 
-        CalculationContext ctx = CalculationContext.newInstance(protocolData, plate, wells, resultSet.getId(), measId);
-        log(logger, ctx, "Executing protocol %d", protocolId);
-        emitCalculationEvent(ctx, CalculationStatus.CALCULATION_IN_PROGRESS);
+        CalculationContext ctx = CalculationContext.create(protocolData, plate, wells, resultSet.getId(), measId);
         activeContexts.put(resultSet.getId(), ctx);
+        emitCalculationEvent(ctx, CalculationStatus.CALCULATION_IN_PROGRESS);
 
-        // Start the first sequence
-        triggerSequenceExecution(ctx, ctx.getCalculationProgress().getCurrentSequence());
+        ctx.getStateTracker().addEventListener(CalculationStage.Sequence, CalculationStateEventCode.Complete, null, req -> triggerNextSequence(ctx));
+        ctx.getStateTracker().addEventListener(CalculationStage.Sequence, CalculationStateEventCode.Error, null, req -> handleCalculationEnded(ctx));
+        ctx.getStateTracker().addEventListener(CalculationStage.Protocol, CalculationStateEventCode.Complete, null, req -> handleCalculationEnded(ctx));
+        
+        // Trigger the first sequence now
+        triggerNextSequence(ctx);
     }
 
-    private void triggerSequenceExecution(CalculationContext ctx, Integer sequence) {
-    	log(logger, ctx, "Executing sequence %d", sequence);
+    private void triggerNextSequence(CalculationContext ctx) {
+    	ctx.getStateTracker().incrementCurrentSequence();
     	ctx.getProtocolData().protocol.getFeatures().parallelStream()
-        		.filter(f -> f.getSequence() == sequence)
-        		.map(f -> featureExecutorService.executeFeature(ctx, f, sequence))
-        		.filter(r -> r != null)
-        		.toList();
+    		.filter(f -> f.getSequence() == ctx.getStateTracker().getCurrentSequence())
+    		.forEach(f -> featureExecutorService.executeFeature(ctx, f));
     }
 
-    public void handleResultSetUpdate(Object resultObject) {
-    	Long rsId = null;
-    	if (resultObject instanceof ResultSetDTO) {
-    		rsId = ((ResultSetDTO) resultObject).getId();
-    	} else if (resultObject instanceof ResultDataDTO) {
-    		rsId = ((ResultDataDTO) resultObject).getResultSetId();
-    	} else if (resultObject instanceof ResultFeatureStatDTO) {
-    		rsId = ((ResultFeatureStatDTO) resultObject).getResultSetId();
-    	}
-    	if (rsId == null) return;
-
-    	CalculationContext ctx = activeContexts.get(rsId);
-    	if (ctx == null) return;
-
-    	ctx.getCalculationProgress().updateProgress(resultObject);
-    	log(logger, ctx, "Calculation progress: %f", ctx.getCalculationProgress().getCompletedFraction());
-
-    	if (ctx.getCalculationProgress().isComplete()) {
-    		handleCalculationEnded(ctx);
-    	} else if (ctx.getCalculationProgress().isCurrentSequenceComplete()) {
-    		if (ctx.getErrorCollector().hasError()) {
-    			handleCalculationEnded(ctx);
-    		} else {
-    			ctx.getCalculationProgress().incrementCurrentSequence();
-    			triggerSequenceExecution(ctx, ctx.getCalculationProgress().getCurrentSequence());
-    		}
-    	}
-    }
-
-    private ResultSetDTO handleCalculationEnded(CalculationContext ctx) {
+    private void handleCalculationEnded(CalculationContext ctx) {
     	activeContexts.remove(ctx.getResultSetId());
-
-    	ResultSetDTO rs = null;
-        if (ctx.getErrorCollector().hasError()) {
-        	logger.warn("Calculation failed with errors:\n" + ctx.getErrorCollector().getErrorDescription());
-        	emitCalculationEvent(ctx, CalculationStatus.CALCULATION_ERROR);
-			try {
-				rs = resultDataServiceClient.completeResultDataSet(ctx.getResultSetId(), StatusCode.FAILURE, ctx.getErrorCollector().getErrors(), ctx.getErrorCollector().getErrorDescription());
-			} catch (ResultSetUnresolvableException e) {
-				logger.error("Unexpected error while updating result set", e);
-			}
-        } else {
-        	log(logger, ctx, "Calculation finished: SUCCESS");
-        	emitCalculationEvent(ctx, CalculationStatus.CALCULATION_OK);
-			try {
-				rs = resultDataServiceClient.completeResultDataSet(ctx.getResultSetId(), StatusCode.SUCCESS, new ArrayList<>(), "");
-			} catch (ResultSetUnresolvableException e) {
-				logger.error("Unexpected error while updating result set", e);
-			}
-        }
-        return rs;
+    	try {
+	        if (ctx.getErrorCollector().hasError()) {
+	        	logger.warn("Calculation failed with errors:\n" + ctx.getErrorCollector().getErrorDescription());
+	        	emitCalculationEvent(ctx, CalculationStatus.CALCULATION_ERROR);
+				resultDataServiceClient.completeResultDataSet(ctx.getResultSetId(), StatusCode.FAILURE, ctx.getErrorCollector().getErrors(), ctx.getErrorCollector().getErrorDescription());
+	        } else {
+	        	log(logger, ctx, "Calculation finished: SUCCESS");
+	        	emitCalculationEvent(ctx, CalculationStatus.CALCULATION_OK);
+				resultDataServiceClient.completeResultDataSet(ctx.getResultSetId(), StatusCode.SUCCESS, new ArrayList<>(), "");
+	        }
+    	} catch (ResultSetUnresolvableException e) {
+    		logger.error("Unexpected error while updating result set", e);
+    	}
     }
-
-
+    
     private void emitCalculationEvent(CalculationContext ctx, CalculationStatus calculationStatus) {
     	CalculationEvent event = CalculationEvent.builder()
     			.plateId(ctx.getPlate().getId())
@@ -187,7 +160,7 @@ public class ProtocolExecutorService {
     			.build();
     	kafkaProducerService.notifyCalculationEvent(event);
 
-    	//TODO: deprecate, have plate-service consume CalculationEvents instead
+    	//TODO: deprecate, PlateService should update its own state by consuming CalculationEvents
     	PlateCalculationStatusDTO plateCalcStatus = PlateCalculationStatusDTO.builder()
     			.plateId(ctx.getPlate().getId())
     			.calculationStatus(calculationStatus).build();

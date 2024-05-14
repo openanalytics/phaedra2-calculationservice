@@ -18,45 +18,46 @@
  * You should have received a copy of the Apache License
  * along with this program.  If not, see <http://www.apache.org/licenses/>
  */
-package eu.openanalytics.phaedra.calculationservice.model;
+package eu.openanalytics.phaedra.calculationservice.execution;
 
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
+import eu.openanalytics.phaedra.calculationservice.execution.progress.CalculationStateTracker;
+import eu.openanalytics.phaedra.calculationservice.service.protocol.ProtocolDataCollector.ProtocolData;
+import eu.openanalytics.phaedra.calculationservice.util.ErrorCollector;
 import eu.openanalytics.phaedra.plateservice.dto.PlateDTO;
 import eu.openanalytics.phaedra.plateservice.dto.WellDTO;
-import eu.openanalytics.phaedra.plateservice.dto.WellSubstanceDTO;
-import eu.openanalytics.phaedra.protocolservice.dto.DRCModelDTO;
-import eu.openanalytics.phaedra.protocolservice.dto.FeatureDTO;
+import eu.openanalytics.phaedra.resultdataservice.dto.ResultDataDTO;
 import lombok.AccessLevel;
 import lombok.AllArgsConstructor;
 import lombok.Data;
-import lombok.NonNull;
 import lombok.Setter;
 
 @Data
 @AllArgsConstructor(access = AccessLevel.PRIVATE)
 @Setter(AccessLevel.PRIVATE)
-public class CurveFittingContext {
-    @NonNull
-    PlateDTO plate;
-    @NonNull
-    List<WellDTO> wells;
-    @NonNull
-    List<WellSubstanceDTO> wellSubstances;
-    @NonNull
-    List<String> uniqueSubstances;
-    @NonNull
-    FeatureDTO feature;
-    @NonNull
-    DRCModelDTO drcModel;
+public class CalculationContext {
 
-    public static CurveFittingContext newInstance(PlateDTO plate,
-                                                  List<WellDTO> wells,
-                                                  List<WellSubstanceDTO> wellSubstances,
-                                                  List<String> uniqueSubstances,
-                                                  FeatureDTO feature,
-                                                  DRCModelDTO drcModel) {
-        CurveFittingContext curveFittingContext = new CurveFittingContext(plate, wells, wellSubstances, uniqueSubstances, feature, drcModel);
-        return curveFittingContext;
+	ProtocolData protocolData;
+	
+    PlateDTO plate;
+    List<WellDTO> wells;
+    
+    Long resultSetId;
+    Long measId;
+
+    Map<Long, ResultDataDTO> featureResults;
+    ErrorCollector errorCollector;
+    CalculationStateTracker stateTracker;
+    
+    public static CalculationContext create(ProtocolData protocolData, PlateDTO plate, List<WellDTO> wells, Long resultSetId, Long measId) {
+    	CalculationContext ctx = new CalculationContext(protocolData, plate, wells, resultSetId, measId, null, null, null);
+    	ctx.stateTracker = new CalculationStateTracker(ctx);
+        ctx.errorCollector = new ErrorCollector(ctx);
+        ctx.featureResults = new HashMap<>();
+        return ctx;
     }
+
 }

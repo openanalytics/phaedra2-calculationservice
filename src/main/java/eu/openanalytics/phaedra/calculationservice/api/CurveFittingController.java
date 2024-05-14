@@ -44,7 +44,7 @@ public class CurveFittingController {
 
     @PostMapping("/curvefit")
     public ResponseEntity<List<CurveDTO>> fitCurve(@RequestBody CurveFittingRequestDTO curveFittingRequestDTO) throws ExecutionException, InterruptedException {
-        var execution = curveFittingExecutorService.execute(curveFittingRequestDTO);
-        return new ResponseEntity<>(execution.curves().get(), HttpStatus.CREATED);
+        var curves = curveFittingExecutorService.execute(curveFittingRequestDTO);
+        return new ResponseEntity<>(curves.get(), HttpStatus.CREATED);
     }
 }

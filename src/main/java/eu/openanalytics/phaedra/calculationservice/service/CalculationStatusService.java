@@ -34,7 +34,7 @@ import org.springframework.stereotype.Service;
 
 import eu.openanalytics.phaedra.calculationservice.dto.CalculationStatus;
 import eu.openanalytics.phaedra.calculationservice.enumeration.CalculationStatusCode;
-import eu.openanalytics.phaedra.calculationservice.model.CalculationContext;
+import eu.openanalytics.phaedra.calculationservice.execution.CalculationContext;
 import eu.openanalytics.phaedra.calculationservice.model.ModelMapper;
 import eu.openanalytics.phaedra.calculationservice.service.protocol.ProtocolDataCollector;
 import eu.openanalytics.phaedra.plateservice.client.PlateServiceClient;
@@ -110,7 +110,7 @@ public class CalculationStatusService {
         var resultSet = resultDataServiceClient.getResultSet(resultSetId);
         var protocolData = protocolInfoCollector.getProtocolData(resultSet.getProtocolId());
         var wells = plateServiceClient.getWells(resultSet.getPlateId());
-        CalculationContext ctx = CalculationContext.newInstance(protocolData, null, wells, resultSetId, resultSet.getMeasId());
+        CalculationContext ctx = CalculationContext.create(protocolData, null, wells, resultSetId, resultSet.getMeasId());
 
         var resultData = resultDataServiceClient.getResultData(resultSetId);
         var resultDataByFeature = resultData.stream().collect(Collectors.toMap(ResultDataDTO::getFeatureId, it -> it));

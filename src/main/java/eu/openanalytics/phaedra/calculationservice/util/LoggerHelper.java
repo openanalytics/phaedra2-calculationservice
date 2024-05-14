@@ -20,8 +20,9 @@
  */
 package eu.openanalytics.phaedra.calculationservice.util;
 
-import eu.openanalytics.phaedra.calculationservice.model.CalculationContext;
 import org.slf4j.Logger;
+
+import eu.openanalytics.phaedra.calculationservice.execution.CalculationContext;
 
 public class LoggerHelper {
 

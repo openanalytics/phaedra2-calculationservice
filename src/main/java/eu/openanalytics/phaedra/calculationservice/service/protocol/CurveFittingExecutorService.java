@@ -20,45 +20,51 @@
  */
 package eu.openanalytics.phaedra.calculationservice.service.protocol;
 
+import static java.lang.Float.NaN;
+import static java.lang.Float.parseFloat;
+import static java.util.stream.IntStream.range;
+import static org.apache.commons.lang3.math.NumberUtils.isCreatable;
+
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.Date;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Optional;
+import java.util.concurrent.Future;
+
+import org.apache.commons.lang3.StringUtils;
+import org.apache.commons.math3.util.Precision;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.springframework.stereotype.Service;
+
 import com.fasterxml.jackson.annotation.JsonCreator;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
+
 import eu.openanalytics.curvedataservice.dto.CurveDTO;
 import eu.openanalytics.curvedataservice.dto.CurvePropertyDTO;
 import eu.openanalytics.phaedra.calculationservice.dto.CurveFittingRequestDTO;
 import eu.openanalytics.phaedra.calculationservice.dto.DRCInputDTO;
 import eu.openanalytics.phaedra.calculationservice.enumeration.ScriptLanguage;
 import eu.openanalytics.phaedra.calculationservice.exception.NoDRCModelDefinedForFeature;
-import eu.openanalytics.phaedra.calculationservice.model.CurveFittingContext;
+import eu.openanalytics.phaedra.calculationservice.execution.CalculationContext;
+import eu.openanalytics.phaedra.calculationservice.execution.progress.CalculationStage;
+import eu.openanalytics.phaedra.calculationservice.execution.progress.CalculationStateEventCode;
+import eu.openanalytics.phaedra.calculationservice.execution.script.ScriptExecutionRequest;
+import eu.openanalytics.phaedra.calculationservice.execution.script.ScriptExecutionService;
 import eu.openanalytics.phaedra.calculationservice.service.KafkaProducerService;
-import eu.openanalytics.phaedra.calculationservice.service.script.ScriptExecutionRequest;
-import eu.openanalytics.phaedra.calculationservice.service.script.ScriptExecutionService;
 import eu.openanalytics.phaedra.plateservice.client.PlateServiceClient;
-import eu.openanalytics.phaedra.plateservice.client.exception.PlateUnresolvableException;
 import eu.openanalytics.phaedra.protocolservice.client.ProtocolServiceClient;
-import eu.openanalytics.phaedra.protocolservice.client.exception.FeatureUnresolvableException;
 import eu.openanalytics.phaedra.protocolservice.dto.DRCModelDTO;
+import eu.openanalytics.phaedra.protocolservice.dto.FeatureDTO;
 import eu.openanalytics.phaedra.protocolservice.record.InputParameter;
 import eu.openanalytics.phaedra.resultdataservice.dto.ResultDataDTO;
+import eu.openanalytics.phaedra.scriptengine.dto.ResponseStatusCode;
 import eu.openanalytics.phaedra.scriptengine.dto.ScriptExecutionOutputDTO;
 import eu.openanalytics.phaedra.util.WellNumberUtils;
-import org.apache.commons.collections4.CollectionUtils;
-import org.apache.commons.math3.util.Precision;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-import org.springframework.stereotype.Service;
-
-import java.util.*;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
-import java.util.concurrent.Future;
-
-import static java.lang.Float.NaN;
-import static java.lang.Float.parseFloat;
-import static java.util.stream.IntStream.range;
-import static org.apache.commons.lang3.StringUtils.isNotBlank;
-import static org.apache.commons.lang3.math.NumberUtils.isCreatable;
 
 @Service
 public class CurveFittingExecutorService {
@@ -70,7 +76,6 @@ public class CurveFittingExecutorService {
     private final ScriptExecutionService scriptExecutionService;
 
     private final ObjectMapper objectMapper;
-    private final ExecutorService executorService;
     private final Logger logger = LoggerFactory.getLogger(getClass());
 
     public CurveFittingExecutorService(
@@ -87,72 +92,120 @@ public class CurveFittingExecutorService {
         this.scriptExecutionService = scriptExecutionService;
 
         this.objectMapper = objectMapper;
-
-        executorService = Executors.newCachedThreadPool();
     }
 
-    public record CurveFittingExecution(Future<List<CurveDTO>> curves) {};
-
-    public CurveFittingExecution execute(CurveFittingRequestDTO curveFittingRequestDTO) {
-        return new CurveFittingExecution(executorService.submit(() -> {
-            try {
-                return executeCurveFit(curveFittingRequestDTO);
-            } catch (Throwable ex) {
-                // print the stack strace. Since the future may never be awaited, we may not see the error otherwise
-                ex.printStackTrace();
-                throw ex;
-            }
-        }));
-    }
-
-    private List<CurveDTO> executeCurveFit(CurveFittingRequestDTO curveFittingRequestDTO) throws PlateUnresolvableException, FeatureUnresolvableException {
-        var plate  = plateServiceClient.getPlate(curveFittingRequestDTO.getPlateId());
-        var wells = plateServiceClient.getWells(curveFittingRequestDTO.getPlateId());
-        var substances = plateServiceClient.getWellSubstances(curveFittingRequestDTO.getPlateId());
-
-        if (curveFittingRequestDTO.getFeatureResultData() == null) {
-            logger.info("Feature result data is null!!");
-            return null;
-        }
-
-        logger.info("Get feature by featureId: " + curveFittingRequestDTO.getFeatureId());
-        var feature = protocolServiceClient.getFeature(curveFittingRequestDTO.getFeatureId());
-        if (feature.getDrcModel() == null) {
-            logger.info("No drcModel found featureId: " + curveFittingRequestDTO.getFeatureId());
-            return null;
-        }
-
-//        var wellSubstances = substances.stream().filter(s -> "COMPOUND".equalsIgnoreCase(s.getType())).toList();
-        logger.info("Nr of substances found for plate " + plate.getId() + ": " + substances.size());
-        var wellSubstancesUnique = substances.stream().map(s -> s.getName()).toList().stream().distinct().toList();
-        logger.info("Nr of unique substances found for plate " + plate.getId() + ": " + wellSubstancesUnique.size());
-
-        if (CollectionUtils.isEmpty(wellSubstancesUnique))
-            return null; //TODO: Return a proper error
-
-        var cfCtx = CurveFittingContext.newInstance(plate, wells, substances, wellSubstancesUnique, feature, feature.getDrcModel());
-
-        List<CurveDTO> results = new ArrayList<>();
-        for (String substance: wellSubstancesUnique) {
-            logger.info("Fit curve for substance " + substance + " and featureId " + curveFittingRequestDTO.getFeatureId());
-            DRCInputDTO drcInput = collectCurveFitInputData(cfCtx, substance, curveFittingRequestDTO.getFeatureResultData());
-
+    public void execute(CalculationContext ctx, FeatureDTO feature) {
+    	if (feature.getDrcModel() == null) {
+    		// There is nothing to fit for this feature.
+    		ctx.getStateTracker().skipStage(feature.getId(), CalculationStage.FeatureCurveFit);
+    		return;
+    	}
+    	
+    	ResultDataDTO resultData = ctx.getFeatureResults().get(feature.getId());
+    	if (resultData == null || resultData.getValues() == null || resultData.getValues().length == 0) {
+    		ctx.getErrorCollector().addError(String.format("Cannot fit curve: no result data available for feature %s", feature), feature);
+    		ctx.getStateTracker().skipStage(feature.getId(), CalculationStage.FeatureCurveFit);
+    		return;
+    	}
+    	
+    	List<String> substanceNames = ctx.getWells().stream().filter(w -> w.getWellSubstance() != null).map(w -> w.getWellSubstance().getName()).distinct().toList();
+    	ctx.getStateTracker().startStage(feature.getId(), CalculationStage.FeatureCurveFit, substanceNames.size());
+    	for (String substance: substanceNames) {
+            DRCInputDTO drcInput = collectCurveFitInputData(ctx, feature, substance);
             ScriptExecutionRequest request = executeReceptor2CurveFit(drcInput);
-            try { request.awaitOutput(); } catch (InterruptedException e) {}
-
-            ScriptExecutionOutputDTO outputDTO = request.getOutput();
-            if (isNotBlank(outputDTO.getOutput())) {
-                logger.info("Output is " + outputDTO.getOutput());
-                DRCOutputDTO drcOutput = collectCurveFitOutputData(outputDTO);
-                if (drcOutput != null)
-                    createNewCurve(drcInput, drcOutput);
-            } else {
-                logger.info("Not output is created!!");
-            }
+            ctx.getStateTracker().trackScriptExecution(feature.getId(), CalculationStage.FeatureCurveFit, request, Collections.singletonMap("substance", substance));
         }
-
-        return results;
+        
+        ctx.getStateTracker().addEventListener(CalculationStage.FeatureCurveFit, CalculationStateEventCode.ScriptOutputAvailable, feature.getId(), requests -> {
+        	requests.stream().forEach(req -> {
+				if (StringUtils.isBlank(req.getOutput().getOutput())) {
+					logger.info("No output is created!!");
+				} else {
+					String substance = (String) ctx.getStateTracker().getRequestContext(req).get("substance");
+					DRCInputDTO drcInput = collectCurveFitInputData(ctx, feature, substance);
+					DRCOutputDTO drcOutput = collectCurveFitOutputData(req.getOutput());
+					if (drcOutput != null) createNewCurve(drcInput, drcOutput);
+				}
+			});
+        });
+        
+        ctx.getStateTracker().addEventListener(CalculationStage.FeatureCurveFit, CalculationStateEventCode.Error, feature.getId(), requests -> {
+        	requests.stream().map(req -> req.getOutput())
+				.filter(o -> o.getStatusCode() != ResponseStatusCode.SUCCESS)
+				.forEach(o -> ctx.getErrorCollector().addError(String.format("Curve fit failed with status %s", o.getStatusCode()), o, feature));
+        });
     }
+    
+    public Future<List<CurveDTO>> execute(CurveFittingRequestDTO curveFittingRequestDTO) {
+    	//TODO Implement curve fitting outside of a CalculationContext
+    	return null;
+    }
+    
+    
+    
+    
+//    public record CurveFittingExecution(Future<List<CurveDTO>> curves) {};
+//
+//    public CurveFittingExecution execute(CurveFittingRequestDTO curveFittingRequestDTO) {
+//        return new CurveFittingExecution(executorService.submit(() -> {
+//            try {
+//                return executeCurveFit(curveFittingRequestDTO);
+//            } catch (Throwable ex) {
+//                // print the stack strace. Since the future may never be awaited, we may not see the error otherwise
+//                ex.printStackTrace();
+//                throw ex;
+//            }
+//        }));
+//    }
+//
+//    private List<CurveDTO> executeCurveFit(CurveFittingRequestDTO curveFittingRequestDTO) throws PlateUnresolvableException, FeatureUnresolvableException {
+//        var plate  = plateServiceClient.getPlate(curveFittingRequestDTO.getPlateId());
+//        var wells = plateServiceClient.getWells(curveFittingRequestDTO.getPlateId());
+//        var substances = plateServiceClient.getWellSubstances(curveFittingRequestDTO.getPlateId());
+//
+//        if (curveFittingRequestDTO.getFeatureResultData() == null) {
+//            logger.info("Feature result data is null!!");
+//            return null;
+//        }
+//
+//        logger.info("Get feature by featureId: " + curveFittingRequestDTO.getFeatureId());
+//        var feature = protocolServiceClient.getFeature(curveFittingRequestDTO.getFeatureId());
+//        if (feature.getDrcModel() == null) {
+//            logger.info("No drcModel found featureId: " + curveFittingRequestDTO.getFeatureId());
+//            return null;
+//        }
+//
+////        var wellSubstances = substances.stream().filter(s -> "COMPOUND".equalsIgnoreCase(s.getType())).toList();
+//        logger.info("Nr of substances found for plate " + plate.getId() + ": " + substances.size());
+//        var wellSubstancesUnique = substances.stream().map(s -> s.getName()).toList().stream().distinct().toList();
+//        logger.info("Nr of unique substances found for plate " + plate.getId() + ": " + wellSubstancesUnique.size());
+//
+//        if (CollectionUtils.isEmpty(wellSubstancesUnique))
+//            return null; //TODO: Return a proper error
+//
+//        var cfCtx = CurveFittingContext.newInstance(plate, wells, substances, wellSubstancesUnique, feature, feature.getDrcModel());
+//
+//        List<CurveDTO> results = new ArrayList<>();
+//        for (String substance: wellSubstancesUnique) {
+//            logger.info("Fit curve for substance " + substance + " and featureId " + curveFittingRequestDTO.getFeatureId());
+//            DRCInputDTO drcInput = collectCurveFitInputData(cfCtx, substance, curveFittingRequestDTO.getFeatureResultData());
+//
+//            ScriptExecutionRequest request = executeReceptor2CurveFit(drcInput);
+//            try { request.awaitOutput(); } catch (InterruptedException e) {}
+//
+//            ScriptExecutionOutputDTO outputDTO = request.getOutput();
+//            if (isNotBlank(outputDTO.getOutput())) {
+//                logger.info("Output is " + outputDTO.getOutput());
+//                DRCOutputDTO drcOutput = collectCurveFitOutputData(outputDTO);
+//                if (drcOutput != null)
+//                    createNewCurve(drcInput, drcOutput);
+//            } else {
+//                logger.info("Not output is created!!");
+//            }
+//        }
+//
+//        return results;
+//    }
 
     private void createNewCurve(DRCInputDTO drcInput, DRCOutputDTO drcOutput) {
         List<CurvePropertyDTO> curvePropertieDTOs = new ArrayList<>();
@@ -229,12 +282,13 @@ public class CurveFittingExecutorService {
         kafkaProducerService.sendCurveData(curveDTO);
     }
 
-    private DRCInputDTO collectCurveFitInputData(CurveFittingContext ctx, String substanceName, ResultDataDTO featureResult) {
+    private DRCInputDTO collectCurveFitInputData(CalculationContext ctx, FeatureDTO feature, String substanceName) {
         var wells = ctx.getWells().stream()
                 .filter(w -> w.getWellSubstance() != null && substanceName.equals(w.getWellSubstance().getName()))
                 .toList();
-        var drcModelDTO = ctx.getDrcModel();
-
+        var drcModelDTO = feature.getDrcModel();
+        ResultDataDTO resultData = ctx.getFeatureResults().get(feature.getId());
+        
         long[] wellIds = new long[wells.size()];
         float[] concs = new float[wells.size()];
         float[] accepts = new float[wells.size()];
@@ -253,15 +307,15 @@ public class CurveFittingExecutorService {
 
             // Set the well feature value
             var valueIndex = WellNumberUtils.getWellNr(wells.get(i).getRow(), wells.get(i).getColumn(), ctx.getPlate().getColumns()) - 1;
-            values[i] = featureResult.getValues()[valueIndex];
+            values[i] = resultData.getValues()[valueIndex];
         });
 
         return DRCInputDTO.builder()
                 .substance(substanceName)
                 .plateId(ctx.getPlate().getId())
-                .feature(ctx.getFeature())
-                .protocolId(ctx.getFeature().getProtocolId())
-                .resultSetId(featureResult.getResultSetId())
+                .feature(feature)
+                .protocolId(feature.getProtocolId())
+                .resultSetId(resultData.getResultSetId())
                 .wells(wellIds)
                 .values(values)
                 .concs(concs)
