@@ -28,7 +28,6 @@ import org.springframework.stereotype.Service;
 import com.fasterxml.jackson.databind.ObjectMapper;
 
 import eu.openanalytics.phaedra.calculationservice.enumeration.CalculationScope;
-import eu.openanalytics.phaedra.calculationservice.exception.CalculationException;
 import eu.openanalytics.phaedra.calculationservice.execution.CalculationContext;
 import eu.openanalytics.phaedra.calculationservice.execution.input.DefaultInputGroupingStrategy;
 import eu.openanalytics.phaedra.calculationservice.execution.input.InputGroup;
@@ -90,8 +89,13 @@ public class FeatureExecutorService {
     	
     	// Retrieve and validate the formula
     	Formula formula = ctx.getProtocolData().formulas.get(feature.getFormulaId());
-    	if (formula.getScope() != CalculationScope.WELL) {
-    		ctx.getErrorCollector().addError("Invalid formula scope for feature calculation", feature, formula);
+    	if (formula == null) {
+    		ctx.getStateTracker().failStage(feature.getId(), CalculationStage.FeatureFormula, 
+    				String.format("Invalid formula ID: %d", feature.getFormulaId()), feature);
+    		return;
+    	} else if (formula.getScope() != CalculationScope.WELL) {
+    		ctx.getStateTracker().failStage(feature.getId(), CalculationStage.FeatureFormula, 
+    				"Invalid formula scope for feature calculation", feature, formula);
     		return;
     	}
     	
@@ -103,19 +107,16 @@ public class FeatureExecutorService {
     		// Submit a script execution for each group
     		for (InputGroup group: groups) {
     			ScriptExecutionRequest request = scriptExecutionService.submit(formula.getLanguage(), formula.getFormula(), group.getInputVariables());
-        		ctx.getStateTracker().trackScriptExecution(feature.getId(), CalculationStage.FeatureFormula, request, null);    			
+        		ctx.getStateTracker().trackScriptExecution(feature.getId(), CalculationStage.FeatureFormula, group.getGroupNumber(), request);    			
     		}
-    	} catch (CalculationException e) {
-    		// Expected errors have already been added to the ErrorCollector at this point.
-    		return;
     	} catch (Exception e) {
-    		// Unexpected errors are registered here.
-    		ctx.getErrorCollector().addError(String.format("Failed to schedule feature calculation: %s", e.getMessage()), feature, formula, e);
+    		ctx.getStateTracker().failStage(feature.getId(), CalculationStage.FeatureFormula, 
+    				String.format("Feature formula evaluation failed: %s", e.getMessage()), feature, formula, e);
         	return;
     	}
     	
     	ctx.getStateTracker().addEventListener(CalculationStage.FeatureFormula, CalculationStateEventCode.ScriptOutputAvailable, feature.getId(), requests -> {
-        	ResultDataDTO resultData = inputGroupingStrategy.mergeOutput(ctx, feature, requests.stream().map(req -> req.getOutput()).collect(Collectors.toSet()));
+        	ResultDataDTO resultData = inputGroupingStrategy.mergeOutput(ctx, feature, requests.values().stream().map(req -> req.getOutput()).collect(Collectors.toSet()));
     		kafkaProducerService.sendResultData(resultData);
     		ctx.getFeatureResults().put(feature.getId(), resultData);
     	});
@@ -126,9 +127,9 @@ public class FeatureExecutorService {
     	});
     	
     	ctx.getStateTracker().addEventListener(CalculationStage.FeatureFormula, CalculationStateEventCode.Error, feature.getId(), requests -> {
-    		requests.stream().map(req -> req.getOutput())
+    		requests.values().stream().map(req -> req.getOutput())
     			.filter(o -> o.getStatusCode() != ResponseStatusCode.SUCCESS)
-    			.forEach(o -> ctx.getErrorCollector().addError(String.format("Script execution failed with status %s", o.getStatusCode()), o, feature, formula));
+    			.forEach(o -> ctx.getErrorCollector().addError(String.format("Script execution failed with status %s: %s", o.getStatusCode(), o.getStatusMessage()), o, feature, formula));
     	});
     }
 }

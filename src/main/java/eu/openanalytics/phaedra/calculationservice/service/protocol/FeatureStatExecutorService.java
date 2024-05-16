@@ -23,10 +23,10 @@ package eu.openanalytics.phaedra.calculationservice.service.protocol;
 import static eu.openanalytics.phaedra.calculationservice.util.LoggerHelper.log;
 
 import java.util.ArrayList;
-import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Map.Entry;
 import java.util.Optional;
 
 import org.slf4j.Logger;
@@ -88,26 +88,33 @@ public class FeatureStatExecutorService {
         // Submit all stat calculation requests
         for (FeatureStatDTO fs: statsToCalculate) {
         	Formula formula = ctx.getProtocolData().formulas.get(fs.getFormulaId());
+        	if (formula == null) {
+        		ctx.getStateTracker().failStage(feature.getId(), CalculationStage.FeatureStatistics, 
+        				String.format("Invalid formula ID for stat '%s': %d", fs.getName(), fs.getFormulaId()), feature);
+        		return;
+        	}
+        	
         	Map<String, Object> inputData = collectStatInputData(ctx, feature, fs);
-
         	ScriptExecutionRequest request = scriptExecutionService.submit(formula.getLanguage(), formula.getFormula(), inputData);
-        	ctx.getStateTracker().trackScriptExecution(feature.getId(), CalculationStage.FeatureStatistics, request, Collections.singletonMap("stat", fs));
+        	ctx.getStateTracker().trackScriptExecution(feature.getId(), CalculationStage.FeatureStatistics, fs.getId(), request);
         }
         
         ctx.getStateTracker().addEventListener(CalculationStage.FeatureStatistics, CalculationStateEventCode.ScriptOutputAvailable, feature.getId(), requests -> {
-        	for (ScriptExecutionRequest request: requests) {
+        	for (Entry<String, ScriptExecutionRequest> request: requests.entrySet()) {
+        		long statId = Long.valueOf(request.getKey());
     			try {
-    				FeatureStatDTO fs = (FeatureStatDTO) ctx.getStateTracker().getRequestContext(request).get("stat");
-    				List<ResultFeatureStatDTO> results = parseResults(ctx, feature, fs, request.getOutput());
+    				FeatureStatDTO fs = ctx.getProtocolData().featureStats.get(feature.getId()).stream().filter(stat -> stat.getId().equals(statId)).findAny().orElse(null);
+    				List<ResultFeatureStatDTO> results = parseResults(ctx, feature, fs, request.getValue().getOutput());
     				kafkaProducerService.sendResultFeatureStats(ctx.getResultSetId(), results);
-    			} catch (CalculationException e) {
-    				ctx.getErrorCollector().addError(String.format("Feature statistic calculation failed: %s", e.getMessage()), e, feature);
+    			} catch (Exception e) {
+    				ctx.getStateTracker().failStage(feature.getId(), CalculationStage.FeatureFormula, 
+    	    				String.format("Feature statistic with ID %d formula evaluation failed: %s", statId, e.getMessage()), feature, e);
     			}
     		}
         });
         
         ctx.getStateTracker().addEventListener(CalculationStage.FeatureStatistics, CalculationStateEventCode.Error, feature.getId(), requests -> {
-        	requests.stream().map(req -> req.getOutput())
+        	requests.values().stream().map(req -> req.getOutput())
 	    		.filter(o -> o.getStatusCode() != ResponseStatusCode.SUCCESS)
 	    		.forEach(o -> ctx.getErrorCollector().addError(String.format("Feature statistic calculation failed with status %s", o.getStatusCode()), o, feature));
         });

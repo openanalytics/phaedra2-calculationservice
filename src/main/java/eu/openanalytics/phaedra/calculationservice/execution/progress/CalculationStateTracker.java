@@ -8,6 +8,7 @@ import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Map.Entry;
 import java.util.Optional;
 import java.util.Set;
 import java.util.function.BiConsumer;
@@ -60,7 +61,7 @@ public class CalculationStateTracker {
 	private Integer currentSequence;
 	private SequenceProgress sequenceProgress;
 	private Set<TrackedScriptExecution> trackedExecutions;
-	private List<BiConsumer<CalculationStateEvent,Set<ScriptExecutionRequest>>> listeners;
+	private List<BiConsumer<CalculationStateEvent,Map<String, ScriptExecutionRequest>>> listeners;
 	
 	private final Logger logger = LoggerFactory.getLogger(getClass());
 	
@@ -75,18 +76,28 @@ public class CalculationStateTracker {
 		sequenceProgress.initStage(featureId, stage, size);
 	}
 	
-	public void trackScriptExecution(long featureId, CalculationStage stage, ScriptExecutionRequest request, Map<String, Object> context) {
+	public void skipStage(long featureId, CalculationStage stage) {
+		startStage(featureId, stage, 1);
+		updateProgress(featureId, stage, "1", CalculationStateEventCode.Complete);
+	}
+	
+	public void failStage(long featureId, CalculationStage stage, String errorMessage, Object... errorContext) {
+		ctx.getErrorCollector().addError(errorMessage, errorContext);
+		startStage(featureId, stage, 1);
+		updateProgress(featureId, stage, "1", CalculationStateEventCode.Error);
+	}
+	
+	public void trackScriptExecution(long featureId, CalculationStage stage, Object groupKey, ScriptExecutionRequest request) {
 		TrackedScriptExecution trackedExec = TrackedScriptExecution.builder()
 				.featureId(featureId)
 				.stage(stage)
 				.request(request)
-				.context(context)
 				.build();
 		trackedExecutions.add(trackedExec);
 		request.addCallback(output -> {
 			trackedExec.request.setOutput(output);
 			CalculationStateEventCode stageOutcome = (output.getStatusCode() == ResponseStatusCode.SUCCESS) ? CalculationStateEventCode.ScriptOutputAvailable : CalculationStateEventCode.Error;
-			updateProgress(trackedExec.featureId, trackedExec.stage, stageOutcome);
+			updateProgress(trackedExec.featureId, trackedExec.stage, String.valueOf(groupKey), stageOutcome);
 		});
 	}
 	
@@ -96,43 +107,21 @@ public class CalculationStateTracker {
 			long featureId = ((ResultDataDTO) payload).getFeatureId();
 			StatusCode statusCode = ((ResultDataDTO) payload).getStatusCode();
 			if (statusCode == StatusCode.SUCCESS) {
-				updateProgress(featureId, CalculationStage.FeatureFormula, CalculationStateEventCode.Complete);
+				updateProgress(featureId, CalculationStage.FeatureFormula, null, CalculationStateEventCode.Complete);
 			} else if (statusCode == StatusCode.FAILURE) {
-				updateProgress(featureId, CalculationStage.FeatureFormula, CalculationStateEventCode.Error);
+				failStage(featureId, CalculationStage.FeatureFormula, "Failed to persist feature result values");
 			}
 		} else if (payload instanceof ResultFeatureStatDTO) {
 			// A statistic for a feature has been saved successfully or encountered an error
 			long featureId = ((ResultFeatureStatDTO) payload).getFeatureId();
 			StatusCode statusCode = ((ResultFeatureStatDTO) payload).getStatusCode();
+			String groupId = String.valueOf(((ResultFeatureStatDTO) payload).getFeatureStatId());
 			if (statusCode == StatusCode.SUCCESS) {
-				updateProgress(featureId, CalculationStage.FeatureStatistics, CalculationStateEventCode.Complete);
+				updateProgress(featureId, CalculationStage.FeatureStatistics, groupId, CalculationStateEventCode.Complete);
 			} else if (statusCode == StatusCode.FAILURE) {
-				updateProgress(featureId, CalculationStage.FeatureStatistics, CalculationStateEventCode.Error);
+				updateProgress(featureId, CalculationStage.FeatureStatistics, groupId, CalculationStateEventCode.Error);
 			}
 		}
-	}
-	
-	private void updateProgress(long featureId, CalculationStage stage, CalculationStateEventCode code) {
-		if (sequenceProgress.hasErrors()) {
-			// If the current sequence already encountered an error, do not process any further codes.
-			return;
-		}
-		
-		sequenceProgress.addOne(featureId, stage, code);
-		
-		CalculationStateEventCode stageOutcome = sequenceProgress.getStageOutcome(featureId, stage);
-		if (stageOutcome != null) {
-			emit(new CalculationStateEvent(stage, stageOutcome, featureId));
-		}
-		
-		CalculationStateEventCode sequenceOutcome = sequenceProgress.getSequenceOutcome(currentSequence, ctx);
-		if (sequenceOutcome != null) {
-			emit(new CalculationStateEvent(CalculationStage.Sequence, sequenceOutcome, null));
-		}
-	}
-	
-	public void skipStage(long featureId, CalculationStage stage) {
-		sequenceProgress.addAll(featureId, stage, CalculationStateEventCode.Complete);
 	}
 	
 	public Integer getCurrentSequence() {
@@ -161,6 +150,10 @@ public class CalculationStateTracker {
 		}
 	}
 	
+	public void addEventListener(CalculationStage stage, CalculationStateEventCode code, Long featureId, Consumer<Map<String, ScriptExecutionRequest>> handler) {
+		listeners.add(new FilterEventListener(stage, code, featureId, handler));
+	}
+
 	private void startTrackingSequence(int sequence) {
 		currentSequence = sequence;
 		log(logger, ctx, "Executing sequence %d", currentSequence);
@@ -169,57 +162,67 @@ public class CalculationStateTracker {
 		emit(new CalculationStateEvent(CalculationStage.Sequence, CalculationStateEventCode.Started, null));
 	}
 	
-	public void addEventListener(CalculationStage stage, CalculationStateEventCode code, Long featureId, Consumer<Set<ScriptExecutionRequest>> handler) {
-		listeners.add(new FilterEventListener(stage, code, featureId, handler));
+	private void updateProgress(long featureId, CalculationStage stage, String groupId, CalculationStateEventCode code) {
+		if (sequenceProgress.hasErrors()) {
+			// If the current sequence already encountered an error, do not process any further codes.
+			return;
+		}
+		
+		sequenceProgress.add(featureId, stage, groupId, code);
+		
+		CalculationStateEventCode stageOutcome = sequenceProgress.getStageOutcome(featureId, stage);
+		CalculationStateEventCode sequenceOutcome = sequenceProgress.getSequenceOutcome(currentSequence, ctx);
+		
+		log(logger, ctx, String.format("Update for feature %d stage %s group %s: %s (stage: %s, sequence: %s)", featureId, stage, groupId, code, stageOutcome, sequenceOutcome));
+		
+		if (stageOutcome != null) {
+			emit(new CalculationStateEvent(stage, stageOutcome, featureId));
+		}
+		
+		if (sequenceOutcome != null) {
+			emit(new CalculationStateEvent(CalculationStage.Sequence, sequenceOutcome, null));
+		}
 	}
 	
 	private void emit(CalculationStateEvent event) {
-		Set<ScriptExecutionRequest> requests;
+		Map<String, ScriptExecutionRequest> requests;
 		synchronized (trackedExecutions) {
 			requests = trackedExecutions.stream()
-					.filter(exec -> (event.getFeatureId() == null || exec.featureId == event.getFeatureId()) 
+					.filter(exec -> (event.getFeatureId() == null || event.getFeatureId().equals(exec.featureId)) 
 							&& (event.getStage() == null || exec.stage == event.getStage()))
-					.map(exec -> exec.request)
-					.collect(Collectors.toSet());
+					.collect(Collectors.toMap(exec -> exec.groupId, exec -> exec.request));
 		}
 		synchronized (listeners) {
 			listeners.forEach(l -> l.accept(event, requests));
-//        	ForkJoinPool.commonPool().submit(() -> listeners.forEach(l -> l.accept(event)));
         }
-	}
-
-	public Map<String, Object> getRequestContext(ScriptExecutionRequest request) {
-		synchronized (trackedExecutions) {
-			return trackedExecutions.stream().filter(exec -> exec.request == request).findAny().map(trackedExec -> trackedExec.context).orElse(null);
-		}
 	}
 	
 	private static CalculationStateEventCode aggregateCodes(Set<CalculationStateEventCode> codes, int expectedSize) {
-		if (codes == null || codes.isEmpty() || codes.size() < expectedSize) return null;
-		if (codes.stream().anyMatch(code -> code == null)) return null;
+		if (codes == null || codes.isEmpty()) return null;
 		if (codes.stream().anyMatch(code -> code == CalculationStateEventCode.Error)) return CalculationStateEventCode.Error;
-		return codes.iterator().next();
+		if (codes.size() < expectedSize || codes.stream().anyMatch(code -> code == null)) return null;
+		return codes.iterator().next(); //TODO prioritize (sort) codes
 	}
 	
 	@Builder
 	private static class TrackedScriptExecution {
 		private Long featureId;
 		private CalculationStage stage;
+		private String groupId;
 		private ScriptExecutionRequest request;
-		private Map<String, Object> context;
 	}
 
 	@Builder
-	private static class FilterEventListener implements BiConsumer<CalculationStateEvent,Set<ScriptExecutionRequest>> {
+	private static class FilterEventListener implements BiConsumer<CalculationStateEvent,Map<String, ScriptExecutionRequest>> {
 		
 		private CalculationStage stage;
 		private CalculationStateEventCode code;
 		private Long featureId;
-		private Consumer<Set<ScriptExecutionRequest>> handler;
+		private Consumer<Map<String, ScriptExecutionRequest>> handler;
 		
 		@Override
-		public void accept(CalculationStateEvent event, Set<ScriptExecutionRequest> requests) {
-			if ((stage == null || event.getStage() == stage) && (code == null || event.getCode() == code) && (featureId == null || event.getFeatureId() == featureId)) {
+		public void accept(CalculationStateEvent event, Map<String, ScriptExecutionRequest> requests) {
+			if ((stage == null || event.getStage() == stage) && (code == null || event.getCode() == code) && (featureId == null || featureId.equals(event.getFeatureId()))) {
 				handler.accept(requests);
 			}
 		}
@@ -237,25 +240,15 @@ public class CalculationStateTracker {
 			progressMap.put(Pair.of(featureId, stage), new StageProgress(size));
 		}
 		
-		public synchronized void addOne(long featureId, CalculationStage stage, CalculationStateEventCode code) {
+		public synchronized void add(long featureId, CalculationStage stage, String id, CalculationStateEventCode code) {
 			StageProgress stageProgress = progressMap.get(Pair.of(featureId, stage));
 			if (stageProgress == null) {
 				throw new RuntimeException("Stage has not been initialized: " + stage + " for feature " + featureId);
 			}
-			stageProgress.add(code);
+			stageProgress.add(id, code);
 		}
 		
-		public synchronized void addAll(long featureId, CalculationStage stage, CalculationStateEventCode code) {
-			StageProgress stageProgress = progressMap.get(Pair.of(featureId, stage));
-			if (stageProgress == null) {
-				throw new RuntimeException("Stage has not been initialized: " + stage + " for feature " + featureId);
-			}
-			while (stageProgress.codes.size() < stageProgress.stageSize) {
-				stageProgress.add(code);
-			}
-		}
-		
-		public boolean hasErrors() {
+		public synchronized boolean hasErrors() {
 			return progressMap.values().stream().anyMatch(stage -> stage.getStageOutcome() == CalculationStateEventCode.Error);
 		}
 		
@@ -279,19 +272,26 @@ public class CalculationStateTracker {
 	private static class StageProgress {
 		
 		private int stageSize;
-		private Set<CalculationStateEventCode> codes;
+		private Map<String, CalculationStateEventCode> codes;
 		
 		public StageProgress(int stageSize) {
 			this.stageSize = stageSize;
-			this.codes = new HashSet<>();
+			this.codes = new HashMap<>();
 		}
 		
-		public void add(CalculationStateEventCode code) {
-			if (codes.size() < stageSize) codes.add(code);
+		public void add(String id, CalculationStateEventCode code) {
+			if (id == null) {
+				// If no id is given, the whole stage will be updated.
+				for (Entry<String, CalculationStateEventCode> entry : codes.entrySet()) {
+					entry.setValue(code);
+				}
+			} else {
+				codes.put(id, code);
+			}
 		}
 		
 		public CalculationStateEventCode getStageOutcome() {
-			return aggregateCodes(codes, stageSize);
+			return aggregateCodes(codes.values().stream().collect(Collectors.toSet()), stageSize);
 		}
 	}
 }

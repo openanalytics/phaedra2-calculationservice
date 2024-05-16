@@ -26,7 +26,6 @@ import static java.util.stream.IntStream.range;
 import static org.apache.commons.lang3.math.NumberUtils.isCreatable;
 
 import java.util.ArrayList;
-import java.util.Collections;
 import java.util.Date;
 import java.util.HashMap;
 import java.util.List;
@@ -56,7 +55,10 @@ import eu.openanalytics.phaedra.calculationservice.execution.progress.Calculatio
 import eu.openanalytics.phaedra.calculationservice.execution.script.ScriptExecutionRequest;
 import eu.openanalytics.phaedra.calculationservice.execution.script.ScriptExecutionService;
 import eu.openanalytics.phaedra.calculationservice.service.KafkaProducerService;
+import eu.openanalytics.phaedra.calculationservice.service.protocol.ProtocolDataCollector.ProtocolData;
 import eu.openanalytics.phaedra.plateservice.client.PlateServiceClient;
+import eu.openanalytics.phaedra.plateservice.dto.PlateDTO;
+import eu.openanalytics.phaedra.plateservice.dto.WellDTO;
 import eu.openanalytics.phaedra.protocolservice.client.ProtocolServiceClient;
 import eu.openanalytics.phaedra.protocolservice.dto.DRCModelDTO;
 import eu.openanalytics.phaedra.protocolservice.dto.FeatureDTO;
@@ -69,6 +71,7 @@ import eu.openanalytics.phaedra.util.WellNumberUtils;
 @Service
 public class CurveFittingExecutorService {
 
+	private final ProtocolDataCollector protocolDataCollector;
     private final PlateServiceClient plateServiceClient;
     private final ProtocolServiceClient protocolServiceClient;
 
@@ -79,12 +82,14 @@ public class CurveFittingExecutorService {
     private final Logger logger = LoggerFactory.getLogger(getClass());
 
     public CurveFittingExecutorService(
+    		ProtocolDataCollector protocolDataCollector,
     		PlateServiceClient plateServiceClient,
     		ProtocolServiceClient protocolServiceClient,
     		KafkaProducerService kafkaProducerService,
     		ScriptExecutionService scriptExecutionService,
     		ObjectMapper objectMapper) {
 
+    	this.protocolDataCollector = protocolDataCollector;
         this.plateServiceClient = plateServiceClient;
         this.protocolServiceClient = protocolServiceClient;
 
@@ -103,8 +108,8 @@ public class CurveFittingExecutorService {
     	
     	ResultDataDTO resultData = ctx.getFeatureResults().get(feature.getId());
     	if (resultData == null || resultData.getValues() == null || resultData.getValues().length == 0) {
-    		ctx.getErrorCollector().addError(String.format("Cannot fit curve: no result data available for feature %s", feature), feature);
-    		ctx.getStateTracker().skipStage(feature.getId(), CalculationStage.FeatureCurveFit);
+    		ctx.getStateTracker().failStage(feature.getId(), CalculationStage.FeatureCurveFit, 
+    				String.format("Cannot fit curve: no result data available for feature %s", feature), feature);
     		return;
     	}
     	
@@ -113,31 +118,47 @@ public class CurveFittingExecutorService {
     	for (String substance: substanceNames) {
             DRCInputDTO drcInput = collectCurveFitInputData(ctx, feature, substance);
             ScriptExecutionRequest request = executeReceptor2CurveFit(drcInput);
-            ctx.getStateTracker().trackScriptExecution(feature.getId(), CalculationStage.FeatureCurveFit, request, Collections.singletonMap("substance", substance));
+            ctx.getStateTracker().trackScriptExecution(feature.getId(), CalculationStage.FeatureCurveFit, substance, request);
         }
         
         ctx.getStateTracker().addEventListener(CalculationStage.FeatureCurveFit, CalculationStateEventCode.ScriptOutputAvailable, feature.getId(), requests -> {
-        	requests.stream().forEach(req -> {
-				if (StringUtils.isBlank(req.getOutput().getOutput())) {
+        	requests.entrySet().stream().forEach(req -> {
+				if (StringUtils.isBlank(req.getValue().getOutput().getOutput())) {
 					logger.info("No output is created!!");
 				} else {
-					String substance = (String) ctx.getStateTracker().getRequestContext(req).get("substance");
+					String substance = req.getKey();
 					DRCInputDTO drcInput = collectCurveFitInputData(ctx, feature, substance);
-					DRCOutputDTO drcOutput = collectCurveFitOutputData(req.getOutput());
+					DRCOutputDTO drcOutput = collectCurveFitOutputData(req.getValue().getOutput());
 					if (drcOutput != null) createNewCurve(drcInput, drcOutput);
 				}
 			});
         });
         
         ctx.getStateTracker().addEventListener(CalculationStage.FeatureCurveFit, CalculationStateEventCode.Error, feature.getId(), requests -> {
-        	requests.stream().map(req -> req.getOutput())
+        	requests.values().stream().map(req -> req.getOutput())
 				.filter(o -> o.getStatusCode() != ResponseStatusCode.SUCCESS)
 				.forEach(o -> ctx.getErrorCollector().addError(String.format("Curve fit failed with status %s", o.getStatusCode()), o, feature));
         });
     }
     
-    public Future<List<CurveDTO>> execute(CurveFittingRequestDTO curveFittingRequestDTO) {
+    public Future<List<CurveDTO>> execute(CurveFittingRequestDTO request) {
     	//TODO Implement curve fitting outside of a CalculationContext
+    	try {
+    		FeatureDTO feature = protocolServiceClient.getFeature(request.getFeatureId());
+    		ProtocolData protocolData = protocolDataCollector.getProtocolData(feature.getProtocolId());
+    		
+    		PlateDTO plate = plateServiceClient.getPlate(request.getPlateId());
+    		List<WellDTO> wells = plateServiceClient.getWells(plate.getId());
+//    		DRCInputDTO drcInput = collectCurveFitInputData(ctx, feature, substance);
+    		
+    		long measId = 0;
+    		CalculationContext ctx = CalculationContext.create(protocolData, plate, wells, null, measId);
+    		
+    		execute(ctx, feature);
+    		
+    	} catch (Exception e) {
+    		
+    	}
     	return null;
     }
     

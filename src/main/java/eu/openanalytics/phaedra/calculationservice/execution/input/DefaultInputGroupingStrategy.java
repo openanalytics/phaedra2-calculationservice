@@ -111,6 +111,10 @@ public class DefaultInputGroupingStrategy implements InputGroupingStrategy {
             	if (civ.getSourceMeasColName() == null || civ.getSourceMeasColName().trim().isEmpty()) {
             		errorHandler.accept("Measurement reference is missing column name", civ);
             	} else {
+            		if (civ.getVariableName() != null) {
+            			inputVariables.put(civ.getVariableName(), new double[0]);
+            			continue;
+            		}
             		try {
             			inputVariables.put(civ.getVariableName(), measurementServiceClient.getSubWellData(ctx.getMeasId(), civ.getSourceMeasColName()));
             		} catch (MeasUnresolvableException e) {
