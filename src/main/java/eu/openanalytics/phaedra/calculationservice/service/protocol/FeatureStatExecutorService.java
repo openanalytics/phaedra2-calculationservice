@@ -26,7 +26,6 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.Map.Entry;
 import java.util.Optional;
 
 import org.slf4j.Logger;
@@ -100,26 +99,38 @@ public class FeatureStatExecutorService {
         }
         
         ctx.getStateTracker().addEventListener(CalculationStage.FeatureStatistics, CalculationStateEventCode.ScriptOutputAvailable, feature.getId(), requests -> {
-        	for (Entry<String, ScriptExecutionRequest> request: requests.entrySet()) {
-        		long statId = Long.valueOf(request.getKey());
-    			try {
-    				FeatureStatDTO fs = ctx.getProtocolData().featureStats.get(feature.getId()).stream().filter(stat -> stat.getId().equals(statId)).findAny().orElse(null);
-    				List<ResultFeatureStatDTO> results = parseResults(ctx, feature, fs, request.getValue().getOutput());
-    				kafkaProducerService.sendResultFeatureStats(ctx.getResultSetId(), results);
+        	// Accumulate all stats to save.
+        	List<ResultFeatureStatDTO> results = new ArrayList<ResultFeatureStatDTO>();
+        	requests.entrySet().forEach(req -> {
+        		FeatureStatDTO fs = findStat(ctx, feature.getId(), Long.valueOf(req.getKey()));
+        		try {
+        			results.addAll(parseResults(ctx, feature, fs, req.getValue().getOutput()));
     			} catch (Exception e) {
     				ctx.getStateTracker().failStage(feature.getId(), CalculationStage.FeatureFormula, 
-    	    				String.format("Feature statistic with ID %d formula evaluation failed: %s", statId, e.getMessage()), feature, e);
+    	    				String.format("Feature statistic %s failed: cannot parse output: %s", fs.getName(), e.getMessage()), feature, e);
     			}
-    		}
+        	});
+        	
+        	// Reset the stage with size == total nr of stats to save (which is greater than nr of stats, e.g. stats per welltype).
+        	ctx.getStateTracker().startStage(feature.getId(), CalculationStage.FeatureStatistics, results.size());
+        	results.stream().forEach(res -> kafkaProducerService.sendResultFeatureStats(res.withResultSetId(ctx.getResultSetId())));
         });
         
         ctx.getStateTracker().addEventListener(CalculationStage.FeatureStatistics, CalculationStateEventCode.Error, feature.getId(), requests -> {
-        	requests.values().stream().map(req -> req.getOutput())
-	    		.filter(o -> o.getStatusCode() != ResponseStatusCode.SUCCESS)
-	    		.forEach(o -> ctx.getErrorCollector().addError(String.format("Feature statistic calculation failed with status %s", o.getStatusCode()), o, feature));
+        	requests.entrySet().stream().filter(req -> req.getValue().getOutput().getStatusCode() != ResponseStatusCode.SUCCESS).forEach(req -> {
+        		FeatureStatDTO fs = findStat(ctx, feature.getId(), Long.valueOf(req.getKey()));
+        		ScriptExecutionOutputDTO output = req.getValue().getOutput();
+        		ctx.getErrorCollector().addError(String.format("Feature statistic %s failed: %s", fs.getName(), output.getStatusMessage()), output, feature);
+        	});
         });
     }
 
+    private FeatureStatDTO findStat(CalculationContext ctx, long featureId, long statId) {
+    	var featureStats = ctx.getProtocolData().featureStats.get(featureId);
+    	if (featureStats == null) return null;
+    	return featureStats.stream().filter(stat -> stat.getId().equals(statId)).findAny().orElse(null);
+    }
+    
     private Map<String, Object> collectStatInputData(CalculationContext ctx, FeatureDTO feature, FeatureStatDTO featureStat) {
     	Map<String, Object> input = new HashMap<String, Object>();
         input.put("lowWelltype", ctx.getProtocolData().protocol.getLowWelltype());

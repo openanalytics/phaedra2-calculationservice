@@ -68,7 +68,7 @@ public class KafkaConsumerService {
         curveFittingExecutorService.execute(curveFittingRequestDTO);
     }
 
-    @KafkaListener(topics = KafkaConfig.TOPIC_SCRIPTENGINE, groupId = KafkaConfig.GROUP_ID, filter = "scriptExecutionUpdateFilter")
+    @KafkaListener(topics = KafkaConfig.TOPIC_SCRIPTENGINE, groupId = KafkaConfig.GROUP_ID + "_scriptExecUpdate", filter = "scriptExecutionUpdateFilter")
     public void onScriptExecutionEvent(ScriptExecutionOutputDTO output) {
     	logger.info(KafkaConfig.GROUP_ID + ": received a script execution update event");
 		scriptExecutionService.handleScriptExecutionUpdate(output);

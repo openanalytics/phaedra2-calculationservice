@@ -20,8 +20,6 @@
  */
 package eu.openanalytics.phaedra.calculationservice.service;
 
-import java.util.List;
-
 import org.springframework.kafka.core.KafkaTemplate;
 import org.springframework.stereotype.Service;
 
@@ -63,10 +61,8 @@ public class KafkaProducerService {
         kafkaTemplate.send(KafkaConfig.TOPIC_RESULTDATA, KafkaConfig.EVENT_SAVE_RESULT_DATA, resultData);
     }
 
-    public void sendResultFeatureStats(Long resultSetId, List<ResultFeatureStatDTO> resultFeatureStats) {
-        for (ResultFeatureStatDTO resultFeatureStatDTO: resultFeatureStats) {
-            kafkaTemplate.send(KafkaConfig.TOPIC_RESULTDATA, KafkaConfig.EVENT_SAVE_RESULT_STATS, resultFeatureStatDTO.withResultSetId(resultSetId));
-        }
+    public void sendResultFeatureStats(ResultFeatureStatDTO resultFeatureStat) {
+        kafkaTemplate.send(KafkaConfig.TOPIC_RESULTDATA, KafkaConfig.EVENT_SAVE_RESULT_STATS, resultFeatureStat);
     }
 
     public void sendScriptExecutionRequest(ScriptExecutionInputDTO scriptRequest) {

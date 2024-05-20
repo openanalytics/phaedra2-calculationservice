@@ -51,19 +51,9 @@ public class ScriptExecutionRequest {
 	}
 
 	public void signalOutputAvailable(ScriptExecutionOutputDTO output) {
-		synchronized(this) {
-            this.output = output;
-            notifyAll();
-        }
+		this.output = output;
         if (callbacks != null) {
         	ForkJoinPool.commonPool().submit(() -> callbacks.forEach(c -> c.accept(output)));
         }
 	}
-
-//	public synchronized ScriptExecutionOutputDTO awaitOutput() throws InterruptedException {
-//		while (!this.outputAvailable) {
-//            wait();
-//        }
-//		return output;
-//	}
 }
