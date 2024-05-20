@@ -20,6 +20,7 @@
  */
 package eu.openanalytics.phaedra.calculationservice.execution;
 
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -49,14 +50,17 @@ public class CalculationContext {
     Long measId;
 
     Map<Long, ResultDataDTO> featureResults;
+    Map<String, Map<Integer, float[]>> subwellDataCache;
+    
     ErrorCollector errorCollector;
     CalculationStateTracker stateTracker;
     
     public static CalculationContext create(ProtocolData protocolData, PlateDTO plate, List<WellDTO> wells, Long resultSetId, Long measId) {
-    	CalculationContext ctx = new CalculationContext(protocolData, plate, wells, resultSetId, measId, null, null, null);
+    	CalculationContext ctx = new CalculationContext(protocolData, plate, wells, resultSetId, measId, null, null, null, null);
     	ctx.stateTracker = new CalculationStateTracker(ctx);
         ctx.errorCollector = new ErrorCollector(ctx);
         ctx.featureResults = new HashMap<>();
+        ctx.subwellDataCache = Collections.synchronizedMap(new HashMap<>());
         return ctx;
     }
 
