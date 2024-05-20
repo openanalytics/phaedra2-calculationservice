@@ -23,7 +23,6 @@ package eu.openanalytics.phaedra.calculationservice.api;
 import java.util.List;
 import java.util.concurrent.ExecutionException;
 
-import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
@@ -44,7 +43,7 @@ public class CurveFittingController {
 
     @PostMapping("/curvefit")
     public ResponseEntity<List<CurveDTO>> fitCurve(@RequestBody CurveFittingRequestDTO curveFittingRequestDTO) throws ExecutionException, InterruptedException {
-        var curves = curveFittingExecutorService.execute(curveFittingRequestDTO);
-        return new ResponseEntity<>(curves.get(), HttpStatus.CREATED);
+        curveFittingExecutorService.execute(curveFittingRequestDTO);
+        return ResponseEntity.ok().build();
     }
 }
