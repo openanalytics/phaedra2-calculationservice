@@ -96,10 +96,6 @@ public abstract class BaseGroupingStrategy implements InputGroupingStrategy {
             	if (civ.getSourceMeasColName() == null || civ.getSourceMeasColName().trim().isEmpty()) {
             		errorHandler.accept("Measurement reference is missing column name", civ);
             	} else {
-            		if (civ.getVariableName() != null) {
-            			inputVariables.put(civ.getVariableName(), new double[0]);
-            			continue;
-            		}
             		try {
             			Map<Integer, float[]> values = measurementServiceClient.getSubWellData(ctx.getMeasId(), civ.getSourceMeasColName());
             			values = values.entrySet().stream().filter(entry -> entry.getKey() >= wellNrRange[0] && entry.getKey() <= wellNrRange[1]).collect(Collectors.toMap(e -> e.getKey(), e -> e.getValue()));
