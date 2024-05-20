@@ -41,25 +41,25 @@ public class CalculationInputHelper {
 		wellStatus
 	}
 
-	public static void addWellInfo(Map<String, Object> inputMap, CalculationContext ctx) {
+	public static void addWellInfo(Map<String, Object> inputMap, CalculationContext ctx, List<WellDTO> wells) {
 		if (ctx.getProtocolData() != null && ctx.getProtocolData().protocol != null) {
 			inputMap.put(InputName.lowWellType.name(), ctx.getProtocolData().protocol.getLowWelltype());
 			inputMap.put(InputName.highWellType.name(), ctx.getProtocolData().protocol.getHighWelltype());
 		}
 
-		if (ctx.getWells() != null) {
+		if (wells != null) {
 			// Sort wells by wellNumber
-			List<WellDTO> wells = new ArrayList<>(ctx.getWells());
+			List<WellDTO> sortedWells = new ArrayList<>(wells);
 			int columnCount = ctx.getPlate().getColumns();
-			wells.sort((w1, w2) -> {
+			sortedWells.sort((w1, w2) -> {
 				return WellNumberUtils.getWellNr(w1.getRow(), w1.getColumn(), columnCount) - WellNumberUtils.getWellNr(w2.getRow(), w2.getColumn(), columnCount);
 			});
 
-			inputMap.put(InputName.wellNumbers.name(), wells.stream().map(w -> WellNumberUtils.getWellNr(w.getRow(), w.getColumn(), columnCount)).toList());
-			inputMap.put(InputName.wellTypes.name(), wells.stream().map(WellDTO::getWellType).toList());
-			inputMap.put(InputName.wellRows.name(), wells.stream().map(WellDTO::getRow).toList());
-			inputMap.put(InputName.wellColumns.name(), wells.stream().map(WellDTO::getColumn).toList());
-			inputMap.put(InputName.wellStatus.name(), wells.stream().map(w -> w.getStatus().getCode()).toList());
+			inputMap.put(InputName.wellNumbers.name(), sortedWells.stream().map(w -> WellNumberUtils.getWellNr(w.getRow(), w.getColumn(), columnCount)).toList());
+			inputMap.put(InputName.wellTypes.name(), sortedWells.stream().map(WellDTO::getWellType).toList());
+			inputMap.put(InputName.wellRows.name(), sortedWells.stream().map(WellDTO::getRow).toList());
+			inputMap.put(InputName.wellColumns.name(), sortedWells.stream().map(WellDTO::getColumn).toList());
+			inputMap.put(InputName.wellStatus.name(), sortedWells.stream().map(w -> w.getStatus().getCode()).toList());
 		}
 	}
 

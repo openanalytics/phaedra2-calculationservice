@@ -30,7 +30,7 @@ import org.springframework.kafka.support.converter.BytesJsonMessageConverter;
 @EnableKafka
 public class KafkaConfig {
 
-	public static final String GROUP_ID = "calculation-service";
+	public static final String GROUP_ID = "calculation-service-debug";
 
     // Topics
     public static final String TOPIC_CALCULATIONS = "calculations";

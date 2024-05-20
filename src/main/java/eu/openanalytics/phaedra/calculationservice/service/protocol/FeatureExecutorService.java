@@ -25,23 +25,18 @@ import java.util.stream.Collectors;
 
 import org.springframework.stereotype.Service;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
-
 import eu.openanalytics.phaedra.calculationservice.enumeration.CalculationScope;
 import eu.openanalytics.phaedra.calculationservice.execution.CalculationContext;
-import eu.openanalytics.phaedra.calculationservice.execution.input.DefaultInputGroupingStrategy;
 import eu.openanalytics.phaedra.calculationservice.execution.input.InputGroup;
-import eu.openanalytics.phaedra.calculationservice.execution.input.InputGroupingStrategy;
+import eu.openanalytics.phaedra.calculationservice.execution.input.strategy.InputGroupingStrategy;
+import eu.openanalytics.phaedra.calculationservice.execution.input.strategy.StrategyProvider;
 import eu.openanalytics.phaedra.calculationservice.execution.progress.CalculationStage;
 import eu.openanalytics.phaedra.calculationservice.execution.progress.CalculationStateEventCode;
 import eu.openanalytics.phaedra.calculationservice.execution.script.ScriptExecutionRequest;
 import eu.openanalytics.phaedra.calculationservice.execution.script.ScriptExecutionService;
 import eu.openanalytics.phaedra.calculationservice.model.Formula;
-import eu.openanalytics.phaedra.calculationservice.model.ModelMapper;
 import eu.openanalytics.phaedra.calculationservice.service.KafkaProducerService;
-import eu.openanalytics.phaedra.measurementservice.client.MeasurementServiceClient;
 import eu.openanalytics.phaedra.protocolservice.dto.FeatureDTO;
-import eu.openanalytics.phaedra.resultdataservice.client.ResultDataServiceClient;
 import eu.openanalytics.phaedra.resultdataservice.dto.ResultDataDTO;
 import eu.openanalytics.phaedra.scriptengine.dto.ResponseStatusCode;
 
@@ -62,23 +57,20 @@ public class FeatureExecutorService {
     private final CurveFittingExecutorService curveFitExecutorService;
     private final ScriptExecutionService scriptExecutionService;
     private final KafkaProducerService kafkaProducerService;
-    private final InputGroupingStrategy inputGroupingStrategy;
+    private final StrategyProvider strategyProvider;
     
     public FeatureExecutorService(
-    		MeasurementServiceClient measurementServiceClient, 
-    		ResultDataServiceClient resultDataServiceClient,
     		FeatureStatExecutorService featureStatExecutorService,
     		CurveFittingExecutorService curveFitExecutorService,
     		ScriptExecutionService scriptExecutionService,
     		KafkaProducerService kafkaProducerService,
-    		ModelMapper modelMapper,
-    		ObjectMapper objectMapper) {
+    		StrategyProvider strategyProvider) {
     	
         this.featureStatExecutorService = featureStatExecutorService;
         this.curveFitExecutorService = curveFitExecutorService;
         this.scriptExecutionService = scriptExecutionService;
         this.kafkaProducerService = kafkaProducerService;
-        this.inputGroupingStrategy = new DefaultInputGroupingStrategy(measurementServiceClient, resultDataServiceClient, modelMapper, objectMapper);
+        this.strategyProvider = strategyProvider;
     }
 
     /**
@@ -99,6 +91,8 @@ public class FeatureExecutorService {
     		return;
     	}
     	
+    	InputGroupingStrategy inputGroupingStrategy = strategyProvider.getStrategy(ctx, feature);
+    	
     	try {
     		// Gather input, and split in groups as needed
     		Set<InputGroup> groups = inputGroupingStrategy.createGroups(ctx, feature);
@@ -116,7 +110,8 @@ public class FeatureExecutorService {
     	}
     	
     	ctx.getStateTracker().addEventListener(CalculationStage.FeatureFormula, CalculationStateEventCode.ScriptOutputAvailable, feature.getId(), requests -> {
-        	ResultDataDTO resultData = inputGroupingStrategy.mergeOutput(ctx, feature, requests.values().stream().map(req -> req.getOutput()).collect(Collectors.toSet()));
+    		var outputs = requests.entrySet().stream().collect(Collectors.toMap(e -> e.getKey(), e -> e.getValue().getOutput()));
+        	ResultDataDTO resultData = inputGroupingStrategy.mergeOutput(ctx, feature, outputs);
     		kafkaProducerService.sendResultData(resultData);
     		ctx.getFeatureResults().put(feature.getId(), resultData);
     	});

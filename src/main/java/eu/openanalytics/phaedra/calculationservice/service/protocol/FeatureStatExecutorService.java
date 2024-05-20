@@ -111,7 +111,7 @@ public class FeatureStatExecutorService {
     			}
         	});
         	
-        	// Reset the stage with size == total nr of stats to save (which is greater than nr of stats, e.g. stats per welltype).
+        	// Reset the stage with size == total nr of stats to save (which is greater than statsToCalculate.size(), e.g. stats for multiple welltypes).
         	ctx.getStateTracker().startStage(feature.getId(), CalculationStage.FeatureStatistics, results.size());
         	results.stream().forEach(res -> kafkaProducerService.sendResultFeatureStats(res.withResultSetId(ctx.getResultSetId())));
         });

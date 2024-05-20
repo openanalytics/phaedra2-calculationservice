@@ -113,7 +113,7 @@ public class CalculationStateTracker {
 			// ResultData for a feature has been saved successfully or encountered an error
 			ResultDataDTO resultData = (ResultDataDTO) payload;
 			if (resultData.getStatusCode() == StatusCode.SUCCESS) {
-				updateProgress(resultData.getFeatureId(), CalculationStage.FeatureFormula, "1", CalculationStateEventCode.Complete);
+				updateProgress(resultData.getFeatureId(), CalculationStage.FeatureFormula, null, CalculationStateEventCode.Complete);
 			} else if (resultData.getStatusCode() == StatusCode.FAILURE) {
 				failStage(resultData.getFeatureId(), CalculationStage.FeatureFormula, "Failed to persist feature result values");
 			}

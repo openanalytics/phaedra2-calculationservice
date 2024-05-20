@@ -1,10 +1,11 @@
-package eu.openanalytics.phaedra.calculationservice.execution.input;
+package eu.openanalytics.phaedra.calculationservice.execution.input.strategy;
 
-import java.util.Collections;
+import java.util.Arrays;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
-import java.util.Set;
 import java.util.function.BiConsumer;
+import java.util.stream.Collectors;
 
 import com.fasterxml.jackson.annotation.JsonCreator;
 import com.fasterxml.jackson.annotation.JsonProperty;
@@ -13,10 +14,13 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 
 import eu.openanalytics.phaedra.calculationservice.exception.CalculationException;
 import eu.openanalytics.phaedra.calculationservice.execution.CalculationContext;
+import eu.openanalytics.phaedra.calculationservice.execution.input.CalculationInputHelper;
+import eu.openanalytics.phaedra.calculationservice.execution.input.InputGroup;
 import eu.openanalytics.phaedra.calculationservice.model.Formula;
 import eu.openanalytics.phaedra.calculationservice.model.ModelMapper;
 import eu.openanalytics.phaedra.measurementservice.client.MeasurementServiceClient;
 import eu.openanalytics.phaedra.measurementservice.client.exception.MeasUnresolvableException;
+import eu.openanalytics.phaedra.plateservice.dto.WellDTO;
 import eu.openanalytics.phaedra.protocolservice.dto.CalculationInputValueDTO;
 import eu.openanalytics.phaedra.protocolservice.dto.FeatureDTO;
 import eu.openanalytics.phaedra.resultdataservice.client.ResultDataServiceClient;
@@ -25,51 +29,28 @@ import eu.openanalytics.phaedra.resultdataservice.dto.ResultDataDTO;
 import eu.openanalytics.phaedra.scriptengine.dto.ResponseStatusCode;
 import eu.openanalytics.phaedra.scriptengine.dto.ScriptExecutionOutputDTO;
 
-/**
- * The default input grouping strategy creates one big input group for the whole feature.
- */
-public class DefaultInputGroupingStrategy implements InputGroupingStrategy {
+public abstract class BaseGroupingStrategy implements InputGroupingStrategy {
 
-	private MeasurementServiceClient measurementServiceClient;
-	private ResultDataServiceClient resultDataServiceClient;
+	private final MeasurementServiceClient measurementServiceClient;
+	private final ResultDataServiceClient resultDataServiceClient;
+	
 	private final ModelMapper modelMapper;
 	private final ObjectMapper objectMapper;
 	
-	public DefaultInputGroupingStrategy(
-			MeasurementServiceClient measurementServiceClient, 
-			ResultDataServiceClient resultDataServiceClient, 
-			ModelMapper modelMapper,
-			ObjectMapper objectMapper) {
+	public BaseGroupingStrategy(MeasurementServiceClient measurementServiceClient, ResultDataServiceClient resultDataServiceClient, ModelMapper modelMapper, ObjectMapper objectMapper) {
 		this.measurementServiceClient = measurementServiceClient;
 		this.resultDataServiceClient = resultDataServiceClient;
 		this.modelMapper = modelMapper;
 		this.objectMapper = objectMapper;
 	}
 	
-	@Override
-	public Set<InputGroup> createGroups(CalculationContext ctx, FeatureDTO feature) {
-		return Collections.singleton(createSingleGroup(ctx, feature));
-	}
-
-	@Override
-	public ResultDataDTO mergeOutput(CalculationContext ctx, FeatureDTO feature, Set<ScriptExecutionOutputDTO> outputs) {
-		// Assume a single group has been used
-		ScriptExecutionOutputDTO output = outputs.iterator().next();
-		float[] outputValues = parseOutputValues(output);
+	protected InputGroup createGroup(CalculationContext ctx, FeatureDTO feature, List<WellDTO> wells, int groupNr) {
+		// Note: assuming here that the list of wells is consecutive (i.e. no gaps)
+		int[] wellNrRange = {
+				wells.stream().mapToInt(well -> well.getWellNr()).min().orElse(1),
+				wells.stream().mapToInt(well -> well.getWellNr()).max().orElse(1)
+		};
 		
-		ResultDataDTO resultData = ResultDataDTO.builder()
-		        .resultSetId(ctx.getResultSetId())
-		        .featureId(feature.getId())
-		        .values(outputValues)
-		        .statusCode(modelMapper.map(output.getStatusCode()))
-		        .statusMessage(output.getStatusMessage())
-		        .exitCode(output.getExitCode())
-		        .build();
-		
-		return resultData;
-	}
-
-	private InputGroup createSingleGroup(CalculationContext ctx, FeatureDTO feature) {
 		Map<String, Object> inputVariables = new HashMap<String, Object>();
     	Formula formula = ctx.getProtocolData().formulas.get(feature.getFormulaId());
 
@@ -90,7 +71,9 @@ public class DefaultInputGroupingStrategy implements InputGroupingStrategy {
                 	errorHandler.accept("Feature reference is missing ID", civ);
             	} else {
             		try {
-						inputVariables.put(civ.getVariableName(), resultDataServiceClient.getResultData(ctx.getResultSetId(), civ.getSourceFeatureId()).getValues());
+            			ResultDataDTO resultData = resultDataServiceClient.getResultData(ctx.getResultSetId(), civ.getSourceFeatureId());
+            			float[] values = Arrays.copyOfRange(resultData.getValues(), wellNrRange[0], wellNrRange[1] + 1);
+						inputVariables.put(civ.getVariableName(), values);
 					} catch (ResultDataUnresolvableException e) {
 						errorHandler.accept("Failed to retrieve feature source data", civ);
 					}
@@ -101,7 +84,9 @@ public class DefaultInputGroupingStrategy implements InputGroupingStrategy {
             		errorHandler.accept("Measurement reference is missing column name", civ);
             	} else {
             		try {
-            			inputVariables.put(civ.getVariableName(), measurementServiceClient.getWellData(ctx.getMeasId(), civ.getSourceMeasColName()));
+            			float[] values = measurementServiceClient.getWellData(ctx.getMeasId(), civ.getSourceMeasColName());
+            			values = Arrays.copyOfRange(values, wellNrRange[0], wellNrRange[1] + 1);
+            			inputVariables.put(civ.getVariableName(), values);
             		} catch (MeasUnresolvableException e) {
             			errorHandler.accept("Failed to retrieve measurement source welldata", civ);
             		}
@@ -116,7 +101,9 @@ public class DefaultInputGroupingStrategy implements InputGroupingStrategy {
             			continue;
             		}
             		try {
-            			inputVariables.put(civ.getVariableName(), measurementServiceClient.getSubWellData(ctx.getMeasId(), civ.getSourceMeasColName()));
+            			Map<Integer, float[]> values = measurementServiceClient.getSubWellData(ctx.getMeasId(), civ.getSourceMeasColName());
+            			values = values.entrySet().stream().filter(entry -> entry.getKey() >= wellNrRange[0] && entry.getKey() <= wellNrRange[1]).collect(Collectors.toMap(e -> e.getKey(), e -> e.getValue()));
+            			inputVariables.put(civ.getVariableName(), values);
             		} catch (MeasUnresolvableException e) {
             			errorHandler.accept("Failed to retrieve measurement source subwelldata", civ);
             		}            		
@@ -128,15 +115,26 @@ public class DefaultInputGroupingStrategy implements InputGroupingStrategy {
         }
 
         // Add commonly used info about the wells
-        CalculationInputHelper.addWellInfo(inputVariables, ctx);
+        CalculationInputHelper.addWellInfo(inputVariables, ctx, wells);
         
         InputGroup group = new InputGroup();
-        group.setGroupNumber(1);
+        group.setGroupNumber(groupNr);
         group.setInputVariables(inputVariables);
         return group;
 	}
 	
-	private float[] parseOutputValues(ScriptExecutionOutputDTO output) {
+	protected ResultDataDTO makeResultData(CalculationContext ctx, FeatureDTO feature, float[] values, ScriptExecutionOutputDTO statusOutput) {
+		return ResultDataDTO.builder()
+		        .resultSetId(ctx.getResultSetId())
+		        .featureId(feature.getId())
+		        .values(values)
+		        .statusCode(modelMapper.map(statusOutput.getStatusCode()))
+		        .statusMessage(statusOutput.getStatusMessage())
+		        .exitCode(statusOutput.getExitCode())
+		        .build();
+	}
+	
+	protected float[] parseOutputValues(ScriptExecutionOutputDTO output) {
     	if (output.getOutput() == null || output.getStatusCode() != ResponseStatusCode.SUCCESS) return null;
     	
     	String[] outputStrings = null;
