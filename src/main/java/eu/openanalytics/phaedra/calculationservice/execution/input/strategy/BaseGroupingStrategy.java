@@ -5,7 +5,6 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.function.BiConsumer;
-import java.util.stream.Collectors;
 
 import com.fasterxml.jackson.annotation.JsonCreator;
 import com.fasterxml.jackson.annotation.JsonProperty;
@@ -103,8 +102,11 @@ public abstract class BaseGroupingStrategy implements InputGroupingStrategy {
             			Map<Integer, float[]> values = ctx.getSubwellDataCache().get(civ.getSourceMeasColName());
             			if (values == null || values.isEmpty()) errorHandler.accept("No measurement subwelldata available for " + civ.getSourceMeasColName(), civ);
             			
-            			values = values.entrySet().stream().filter(entry -> entry.getKey() >= wellNrRange[0] && entry.getKey() <= wellNrRange[1]).collect(Collectors.toMap(e -> e.getKey(), e -> e.getValue()));
-            			inputVariables.put(civ.getVariableName(), values);
+            			float[][] valueArrays = new float[1 + (wellNrRange[1] - wellNrRange[0])][];
+            			for (int nr = wellNrRange[0]; nr <= wellNrRange[1]; nr++) {
+            				valueArrays[nr - wellNrRange[0]] = values.get(nr);
+            			}
+            			inputVariables.put(civ.getVariableName(), valueArrays);
             		} catch (MeasUnresolvableException e) {
             			errorHandler.accept("Failed to retrieve measurement source subwelldata", civ);
             		}            		
