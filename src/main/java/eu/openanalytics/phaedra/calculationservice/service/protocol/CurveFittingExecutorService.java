@@ -95,12 +95,17 @@ public class CurveFittingExecutorService {
     }
 
     public void execute(CalculationContext ctx, FeatureDTO feature) {
-    	if (feature.getDrcModel() == null) {
+    	List<String> substanceNames = ctx.getWells().stream()
+    			.filter(w -> w.getWellSubstance() != null)
+    			.map(w -> w.getWellSubstance().getName())
+    			.distinct().toList();
+    	
+    	if (feature.getDrcModel() == null || substanceNames.isEmpty()) {
     		// There is nothing to fit for this feature.
     		ctx.getStateTracker().skipStage(feature.getId(), CalculationStage.FeatureCurveFit);
     		return;
     	}
-    	
+
     	ResultDataDTO resultData = ctx.getFeatureResults().get(feature.getId());
     	if (resultData == null || resultData.getValues() == null || resultData.getValues().length == 0) {
     		ctx.getStateTracker().failStage(feature.getId(), CalculationStage.FeatureCurveFit, 
@@ -108,7 +113,6 @@ public class CurveFittingExecutorService {
     		return;
     	}
     	
-    	List<String> substanceNames = ctx.getWells().stream().filter(w -> w.getWellSubstance() != null).map(w -> w.getWellSubstance().getName()).distinct().toList();
     	ctx.getStateTracker().startStage(feature.getId(), CalculationStage.FeatureCurveFit, substanceNames.size());
     	for (String substance: substanceNames) {
             DRCInputDTO drcInput = collectCurveFitInputData(ctx.getPlate(), ctx.getWells(), resultData, feature, substance);

@@ -17,7 +17,6 @@ public class StrategyProvider {
 	public InputGroupingStrategy getStrategy(CalculationContext ctx, FeatureDTO feature) {
 		for (InputGroupingStrategy strat: strategies) {
 			if (strat.isSuited(ctx, feature)) {
-				System.out.println("Selected strategy " + strat.getClass());
 				return strat;
 			}
 		}
