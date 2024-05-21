@@ -130,6 +130,8 @@ public class CurveFittingExecutorService {
 					if (drcOutput != null) createNewCurve(drcInput, drcOutput);
 				}
 			});
+        	//TODO CurveDataService should emit an event when the curve is saved, to which StateTracker can respond
+        	ctx.getStateTracker().skipStage(feature.getId(), CalculationStage.FeatureCurveFit);
         });
         
         ctx.getStateTracker().addEventListener(CalculationStage.FeatureCurveFit, CalculationStateEventCode.Error, feature.getId(), requests -> {
