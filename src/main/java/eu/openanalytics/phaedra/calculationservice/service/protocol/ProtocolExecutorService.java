@@ -105,13 +105,13 @@ public class ProtocolExecutorService {
     	if (ctx == null) return;
     	ctx.getStateTracker().handleResultSetUpdate(payload);
     }
-    
+
     private void triggerProtocolExecution(CompletableFuture<Long> resultSetIdFuture, long protocolId, long plateId, long measId) throws ProtocolUnresolvableException, ResultSetUnresolvableException, PlateUnresolvableException {
     	// Collect all required input data and create a ResultSet instance
         var protocolData = protocolDataCollector.getProtocolData(protocolId);
         var plate = plateServiceClient.getPlate(plateId);
         var wells = plateServiceClient.getWells(plateId);
-        
+
         var resultSet = resultDataServiceClient.createResultDataSet(protocolId, plateId, measId);
         resultSetIdFuture.complete(resultSet.getId());
 
@@ -122,7 +122,7 @@ public class ProtocolExecutorService {
         ctx.getStateTracker().addEventListener(CalculationStage.Sequence, CalculationStateEventCode.Complete, null, req -> triggerNextSequence(ctx));
         ctx.getStateTracker().addEventListener(CalculationStage.Sequence, CalculationStateEventCode.Error, null, req -> handleCalculationEnded(ctx));
         ctx.getStateTracker().addEventListener(CalculationStage.Protocol, CalculationStateEventCode.Complete, null, req -> handleCalculationEnded(ctx));
-        
+
         // Trigger the first sequence now
         triggerNextSequence(ctx);
     }
@@ -150,7 +150,7 @@ public class ProtocolExecutorService {
     		logger.error("Unexpected error while updating result set", e);
     	}
     }
-    
+
     private void emitCalculationEvent(CalculationContext ctx, CalculationStatus calculationStatus) {
     	CalculationEvent event = CalculationEvent.builder()
     			.plateId(ctx.getPlate().getId())

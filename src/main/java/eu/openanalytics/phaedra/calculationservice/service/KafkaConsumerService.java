@@ -56,10 +56,12 @@ public class KafkaConsumerService {
     @KafkaListener(topics = KafkaConfig.TOPIC_CALCULATIONS, groupId = KafkaConfig.GROUP_ID + "_reqPlateCalc", filter = "requestPlateCalculationFilter")
     public void onRequestPlateCalculation(CalculationRequestDTO calculationRequestDTO, @Header(KafkaHeaders.RECEIVED_KEY) String msgKey) throws ExecutionException, InterruptedException {
         logger.info(KafkaConfig.GROUP_ID + ": received a plate calculation event");
-        protocolExecutorService.execute(
-                calculationRequestDTO.getProtocolId(),
-                calculationRequestDTO.getPlateId(),
-                calculationRequestDTO.getMeasId());
+        for (Long plateId: calculationRequestDTO.getPlateIds()) {
+          protocolExecutorService.execute(
+              calculationRequestDTO.getProtocolId(),
+              plateId,
+              calculationRequestDTO.getMeasIds().get(plateId));
+        }
     }
 
     @KafkaListener(topics = KafkaConfig.TOPIC_CALCULATIONS, groupId = KafkaConfig.GROUP_ID + "_reqCurveFit", filter = "requestCurveFitFilter")

@@ -20,6 +20,8 @@
  */
 package eu.openanalytics.phaedra.calculationservice.api;
 
+import java.util.ArrayList;
+import java.util.List;
 import java.util.concurrent.ExecutionException;
 
 import org.springframework.http.HttpStatus;
@@ -49,12 +51,17 @@ public class CalculationController {
     private final CalculationStatusService calculationStatusService;
 
     @PostMapping("/calculation")
-    public ResponseEntity<Long> calculate(@RequestBody CalculationRequestDTO calculationRequestDTO) throws ExecutionException, InterruptedException {
-        var execution = protocolExecutorService.execute(
+    public ResponseEntity<List<Long>> calculate(@RequestBody CalculationRequestDTO calculationRequestDTO) throws ExecutionException, InterruptedException {
+        List<Long> executions = new ArrayList<>();
+
+        for (Long plateId: calculationRequestDTO.getPlateIds()) {
+            var execution = protocolExecutorService.execute(
                 calculationRequestDTO.getProtocolId(),
-                calculationRequestDTO.getPlateId(),
-                calculationRequestDTO.getMeasId());
-        return new ResponseEntity<>(execution.get(), HttpStatus.CREATED);
+                plateId,
+                calculationRequestDTO.getMeasIds().get(plateId));
+            executions.add(execution.get());
+        }
+        return new ResponseEntity<>(executions, HttpStatus.CREATED);
     }
 
     @GetMapping("/status")
