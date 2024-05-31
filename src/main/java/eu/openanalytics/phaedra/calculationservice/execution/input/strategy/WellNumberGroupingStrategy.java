@@ -27,26 +27,26 @@ import eu.openanalytics.phaedra.scriptengine.dto.ScriptExecutionOutputDTO;
 public class WellNumberGroupingStrategy extends BaseGroupingStrategy {
 
 	private Environment environment;
-	
+
 	public WellNumberGroupingStrategy(Environment environment,
 			MeasurementServiceClient measurementServiceClient, ResultDataServiceClient resultDataServiceClient,
 			ModelMapper modelMapper, ObjectMapper objectMapper) {
 		super(measurementServiceClient, resultDataServiceClient, modelMapper, objectMapper);
 		this.environment = environment;
 	}
-	
+
 	@Override
 	public boolean isSuited(CalculationContext ctx, FeatureDTO feature) {
 		// This strategy is suited for large subwell-data based calculations.
 		if (feature.getCivs() == null || feature.getCivs().isEmpty()) return false;
 		return feature.getCivs().stream().anyMatch(civ -> civ.getInputSource() == InputSource.MEASUREMENT_SUBWELL_COLUMN);
 	}
-	
+
 	@Override
 	public Set<InputGroup> createGroups(CalculationContext ctx, FeatureDTO feature) {
 		int groupSize = Integer.valueOf(environment.getProperty("phaedra.calculation.input.group.size", "10"));
 		return ctx.getWells().stream()
-				.collect(Collectors.groupingBy(well -> (well.getWellNr()-1)/groupSize))
+				.collect(Collectors.groupingBy(well -> (well.getWellNr())/groupSize))
 				.entrySet().stream().map(entry -> createGroup(ctx, feature, entry.getValue(), entry.getKey()))
 				.collect(Collectors.toSet());
 	}
@@ -57,7 +57,7 @@ public class WellNumberGroupingStrategy extends BaseGroupingStrategy {
 				.sorted((e1, e2) -> Integer.parseInt(e1.getKey()) - Integer.parseInt(e2.getKey()))
 				.map(e -> e.getValue()).toList();
 		List<float[]> allValues = sortedOutputs.stream().map(output -> parseOutputValues(output)).toList();
-		
+
 		int totalSize = allValues.stream().mapToInt(v -> v.length).sum();
 		float[] mergedValues = new float[totalSize];
 		int pos = 0;
@@ -65,7 +65,7 @@ public class WellNumberGroupingStrategy extends BaseGroupingStrategy {
 			System.arraycopy(v, 0, mergedValues, pos, v.length);
 			pos += v.length;
 		}
-		
+
 		return makeResultData(ctx, feature, mergedValues, sortedOutputs.get(0));
 	}
 }
