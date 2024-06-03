@@ -304,6 +304,7 @@ public class CurveFittingExecutorService {
         logger.info(String.format("Fitting curve for substance %s and feature ID %s", inputDTO.getSubstance(), inputDTO.getFeature().getId()));
 
         var inputVariables = new HashMap<String, Object>();
+        inputVariables.put("substance", inputDTO.getSubstance());
         inputVariables.put("doses", inputDTO.getConcs());
         inputVariables.put("responses", inputDTO.getValues());
         inputVariables.put("accepts", inputDTO.getAccepts());
