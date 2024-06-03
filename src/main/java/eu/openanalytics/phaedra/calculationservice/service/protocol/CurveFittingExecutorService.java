@@ -31,6 +31,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Optional;
 
+import org.apache.commons.lang3.ObjectUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.math3.util.Precision;
 import org.slf4j.Logger;
@@ -99,8 +100,8 @@ public class CurveFittingExecutorService {
     			.filter(w -> w.getWellSubstance() != null)
     			.map(w -> w.getWellSubstance().getName())
     			.distinct().toList();
-    	
-    	if (feature.getDrcModel() == null || substanceNames.isEmpty()) {
+
+    	if (feature.getDrcModel() == null || StringUtils.isBlank(feature.getDrcModel().getName()) || substanceNames.isEmpty()) {
     		// There is nothing to fit for this feature.
     		ctx.getStateTracker().skipStage(feature.getId(), CalculationStage.FeatureCurveFit);
     		return;
@@ -108,18 +109,18 @@ public class CurveFittingExecutorService {
 
     	ResultDataDTO resultData = ctx.getFeatureResults().get(feature.getId());
     	if (resultData == null || resultData.getValues() == null || resultData.getValues().length == 0) {
-    		ctx.getStateTracker().failStage(feature.getId(), CalculationStage.FeatureCurveFit, 
+    		ctx.getStateTracker().failStage(feature.getId(), CalculationStage.FeatureCurveFit,
     				String.format("Cannot fit curve: no result data available for feature %s", feature), feature);
     		return;
     	}
-    	
+
     	ctx.getStateTracker().startStage(feature.getId(), CalculationStage.FeatureCurveFit, substanceNames.size());
     	for (String substance: substanceNames) {
             DRCInputDTO drcInput = collectCurveFitInputData(ctx.getPlate(), ctx.getWells(), resultData, feature, substance);
             ScriptExecutionRequest request = executeReceptor2CurveFit(drcInput);
             ctx.getStateTracker().trackScriptExecution(feature.getId(), CalculationStage.FeatureCurveFit, substance, request);
         }
-        
+
         ctx.getStateTracker().addEventListener(CalculationStage.FeatureCurveFit, CalculationStateEventCode.ScriptOutputAvailable, feature.getId(), requests -> {
         	requests.entrySet().stream().forEach(req -> {
 				if (StringUtils.isBlank(req.getValue().getOutput().getOutput())) {
@@ -133,14 +134,14 @@ public class CurveFittingExecutorService {
         	//TODO CurveDataService should emit an event when the curve is saved, to which StateTracker can respond
         	ctx.getStateTracker().skipStage(feature.getId(), CalculationStage.FeatureCurveFit);
         });
-        
+
         ctx.getStateTracker().addEventListener(CalculationStage.FeatureCurveFit, CalculationStateEventCode.Error, feature.getId(), requests -> {
         	requests.values().stream().map(req -> req.getOutput())
 				.filter(o -> o.getStatusCode() != ResponseStatusCode.SUCCESS)
 				.forEach(o -> ctx.getErrorCollector().addError(String.format("Curve fit failed with status %s", o.getStatusCode()), o, feature));
         });
     }
-    
+
     public void execute(CurveFittingRequestDTO request) {
     	try {
     		FeatureDTO feature = protocolServiceClient.getFeature(request.getFeatureId());
@@ -156,10 +157,10 @@ public class CurveFittingExecutorService {
         		logger.warn(String.format("Aborting curve fit: no data provided for plate %d, feature %d", request.getPlateId(), request.getFeatureId()));
         		return;
         	}
-        	
+
         	PlateDTO plate = plateServiceClient.getPlate(request.getPlateId());
         	List<WellDTO> wells = plateServiceClient.getWells(plate.getId());
-        	
+
     		List<String> substanceNames = wells.stream().filter(w -> w.getWellSubstance() != null).map(w -> w.getWellSubstance().getName()).distinct().toList();
         	for (String substance: substanceNames) {
         		DRCInputDTO drcInput = collectCurveFitInputData(plate, wells, resultData, feature, substance);
@@ -173,7 +174,7 @@ public class CurveFittingExecutorService {
     		logger.error(String.format("Curve fit failed on plate %d, feature %d", request.getPlateId(), request.getFeatureId()), e);
     	}
     }
-    
+
     private void createNewCurve(DRCInputDTO drcInput, DRCOutputDTO drcOutput) {
         List<CurvePropertyDTO> curvePropertieDTOs = new ArrayList<>();
         if (isCreatable(drcOutput.pIC50toReport))
@@ -254,7 +255,7 @@ public class CurveFittingExecutorService {
                 .filter(w -> w.getWellSubstance() != null && substanceName.equals(w.getWellSubstance().getName()))
                 .toList();
         var drcModelDTO = feature.getDrcModel();
-        
+
         long[] wellIds = new long[wells.size()];
         float[] concs = new float[wells.size()];
         float[] accepts = new float[wells.size()];
