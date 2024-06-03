@@ -97,6 +97,7 @@ public class CalculationStatusService {
 
     /**
      * Gets the status of a calculation using the id of the {@see ResultSet} of this calculation.
+     *
      * @param resultSetId the resultSetId corresponding to this calculation.
      * @return the status of the calculation
      * @throws ResultDataUnresolvableException
@@ -105,8 +106,7 @@ public class CalculationStatusService {
      * @throws ProtocolUnresolvableException
      * @throws PlateUnresolvableException
      */
-    public CalculationStatus getStatus(long resultSetId) throws ResultDataUnresolvableException, ResultSetUnresolvableException, ResultFeatureStatUnresolvableException, ProtocolUnresolvableException, PlateUnresolvableException {
-
+    public CalculationStatus getStatus(Long resultSetId) throws ResultDataUnresolvableException, ResultSetUnresolvableException, ResultFeatureStatUnresolvableException, ProtocolUnresolvableException, PlateUnresolvableException {
         var resultSet = resultDataServiceClient.getResultSet(resultSetId);
         var protocolData = protocolInfoCollector.getProtocolData(resultSet.getProtocolId());
         var wells = plateServiceClient.getWells(resultSet.getPlateId());
