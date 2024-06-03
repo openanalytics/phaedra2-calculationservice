@@ -32,24 +32,24 @@ public abstract class BaseGroupingStrategy implements InputGroupingStrategy {
 
 	private final MeasurementServiceClient measurementServiceClient;
 	private final ResultDataServiceClient resultDataServiceClient;
-	
+
 	private final ModelMapper modelMapper;
 	private final ObjectMapper objectMapper;
-	
+
 	public BaseGroupingStrategy(MeasurementServiceClient measurementServiceClient, ResultDataServiceClient resultDataServiceClient, ModelMapper modelMapper, ObjectMapper objectMapper) {
 		this.measurementServiceClient = measurementServiceClient;
 		this.resultDataServiceClient = resultDataServiceClient;
 		this.modelMapper = modelMapper;
 		this.objectMapper = objectMapper;
 	}
-	
+
 	protected InputGroup createGroup(CalculationContext ctx, FeatureDTO feature, List<WellDTO> wells, int groupNr) {
 		// Note: assuming here that the list of wells is consecutive (i.e. no gaps)
 		int[] wellNrRange = {
 				wells.stream().mapToInt(well -> well.getWellNr()).min().orElse(1),
 				wells.stream().mapToInt(well -> well.getWellNr()).max().orElse(1)
 		};
-		
+
 		Map<String, Object> inputVariables = new HashMap<String, Object>();
     	Formula formula = ctx.getProtocolData().formulas.get(feature.getFormulaId());
 
@@ -57,7 +57,7 @@ public abstract class BaseGroupingStrategy implements InputGroupingStrategy {
     		ctx.getErrorCollector().addError(msg, feature, formula, civ);
     		throw new CalculationException(msg);
     	};
-    	
+
         for (var civ : feature.getCivs()) {
             if (inputVariables.containsKey(civ.getVariableName())) {
             	errorHandler.accept("Duplicate variable name", civ);
@@ -71,7 +71,7 @@ public abstract class BaseGroupingStrategy implements InputGroupingStrategy {
             	} else {
             		try {
             			ResultDataDTO resultData = resultDataServiceClient.getResultData(ctx.getResultSetId(), civ.getSourceFeatureId());
-            			float[] values = Arrays.copyOfRange(resultData.getValues(), wellNrRange[0], wellNrRange[1] + 1);
+            			float[] values = Arrays.copyOfRange(resultData.getValues(), wellNrRange[0] - 1, wellNrRange[1]);
 						inputVariables.put(civ.getVariableName(), values);
 					} catch (ResultDataUnresolvableException e) {
 						errorHandler.accept("Failed to retrieve feature source data", civ);
@@ -84,7 +84,7 @@ public abstract class BaseGroupingStrategy implements InputGroupingStrategy {
             	} else {
             		try {
             			float[] values = measurementServiceClient.getWellData(ctx.getMeasId(), civ.getSourceMeasColName());
-            			values = Arrays.copyOfRange(values, wellNrRange[0], wellNrRange[1] + 1);
+            			values = Arrays.copyOfRange(values, wellNrRange[0] - 1, wellNrRange[1]);
             			inputVariables.put(civ.getVariableName(), values);
             		} catch (MeasUnresolvableException e) {
             			errorHandler.accept("Failed to retrieve measurement source welldata", civ);
@@ -101,7 +101,7 @@ public abstract class BaseGroupingStrategy implements InputGroupingStrategy {
             			}
             			Map<Integer, float[]> values = ctx.getSubwellDataCache().get(civ.getSourceMeasColName());
             			if (values == null || values.isEmpty()) errorHandler.accept("No measurement subwelldata available for " + civ.getSourceMeasColName(), civ);
-            			
+
             			float[][] valueArrays = new float[1 + (wellNrRange[1] - wellNrRange[0])][];
             			for (int nr = wellNrRange[0]; nr <= wellNrRange[1]; nr++) {
             				valueArrays[nr - wellNrRange[0]] = values.get(nr);
@@ -109,7 +109,7 @@ public abstract class BaseGroupingStrategy implements InputGroupingStrategy {
             			inputVariables.put(civ.getVariableName(), valueArrays);
             		} catch (MeasUnresolvableException e) {
             			errorHandler.accept("Failed to retrieve measurement source subwelldata", civ);
-            		}            		
+            		}
             	}
                 break;
             default:
@@ -119,13 +119,13 @@ public abstract class BaseGroupingStrategy implements InputGroupingStrategy {
 
         // Add commonly used info about the wells
         CalculationInputHelper.addWellInfo(inputVariables, ctx, wells);
-        
+
         InputGroup group = new InputGroup();
         group.setGroupNumber(groupNr);
         group.setInputVariables(inputVariables);
         return group;
 	}
-	
+
 	protected ResultDataDTO makeResultData(CalculationContext ctx, FeatureDTO feature, float[] values, ScriptExecutionOutputDTO statusOutput) {
 		return ResultDataDTO.builder()
 		        .resultSetId(ctx.getResultSetId())
@@ -136,10 +136,10 @@ public abstract class BaseGroupingStrategy implements InputGroupingStrategy {
 		        .exitCode(statusOutput.getExitCode())
 		        .build();
 	}
-	
+
 	protected float[] parseOutputValues(ScriptExecutionOutputDTO output) {
     	if (output.getOutput() == null || output.getStatusCode() != ResponseStatusCode.SUCCESS) return null;
-    	
+
     	String[] outputStrings = null;
     	try {
     		OutputWrapper outputValue = objectMapper.readValue(output.getOutput(), OutputWrapper.class);
@@ -148,7 +148,7 @@ public abstract class BaseGroupingStrategy implements InputGroupingStrategy {
     		return null;
     	}
     	if (outputStrings == null) return null;
-    	
+
     	float[] numericOutput = new float[outputStrings.length];
         for (int i = 0; i < numericOutput.length; i++) {
             try {
