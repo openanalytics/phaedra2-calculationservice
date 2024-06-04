@@ -117,11 +117,9 @@ public class CurveFittingExecutorService {
             return;
         }
 
-        ctx.getStateTracker()
-            .startStage(feature.getId(), CalculationStage.FeatureCurveFit, substanceNames.size());
+        ctx.getStateTracker().startStage(feature.getId(), CalculationStage.FeatureCurveFit, substanceNames.size());
         for (String substance : substanceNames) {
-            DRCInputDTO drcInput = collectCurveFitInputData(ctx.getPlate(), ctx.getWells(),
-                resultData, feature, substance);
+            DRCInputDTO drcInput = collectCurveFitInputData(ctx.getPlate(), ctx.getWells(), resultData, feature, substance);
             ScriptExecutionRequest request = executeReceptor2CurveFit(drcInput);
             ctx.getStateTracker().trackScriptExecution(feature.getId(), CalculationStage.FeatureCurveFit, substance, request);
         }
@@ -132,10 +130,8 @@ public class CurveFittingExecutorService {
                     if (StringUtils.isBlank(req.getValue().getOutput().getOutput())) {
                         logger.info("No output is created!!");
                     } else {
-                        DRCInputDTO drcInput = collectCurveFitInputData(ctx.getPlate(),
-                            ctx.getWells(), resultData, feature, req.getKey());
-                        DRCOutputDTO drcOutput = collectCurveFitOutputData(
-                            req.getValue().getOutput());
+                        DRCInputDTO drcInput = collectCurveFitInputData(ctx.getPlate(), ctx.getWells(), resultData, feature, req.getKey());
+                        DRCOutputDTO drcOutput = collectCurveFitOutputData(req.getValue().getOutput());
                         if (drcOutput != null) {
                             createNewCurve(drcInput, drcOutput);
                         }
@@ -284,9 +280,8 @@ public class CurveFittingExecutorService {
             wellIds[i] = wells.get(i).getId();
 
             // Set the well substance concentration value
-//            float conc = wells.get(i).getWellSubstance().getConcentration().floatValue();
-//            concs[i] = (float) Precision.round(-Math.log10(conc), 3);
-            concs[i] = wells.get(i).getWellSubstance().getConcentration().floatValue();
+            float conc = wells.get(i).getWellSubstance().getConcentration().floatValue();
+            concs[i] = (float) Precision.round(-Math.log10(conc), 3);
 
             // Set the well accept value (true or false)
             accepts[i] = (wells.get(i).getStatus().getCode() >= 0 && plate.getValidationStatus().getCode() >= 0 && plate.getApprovalStatus().getCode() >= 0) ? 1 : 0;
