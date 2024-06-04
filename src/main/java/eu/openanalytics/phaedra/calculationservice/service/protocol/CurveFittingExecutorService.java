@@ -176,6 +176,7 @@ public class CurveFittingExecutorService {
     }
 
     private void createNewCurve(DRCInputDTO drcInput, DRCOutputDTO drcOutput) {
+        logger.info("Create new curve for substance %s and feature %s (%d)", drcInput.getSubstance(), drcInput.getFeature().getName(), drcInput.getFeature().getId());
         List<CurvePropertyDTO> curvePropertieDTOs = new ArrayList<>();
         if (isCreatable(drcOutput.pIC50toReport))
             curvePropertieDTOs.add(CurvePropertyDTO.builder().name("pIC50").numericValue(parseFloat(drcOutput.pIC50toReport)).build());
