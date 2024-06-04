@@ -267,8 +267,9 @@ public class CurveFittingExecutorService {
             wellIds[i] = wells.get(i).getId();
 
             // Set the well substance concentration value
-            float conc = wells.get(i).getWellSubstance().getConcentration().floatValue();
-            concs[i] = (float) Precision.round(-Math.log10(conc), 3);
+//            float conc = wells.get(i).getWellSubstance().getConcentration().floatValue();
+//            concs[i] = (float) Precision.round(-Math.log10(conc), 3);
+            concs[i] = wells.get(i).getWellSubstance().getConcentration().floatValue();
 
             // Set the well accept value (true or false)
             accepts[i] = (wells.get(i).getStatus().getCode() >= 0 && plate.getValidationStatus().getCode() >= 0 && plate.getApprovalStatus().getCode() >= 0) ? 1 : 0;
