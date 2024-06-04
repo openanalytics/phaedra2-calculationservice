@@ -42,11 +42,11 @@ import eu.openanalytics.phaedra.scriptengine.dto.ResponseStatusCode;
 
 /**
  * Feature execution is a part of the protocol execution procedure.
- * 
+ *
  * One feature is calculated by evaluating one formula. This formula
  * may reference data from other features, or from the plate's "raw"
  * measurement columns.
- * 
+ *
  * Formula evaluation is offloaded to an appropriate ScriptEngine that
  * supports the language used by the formula.
  */
@@ -58,14 +58,14 @@ public class FeatureExecutorService {
     private final ScriptExecutionService scriptExecutionService;
     private final KafkaProducerService kafkaProducerService;
     private final StrategyProvider strategyProvider;
-    
+
     public FeatureExecutorService(
     		FeatureStatExecutorService featureStatExecutorService,
     		CurveFittingExecutorService curveFitExecutorService,
     		ScriptExecutionService scriptExecutionService,
     		KafkaProducerService kafkaProducerService,
     		StrategyProvider strategyProvider) {
-    	
+
         this.featureStatExecutorService = featureStatExecutorService;
         this.curveFitExecutorService = curveFitExecutorService;
         this.scriptExecutionService = scriptExecutionService;
@@ -78,49 +78,49 @@ public class FeatureExecutorService {
      * This operation does not block, and will return as soon as the request is launched.
      */
     public void executeFeature(CalculationContext ctx, FeatureDTO feature) {
-    	
+
     	// Retrieve and validate the formula
     	Formula formula = ctx.getProtocolData().formulas.get(feature.getFormulaId());
     	if (formula == null) {
-    		ctx.getStateTracker().failStage(feature.getId(), CalculationStage.FeatureFormula, 
+    		ctx.getStateTracker().failStage(feature.getId(), CalculationStage.FeatureFormula,
     				String.format("Invalid formula ID: %d", feature.getFormulaId()), feature);
     		return;
     	} else if (formula.getScope() != CalculationScope.WELL) {
-    		ctx.getStateTracker().failStage(feature.getId(), CalculationStage.FeatureFormula, 
+    		ctx.getStateTracker().failStage(feature.getId(), CalculationStage.FeatureFormula,
     				"Invalid formula scope for feature calculation", feature, formula);
     		return;
     	}
-    	
+
     	InputGroupingStrategy inputGroupingStrategy = strategyProvider.getStrategy(ctx, feature);
-    	
+
     	try {
     		// Gather input, and split in groups as needed
     		Set<InputGroup> groups = inputGroupingStrategy.createGroups(ctx, feature);
     		ctx.getStateTracker().startStage(feature.getId(), CalculationStage.FeatureFormula, groups.size());
-    		
+
     		// Submit a script execution for each group
     		for (InputGroup group: groups) {
-    			ScriptExecutionRequest request = scriptExecutionService.submit(formula.getLanguage(), formula.getFormula(), group.getInputVariables());
-        		ctx.getStateTracker().trackScriptExecution(feature.getId(), CalculationStage.FeatureFormula, group.getGroupNumber(), request);    			
+    			ScriptExecutionRequest request = scriptExecutionService.submit(formula.getLanguage(), formula.getFormula(), formula.getCategory().name(), group.getInputVariables());
+        		ctx.getStateTracker().trackScriptExecution(feature.getId(), CalculationStage.FeatureFormula, group.getGroupNumber(), request);
     		}
     	} catch (Exception e) {
-    		ctx.getStateTracker().failStage(feature.getId(), CalculationStage.FeatureFormula, 
+    		ctx.getStateTracker().failStage(feature.getId(), CalculationStage.FeatureFormula,
     				String.format("Feature formula evaluation failed: %s", e.getMessage()), feature, formula, e);
         	return;
     	}
-    	
+
     	ctx.getStateTracker().addEventListener(CalculationStage.FeatureFormula, CalculationStateEventCode.ScriptOutputAvailable, feature.getId(), requests -> {
     		var outputs = requests.entrySet().stream().collect(Collectors.toMap(e -> e.getKey(), e -> e.getValue().getOutput()));
         	ResultDataDTO resultData = inputGroupingStrategy.mergeOutput(ctx, feature, outputs);
     		kafkaProducerService.sendResultData(resultData);
     		ctx.getFeatureResults().put(feature.getId(), resultData);
     	});
-    	
+
     	ctx.getStateTracker().addEventListener(CalculationStage.FeatureFormula, CalculationStateEventCode.Complete, feature.getId(), requests -> {
     		featureStatExecutorService.executeFeatureStats(ctx, feature);
     		curveFitExecutorService.execute(ctx, feature);
     	});
-    	
+
     	ctx.getStateTracker().addEventListener(CalculationStage.FeatureFormula, CalculationStateEventCode.Error, feature.getId(), requests -> {
     		requests.values().stream().map(req -> req.getOutput())
     			.filter(o -> o.getStatusCode() != ResponseStatusCode.SUCCESS)

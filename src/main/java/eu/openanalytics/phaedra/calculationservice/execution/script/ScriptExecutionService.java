@@ -48,7 +48,7 @@ public class ScriptExecutionService {
 
 	private ConcurrentHashMap<String, ScriptExecutionRequest> trackedExecutions = new ConcurrentHashMap<>();
 
-	public ScriptExecutionRequest submit(ScriptLanguage lang, String script, Object inputData) {
+	public ScriptExecutionRequest submit(ScriptLanguage lang, String script, String category, Object inputData) {
     	String inputDocument = null;
     	try {
     		inputDocument = objectMapper.writeValueAsString(inputData);
@@ -59,6 +59,7 @@ public class ScriptExecutionService {
     	ScriptExecutionInputDTO input = ScriptExecutionInputDTO.builder()
     			.language(lang.name())
     			.script(script)
+					.category(category)
     			.input(inputDocument)
     			.build();
 

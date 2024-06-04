@@ -25,6 +25,7 @@ import static java.lang.Float.parseFloat;
 import static java.util.stream.IntStream.range;
 import static org.apache.commons.lang3.math.NumberUtils.isCreatable;
 
+import eu.openanalytics.phaedra.calculationservice.enumeration.FormulaCategory;
 import java.util.ArrayList;
 import java.util.Date;
 import java.util.HashMap;
@@ -382,7 +383,7 @@ public class CurveFittingExecutorService {
 //                 "output$validpIC20 <- value$validpIC20[c(\"e:1:20\"),]\n" +
 //                 "output$validpIC80 <- value$validpIC80[c(\"e:1:80\"),]\n" +
 
-        return scriptExecutionService.submit(ScriptLanguage.R, script, inputVariables);
+        return scriptExecutionService.submit(ScriptLanguage.R, script, FormulaCategory.CURVE_FITTING.name(), inputVariables);
     }
 
     private static class OutputWrapper {
