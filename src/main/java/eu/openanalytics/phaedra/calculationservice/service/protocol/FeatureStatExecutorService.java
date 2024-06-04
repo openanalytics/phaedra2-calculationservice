@@ -83,21 +83,21 @@ public class FeatureStatExecutorService {
         List<FeatureStatDTO> statsToCalculate = ctx.getProtocolData().featureStats.get(feature.getId());
         log(logger, ctx, "Calculating %d featureStats for feature %d", statsToCalculate.size(), feature.getId());
         ctx.getStateTracker().startStage(feature.getId(), CalculationStage.FeatureStatistics, statsToCalculate.size());
-        
+
         // Submit all stat calculation requests
         for (FeatureStatDTO fs: statsToCalculate) {
         	Formula formula = ctx.getProtocolData().formulas.get(fs.getFormulaId());
         	if (formula == null) {
-        		ctx.getStateTracker().failStage(feature.getId(), CalculationStage.FeatureStatistics, 
+        		ctx.getStateTracker().failStage(feature.getId(), CalculationStage.FeatureStatistics,
         				String.format("Invalid formula ID for stat '%s': %d", fs.getName(), fs.getFormulaId()), feature);
         		return;
         	}
-        	
+
         	Map<String, Object> inputData = collectStatInputData(ctx, feature, fs);
-        	ScriptExecutionRequest request = scriptExecutionService.submit(formula.getLanguage(), formula.getFormula(), inputData);
+        	ScriptExecutionRequest request = scriptExecutionService.submit(formula.getLanguage(), formula.getFormula(), formula.getCategory().name(), inputData);
         	ctx.getStateTracker().trackScriptExecution(feature.getId(), CalculationStage.FeatureStatistics, fs.getId(), request);
         }
-        
+
         ctx.getStateTracker().addEventListener(CalculationStage.FeatureStatistics, CalculationStateEventCode.ScriptOutputAvailable, feature.getId(), requests -> {
         	// Accumulate all stats to save.
         	List<ResultFeatureStatDTO> results = new ArrayList<ResultFeatureStatDTO>();
@@ -106,16 +106,16 @@ public class FeatureStatExecutorService {
         		try {
         			results.addAll(parseResults(ctx, feature, fs, req.getValue().getOutput()));
     			} catch (Exception e) {
-    				ctx.getStateTracker().failStage(feature.getId(), CalculationStage.FeatureFormula, 
+    				ctx.getStateTracker().failStage(feature.getId(), CalculationStage.FeatureFormula,
     	    				String.format("Feature statistic %s failed: cannot parse output: %s", fs.getName(), e.getMessage()), feature, e);
     			}
         	});
-        	
+
         	// Reset the stage with size == total nr of stats to save (which is greater than statsToCalculate.size(), e.g. stats for multiple welltypes).
         	ctx.getStateTracker().startStage(feature.getId(), CalculationStage.FeatureStatistics, results.size());
         	results.stream().forEach(res -> kafkaProducerService.sendResultFeatureStats(res.withResultSetId(ctx.getResultSetId())));
         });
-        
+
         ctx.getStateTracker().addEventListener(CalculationStage.FeatureStatistics, CalculationStateEventCode.Error, feature.getId(), requests -> {
         	requests.entrySet().stream().filter(req -> req.getValue().getOutput().getStatusCode() != ResponseStatusCode.SUCCESS).forEach(req -> {
         		FeatureStatDTO fs = findStat(ctx, feature.getId(), Long.valueOf(req.getKey()));
@@ -130,7 +130,7 @@ public class FeatureStatExecutorService {
     	if (featureStats == null) return null;
     	return featureStats.stream().filter(stat -> stat.getId().equals(statId)).findAny().orElse(null);
     }
-    
+
     private Map<String, Object> collectStatInputData(CalculationContext ctx, FeatureDTO feature, FeatureStatDTO featureStat) {
     	Map<String, Object> input = new HashMap<String, Object>();
         input.put("lowWelltype", ctx.getProtocolData().protocol.getLowWelltype());
@@ -141,7 +141,7 @@ public class FeatureStatExecutorService {
         input.put("isWelltypeStat", featureStat.getWelltypeStat());
         return input;
     }
-    
+
     private List<ResultFeatureStatDTO> parseResults(CalculationContext ctx, FeatureDTO feature, FeatureStatDTO featureStat, ScriptExecutionOutputDTO output) {
     	List<ResultFeatureStatDTO> results = new ArrayList<>();
 
@@ -184,7 +184,7 @@ public class FeatureStatExecutorService {
     }
 
     private static class OutputWrapper {
-    	
+
         private final Float plateValue;
         private final Map<String, Float> welltypeValues;
 
