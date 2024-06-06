@@ -38,15 +38,19 @@ import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 
 import eu.openanalytics.phaedra.calculationservice.exception.CalculationException;
-import eu.openanalytics.phaedra.calculationservice.model.CalculationContext;
+import eu.openanalytics.phaedra.calculationservice.execution.CalculationContext;
+import eu.openanalytics.phaedra.calculationservice.execution.progress.CalculationStage;
+import eu.openanalytics.phaedra.calculationservice.execution.progress.CalculationStateEventCode;
+import eu.openanalytics.phaedra.calculationservice.execution.script.ScriptExecutionRequest;
+import eu.openanalytics.phaedra.calculationservice.execution.script.ScriptExecutionService;
 import eu.openanalytics.phaedra.calculationservice.model.Formula;
 import eu.openanalytics.phaedra.calculationservice.model.ModelMapper;
 import eu.openanalytics.phaedra.calculationservice.service.KafkaProducerService;
-import eu.openanalytics.phaedra.calculationservice.service.script.ScriptExecutionService;
 import eu.openanalytics.phaedra.plateservice.dto.WellDTO;
 import eu.openanalytics.phaedra.protocolservice.dto.FeatureDTO;
 import eu.openanalytics.phaedra.protocolservice.dto.FeatureStatDTO;
 import eu.openanalytics.phaedra.resultdataservice.dto.ResultFeatureStatDTO;
+import eu.openanalytics.phaedra.scriptengine.dto.ResponseStatusCode;
 import eu.openanalytics.phaedra.scriptengine.dto.ScriptExecutionOutputDTO;
 
 /**
@@ -75,53 +79,89 @@ public class FeatureStatExecutorService {
         this.scriptExecutionService = scriptExecutionService;
     }
 
-    public void executeFeatureStats(CalculationContext ctx, FeatureDTO feature, float[] values) {
+    public void executeFeatureStats(CalculationContext ctx, FeatureDTO feature) {
         List<FeatureStatDTO> statsToCalculate = ctx.getProtocolData().featureStats.get(feature.getId());
         log(logger, ctx, "Calculating %d featureStats for feature %d", statsToCalculate.size(), feature.getId());
+        ctx.getStateTracker().startStage(feature.getId(), CalculationStage.FeatureStatistics, statsToCalculate.size());
 
         // Submit all stat calculation requests
         for (FeatureStatDTO fs: statsToCalculate) {
         	Formula formula = ctx.getProtocolData().formulas.get(fs.getFormulaId());
-        	Map<String, Object> inputData = collectStatInputData(ctx, feature, fs, values);
+        	if (formula == null) {
+        		ctx.getStateTracker().failStage(feature.getId(), CalculationStage.FeatureStatistics,
+        				String.format("Invalid formula ID for stat '%s': %d", fs.getName(), fs.getFormulaId()), feature);
+        		return;
+        	}
 
-        	scriptExecutionService
-        		.submit(formula.getLanguage(), formula.getFormula(), inputData)
-        		.addCallback(output -> {
-					try {
-						List<ResultFeatureStatDTO> results = parseResults(ctx, feature, fs, output);
-						kafkaProducerService.sendResultFeatureStats(ctx.getResultSetId(), results);
-						log(logger, ctx, "Sent %d featureStat values for feature %d", results.size(), feature.getId());
-					} catch (JsonProcessingException e) {
-						ctx.getErrorCollector().addError("Invalid format received for feature stat response", output, feature, fs);
-					}
-        	});
+        	Map<String, Object> inputData = collectStatInputData(ctx, feature, fs);
+        	ScriptExecutionRequest request = scriptExecutionService.submit(formula.getLanguage(), formula.getFormula(), formula.getCategory().name(), inputData);
+        	ctx.getStateTracker().trackScriptExecution(feature.getId(), CalculationStage.FeatureStatistics, fs.getId(), request);
         }
+
+        ctx.getStateTracker().addEventListener(CalculationStage.FeatureStatistics, CalculationStateEventCode.ScriptOutputAvailable, feature.getId(), requests -> {
+        	// Accumulate all stats to save.
+        	List<ResultFeatureStatDTO> results = new ArrayList<ResultFeatureStatDTO>();
+        	requests.entrySet().forEach(req -> {
+        		FeatureStatDTO fs = findStat(ctx, feature.getId(), Long.valueOf(req.getKey()));
+        		try {
+        			results.addAll(parseResults(ctx, feature, fs, req.getValue().getOutput()));
+    			} catch (Exception e) {
+    				ctx.getStateTracker().failStage(feature.getId(), CalculationStage.FeatureFormula,
+    	    				String.format("Feature statistic %s failed: cannot parse output: %s", fs.getName(), e.getMessage()), feature, e);
+    			}
+        	});
+
+        	// Reset the stage with size == total nr of stats to save (which is greater than statsToCalculate.size(), e.g. stats for multiple welltypes).
+        	ctx.getStateTracker().startStage(feature.getId(), CalculationStage.FeatureStatistics, results.size());
+        	results.stream().forEach(res -> kafkaProducerService.sendResultFeatureStats(res.withResultSetId(ctx.getResultSetId())));
+        });
+
+        ctx.getStateTracker().addEventListener(CalculationStage.FeatureStatistics, CalculationStateEventCode.Error, feature.getId(), requests -> {
+        	requests.entrySet().stream().filter(req -> req.getValue().getOutput().getStatusCode() != ResponseStatusCode.SUCCESS).forEach(req -> {
+        		FeatureStatDTO fs = findStat(ctx, feature.getId(), Long.valueOf(req.getKey()));
+        		ScriptExecutionOutputDTO output = req.getValue().getOutput();
+        		ctx.getErrorCollector().addError(String.format("Feature statistic %s failed: %s", fs.getName(), output.getStatusMessage()), output, feature);
+        	});
+        });
     }
 
-    private Map<String, Object> collectStatInputData(CalculationContext ctx, FeatureDTO feature, FeatureStatDTO featureStat, float[] values) {
+    private FeatureStatDTO findStat(CalculationContext ctx, long featureId, long statId) {
+    	var featureStats = ctx.getProtocolData().featureStats.get(featureId);
+    	if (featureStats == null) return null;
+    	return featureStats.stream().filter(stat -> stat.getId().equals(statId)).findAny().orElse(null);
+    }
+
+    private Map<String, Object> collectStatInputData(CalculationContext ctx, FeatureDTO feature, FeatureStatDTO featureStat) {
     	Map<String, Object> input = new HashMap<String, Object>();
         input.put("lowWelltype", ctx.getProtocolData().protocol.getLowWelltype());
         input.put("highWelltype", ctx.getProtocolData().protocol.getHighWelltype());
         input.put("welltypes", ctx.getWells().stream().map(WellDTO::getWellType).toList());
-        input.put("featureValues", values);
+        input.put("featureValues", ctx.getFeatureResults().get(feature.getId()).getValues());
         input.put("isPlateStat", featureStat.getPlateStat());
         input.put("isWelltypeStat", featureStat.getWelltypeStat());
         return input;
     }
 
-    private List<ResultFeatureStatDTO> parseResults(CalculationContext ctx, FeatureDTO feature, FeatureStatDTO featureStat, ScriptExecutionOutputDTO output) throws JsonProcessingException {
+    private List<ResultFeatureStatDTO> parseResults(CalculationContext ctx, FeatureDTO feature, FeatureStatDTO featureStat, ScriptExecutionOutputDTO output) {
     	List<ResultFeatureStatDTO> results = new ArrayList<>();
 
-		OutputWrapper outputWrapper = objectMapper.readValue(output.getOutput(), OutputWrapper.class);
+    	float plateValue = Float.NaN;
+    	Map<String, Float> wellTypeValues = null;
+		try {
+			OutputWrapper outputWrapper = objectMapper.readValue(output.getOutput(), OutputWrapper.class);
+			plateValue = outputWrapper.getPlateValue().orElse(Float.NaN);
+			wellTypeValues = outputWrapper.getWelltypeOutputs();
+		} catch (JsonProcessingException e) {
+			throw new CalculationException("Invalid response JSON", e);
+		}
 
 		if (featureStat.getPlateStat()) {
-			results.add(parseResult(feature, featureStat, output, outputWrapper.getPlateValue().orElse(Float.NaN), null));
+			results.add(createResultStatDTO(feature, featureStat, output, plateValue, null));
 		} else if (featureStat.getWelltypeStat()) {
 			List<String> wellTypes = ctx.getWells().stream().map(WellDTO::getWellType).distinct().toList();
-            Map<String, Float> wellTypeValues = outputWrapper.getWelltypeOutputs();
             for (String wellType : wellTypes) {
             	Float numValue = Optional.ofNullable(wellTypeValues.get(wellType)).orElse(Float.NaN);
-                results.add(parseResult(feature, featureStat, output, numValue, wellType));
+                results.add(createResultStatDTO(feature, featureStat, output, numValue, wellType));
             }
 		} else {
 			throw new CalculationException(String.format("Invalid feature stat: %s", featureStat.getName()), feature);
@@ -130,7 +170,7 @@ public class FeatureStatExecutorService {
     	return results;
     }
 
-    private ResultFeatureStatDTO parseResult(FeatureDTO feature, FeatureStatDTO featureStat, ScriptExecutionOutputDTO output, Float value, String wellType) {
+    private ResultFeatureStatDTO createResultStatDTO(FeatureDTO feature, FeatureStatDTO featureStat, ScriptExecutionOutputDTO output, Float value, String wellType) {
     	return ResultFeatureStatDTO.builder()
 	        .featureId(feature.getId())
 	        .featureStatId(featureStat.getId())
@@ -144,8 +184,8 @@ public class FeatureStatExecutorService {
     }
 
     private static class OutputWrapper {
-        private final Float plateValue;
 
+        private final Float plateValue;
         private final Map<String, Float> welltypeValues;
 
         @JsonCreator

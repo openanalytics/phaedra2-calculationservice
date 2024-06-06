@@ -27,6 +27,7 @@ import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 import eu.openanalytics.phaedra.calculationservice.enumeration.ScriptLanguage;
+import eu.openanalytics.phaedra.calculationservice.execution.input.CalculationInputHelper;
 import eu.openanalytics.phaedra.calculationservice.model.Formula;
 
 public class FormulaParser {

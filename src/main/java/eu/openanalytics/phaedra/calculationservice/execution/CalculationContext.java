@@ -18,15 +18,19 @@
  * You should have received a copy of the Apache License
  * along with this program.  If not, see <http://www.apache.org/licenses/>
  */
-package eu.openanalytics.phaedra.calculationservice.model;
+package eu.openanalytics.phaedra.calculationservice.execution;
 
+import java.util.Collections;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
+import eu.openanalytics.phaedra.calculationservice.execution.progress.CalculationStateTracker;
 import eu.openanalytics.phaedra.calculationservice.service.protocol.ProtocolDataCollector.ProtocolData;
-import eu.openanalytics.phaedra.calculationservice.util.CalculationProgress;
 import eu.openanalytics.phaedra.calculationservice.util.ErrorCollector;
 import eu.openanalytics.phaedra.plateservice.dto.PlateDTO;
 import eu.openanalytics.phaedra.plateservice.dto.WellDTO;
+import eu.openanalytics.phaedra.resultdataservice.dto.ResultDataDTO;
 import lombok.AccessLevel;
 import lombok.AllArgsConstructor;
 import lombok.Data;
@@ -38,18 +42,25 @@ import lombok.Setter;
 public class CalculationContext {
 
 	ProtocolData protocolData;
+	
     PlateDTO plate;
     List<WellDTO> wells;
+    
     Long resultSetId;
     Long measId;
 
-    ErrorCollector errorCollector;
-    CalculationProgress calculationProgress;
+    Map<Long, ResultDataDTO> featureResults;
+    Map<String, Map<Integer, float[]>> subwellDataCache;
     
-    public static CalculationContext newInstance(ProtocolData protocolData, PlateDTO plate, List<WellDTO> wells, Long resultSetId, Long measId) {
-    	CalculationContext ctx = new CalculationContext(protocolData, plate, wells, resultSetId, measId, null, null);
-    	ctx.calculationProgress = new CalculationProgress(ctx);
+    ErrorCollector errorCollector;
+    CalculationStateTracker stateTracker;
+    
+    public static CalculationContext create(ProtocolData protocolData, PlateDTO plate, List<WellDTO> wells, Long resultSetId, Long measId) {
+    	CalculationContext ctx = new CalculationContext(protocolData, plate, wells, resultSetId, measId, null, null, null, null);
+    	ctx.stateTracker = new CalculationStateTracker(ctx);
         ctx.errorCollector = new ErrorCollector(ctx);
+        ctx.featureResults = new HashMap<>();
+        ctx.subwellDataCache = Collections.synchronizedMap(new HashMap<>());
         return ctx;
     }
 

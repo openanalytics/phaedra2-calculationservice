@@ -20,6 +20,8 @@
  */
 package eu.openanalytics.phaedra.calculationservice.dto;
 
+import java.util.List;
+import java.util.Map;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
@@ -28,9 +30,8 @@ import lombok.NoArgsConstructor;
 @AllArgsConstructor
 @NoArgsConstructor
 public class CalculationRequestDTO {
-
     private Long protocolId;
-    private Long plateId;
-    private Long measId;
+    private List<Long> plateIds;
+    private Map<Long, Long> measIds;
 
 }

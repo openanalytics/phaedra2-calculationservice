@@ -33,9 +33,9 @@ import org.springframework.stereotype.Service;
 import eu.openanalytics.phaedra.calculationservice.config.KafkaConfig;
 import eu.openanalytics.phaedra.calculationservice.dto.CalculationRequestDTO;
 import eu.openanalytics.phaedra.calculationservice.dto.CurveFittingRequestDTO;
+import eu.openanalytics.phaedra.calculationservice.execution.script.ScriptExecutionService;
 import eu.openanalytics.phaedra.calculationservice.service.protocol.CurveFittingExecutorService;
 import eu.openanalytics.phaedra.calculationservice.service.protocol.ProtocolExecutorService;
-import eu.openanalytics.phaedra.calculationservice.service.script.ScriptExecutionService;
 import eu.openanalytics.phaedra.resultdataservice.dto.ResultDataDTO;
 import eu.openanalytics.phaedra.resultdataservice.dto.ResultFeatureStatDTO;
 import eu.openanalytics.phaedra.resultdataservice.dto.ResultSetDTO;
@@ -56,10 +56,12 @@ public class KafkaConsumerService {
     @KafkaListener(topics = KafkaConfig.TOPIC_CALCULATIONS, groupId = KafkaConfig.GROUP_ID + "_reqPlateCalc", filter = "requestPlateCalculationFilter")
     public void onRequestPlateCalculation(CalculationRequestDTO calculationRequestDTO, @Header(KafkaHeaders.RECEIVED_KEY) String msgKey) throws ExecutionException, InterruptedException {
         logger.info(KafkaConfig.GROUP_ID + ": received a plate calculation event");
-        protocolExecutorService.execute(
-                calculationRequestDTO.getProtocolId(),
-                calculationRequestDTO.getPlateId(),
-                calculationRequestDTO.getMeasId());
+        for (Long plateId: calculationRequestDTO.getPlateIds()) {
+          protocolExecutorService.execute(
+              calculationRequestDTO.getProtocolId(),
+              plateId,
+              calculationRequestDTO.getMeasIds().get(plateId));
+        }
     }
 
     @KafkaListener(topics = KafkaConfig.TOPIC_CALCULATIONS, groupId = KafkaConfig.GROUP_ID + "_reqCurveFit", filter = "requestCurveFitFilter")
@@ -68,7 +70,7 @@ public class KafkaConsumerService {
         curveFittingExecutorService.execute(curveFittingRequestDTO);
     }
 
-    @KafkaListener(topics = KafkaConfig.TOPIC_SCRIPTENGINE, groupId = KafkaConfig.GROUP_ID, filter = "scriptExecutionUpdateFilter")
+    @KafkaListener(topics = KafkaConfig.TOPIC_SCRIPTENGINE, groupId = KafkaConfig.GROUP_ID + "_scriptExecUpdate", filter = "scriptExecutionUpdateFilter")
     public void onScriptExecutionEvent(ScriptExecutionOutputDTO output) {
     	logger.info(KafkaConfig.GROUP_ID + ": received a script execution update event");
 		scriptExecutionService.handleScriptExecutionUpdate(output);
@@ -77,18 +79,18 @@ public class KafkaConsumerService {
     @KafkaListener(topics = KafkaConfig.TOPIC_RESULTDATA, groupId = KafkaConfig.GROUP_ID + "_resSet", filter = "resultSetUpdatedFilter")
     public void onResultSetEvent(ResultSetDTO resultSet) {
     	logger.info(KafkaConfig.GROUP_ID + ": received a resultSet update event");
-    	protocolExecutorService.handleResultSetUpdate(resultSet);
+    	protocolExecutorService.handleResultSetUpdate(resultSet.getId(), resultSet);
     }
 
     @KafkaListener(topics = KafkaConfig.TOPIC_RESULTDATA, groupId = KafkaConfig.GROUP_ID + "_resData", filter = "resultDataUpdatedFilter")
     public void onResultDataEvent(ResultDataDTO resultData) {
     	logger.info(KafkaConfig.GROUP_ID + ": received a resultData update event");
-    	protocolExecutorService.handleResultSetUpdate(resultData);
+    	protocolExecutorService.handleResultSetUpdate(resultData.getResultSetId(), resultData);
     }
 
     @KafkaListener(topics = KafkaConfig.TOPIC_RESULTDATA, groupId = KafkaConfig.GROUP_ID + "_resStats", filter = "resultFeatureStatUpdatedFilter")
     public void onResultFeatureStatEvent(ResultFeatureStatDTO resultFeatureStat) {
     	logger.info(KafkaConfig.GROUP_ID + ": received a resultFeatureStat update event");
-    	protocolExecutorService.handleResultSetUpdate(resultFeatureStat);
+    	protocolExecutorService.handleResultSetUpdate(resultFeatureStat.getResultSetId(), resultFeatureStat);
     }
 }

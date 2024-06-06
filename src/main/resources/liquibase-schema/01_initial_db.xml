@@ -5,11 +5,6 @@
    https://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-3.4.xsd">
 
     <changeSet id="01_initial_db" author="Tobia">
-        <sql>CREATE TYPE scope AS ENUM ('PLATE', 'FEATURE', 'WELL', 'SUB_WELL');</sql>
-        <sql>CREATE CAST (CHARACTER VARYING AS scope) WITH INOUT AS IMPLICIT;;</sql>
-        <sql>CREATE TYPE category AS ENUM ('CALCULATION', 'HIT_CALLING', 'OUTLIER_DETECTION', 'POLISHING')</sql>
-        <sql>CREATE CAST (CHARACTER VARYING AS category) WITH INOUT AS IMPLICIT;</sql>
-
         <createTable tableName="formula">
             <column name="id" type="bigint" autoIncrement="true">
                 <constraints nullable="false" primaryKey="true"/>
@@ -20,7 +15,7 @@
             <column name="description" type="text">
                 <constraints nullable="true"/>
             </column>
-            <column name="category" type="category">
+            <column name="category" type="text">
                 <constraints nullable="false"/>
             </column>
             <column name="formula" type="text">
@@ -29,7 +24,7 @@
             <column name="language" type="text">
                 <constraints nullable="false"/>
             </column>
-            <column name="scope" type="scope">
+            <column name="scope" type="text">
                 <constraints nullable="false"/>
             </column>
             <column name="created_by" type="text">
@@ -44,38 +39,11 @@
             <column name="updated_on" type="timestamp">
                 <constraints nullable="true"/>
             </column>
-        </createTable>
-    </changeSet>
-    <changeSet  id="2"  author="smarien">
-        <addColumn  tableName="formula">
-            <column  name="previous_version"  type="text"/>
-        </addColumn>
-        <addColumn  tableName="formula">
-            <column  name="version_number"  type="text"/>
-        </addColumn>
-    </changeSet>
-    <changeSet id="3" author="sberberovic">
-        <update tableName="formula">
-            <column name="version_number" value="1.0.0"/>
-        </update>
-    </changeSet>
-    <changeSet id="4" author="sberberovic">
-        <addNotNullConstraint tableName="formula" columnName="version_number"/>
-    </changeSet>
-	<changeSet id="5" author="fmichielssen">
-		<addColumn tableName="formula">
+            <column name="version_number" type="text" defaultValue="1.0.0">
+            	<constraints nullable="false"/>
+            </column>
             <column name="previous_version_id" type="bigint"/>
-        </addColumn>
-        <dropColumn tableName="formula">
-            <column name="previous_version"/>
-        </dropColumn>
-    </changeSet>
-    <changeSet id="6" author="fmichielssen">
-		<addColumn tableName="formula">
             <column name="deprecated" type="boolean" defaultValue="false" />
-        </addColumn>
-    </changeSet>
-    <changeSet id="7" author="sberberovic">
-        <sql>ALTER TYPE category ADD VALUE IF NOT EXISTS 'CURVE_FITTING'</sql>
+        </createTable>
     </changeSet>
 </databaseChangeLog>

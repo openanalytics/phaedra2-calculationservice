@@ -13,8 +13,8 @@ spring:
         registration:
           keycloak:
             provider: keycloak
-#            client-id: ???
-#            client-secret: ???
+            client-id: ???
+            client-secret: ???
             authorization-grant-type: client_credentials
         provider:
           keycloak:

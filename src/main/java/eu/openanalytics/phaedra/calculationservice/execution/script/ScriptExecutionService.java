@@ -18,7 +18,7 @@
  * You should have received a copy of the Apache License
  * along with this program.  If not, see <http://www.apache.org/licenses/>
  */
-package eu.openanalytics.phaedra.calculationservice.service.script;
+package eu.openanalytics.phaedra.calculationservice.execution.script;
 
 import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
@@ -48,7 +48,7 @@ public class ScriptExecutionService {
 
 	private ConcurrentHashMap<String, ScriptExecutionRequest> trackedExecutions = new ConcurrentHashMap<>();
 
-	public ScriptExecutionRequest submit(ScriptLanguage lang, String script, Object inputData) {
+	public ScriptExecutionRequest submit(ScriptLanguage lang, String script, String category, Object inputData) {
     	String inputDocument = null;
     	try {
     		inputDocument = objectMapper.writeValueAsString(inputData);
@@ -59,6 +59,7 @@ public class ScriptExecutionService {
     	ScriptExecutionInputDTO input = ScriptExecutionInputDTO.builder()
     			.language(lang.name())
     			.script(script)
+					.category(category)
     			.input(inputDocument)
     			.build();
 
