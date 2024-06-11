@@ -269,12 +269,19 @@ public class CurveFittingExecutorService {
         var wells = plateWells.stream()
                 .filter(w -> w.getWellSubstance() != null && substanceName.equals(w.getWellSubstance().getName()))
                 .toList();
+
+        var validWells = wells.stream()
+            .filter((w -> w.getWellSubstance().getConcentration() > 0.0))
+            .filter(w -> w.getStatus().getCode() >= 0)
+            .filter(w -> w.getWellType().equalsIgnoreCase("SAMPLE"))
+            .toList();
+
         var drcModelDTO = feature.getDrcModel();
 
-        long[] wellIds = new long[wells.size()];
-        float[] concs = new float[wells.size()];
-        float[] accepts = new float[wells.size()];
-        float[] values = new float[wells.size()];
+        long[] wellIds = new long[validWells.size()];
+        float[] concs = new float[validWells.size()];
+        float[] accepts = new float[validWells.size()];
+        float[] values = new float[validWells.size()];
 
         range(0, wells.size()).forEach(i -> {
             // Set the well id
