@@ -283,19 +283,19 @@ public class CurveFittingExecutorService {
         float[] accepts = new float[validWells.size()];
         float[] values = new float[validWells.size()];
 
-        range(0, wells.size()).forEach(i -> {
+        range(0, validWells.size()).forEach(i -> {
             // Set the well id
-            wellIds[i] = wells.get(i).getId();
+            wellIds[i] = validWells.get(i).getId();
 
             // Set the well substance concentration value
-            float conc = wells.get(i).getWellSubstance().getConcentration().floatValue();
+            float conc = validWells.get(i).getWellSubstance().getConcentration().floatValue();
             concs[i] = (float) Precision.round(-Math.log10(conc), 3);
 
             // Set the well accept value (true or false)
-            accepts[i] = (wells.get(i).getStatus().getCode() >= 0 && plate.getValidationStatus().getCode() >= 0 && plate.getApprovalStatus().getCode() >= 0) ? 1 : 0;
+            accepts[i] = (validWells.get(i).getStatus().getCode() >= 0 && plate.getValidationStatus().getCode() >= 0 && plate.getApprovalStatus().getCode() >= 0) ? 1 : 0;
 
             // Set the well feature value
-            var valueIndex = WellNumberUtils.getWellNr(wells.get(i).getRow(), wells.get(i).getColumn(), plate.getColumns()) - 1;
+            var valueIndex = WellNumberUtils.getWellNr(validWells.get(i).getRow(), validWells.get(i).getColumn(), plate.getColumns()) - 1;
             values[i] = resultData.getValues()[valueIndex];
         });
 
