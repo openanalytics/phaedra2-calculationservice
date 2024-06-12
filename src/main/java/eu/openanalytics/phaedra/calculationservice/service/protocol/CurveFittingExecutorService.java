@@ -32,6 +32,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Optional;
 
+import org.apache.commons.lang3.ArrayUtils;
 import org.apache.commons.lang3.ObjectUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.math3.util.Precision;
@@ -258,7 +259,7 @@ public class CurveFittingExecutorService {
                 .fitDate(new Date())
                 .version("0.0.1")
                 .plotDoseData(drcOutput.dataPredict2Plot.dose)
-                .plotPredictionData(drcOutput.dataPredict2Plot.prediction)
+                .plotPredictionData(ArrayUtils.isNotEmpty(drcOutput.dataPredict2Plot.prediction) ? drcOutput.dataPredict2Plot.prediction : drcOutput.dataPredict2Plot.response)
                 .weights(drcOutput.weights)
                 .curveProperties(curvePropertieDTOs)
                 .build();
@@ -377,6 +378,7 @@ public class CurveFittingExecutorService {
                 "output$rangeResults$eMax <- value$rangeResults[c(\"eMax\"),]\n" +
                 "output$dataPredict2Plot <- value$dataPredict2Plot \n" +
                 "output$dataPredict2Plot$dose <- -value$dataPredict2Plot$dose / 2.303 \n" +
+                "output$dataPredict2Plot$response <- value$dataPredict2Plot$response \n" +
                 "output$weights <- value$weights\n" +
                 "output$modelCoefs$Slope <- value$modelCoefs[c(\"Slope\"),]\n" +
                 "output$modelCoefs$Bottom <- value$modelCoefs[c(\"Bottom\"),]\n" +
@@ -441,6 +443,7 @@ public class CurveFittingExecutorService {
     private static class DataPredict2PlotDTO {
 
         public float[] dose;
+        public float[] response;
         public float[] prediction;
         public float[] lower;
         public float[] upper;
@@ -448,10 +451,12 @@ public class CurveFittingExecutorService {
         @JsonCreator
         private DataPredict2PlotDTO(@JsonProperty(value = "dose") float[] dose,
                                     @JsonProperty(value = "Prediction") float[] prediction,
+                                    @JsonProperty(value = "response") float[] response,
                                     @JsonProperty(value = "Lower") float[] lower,
                                     @JsonProperty(value = "Upper") float[] upper) {
             this.dose = dose;
             this.prediction = prediction;
+            this.response = response;
             this.lower = lower;
             this.upper = upper;
         }
