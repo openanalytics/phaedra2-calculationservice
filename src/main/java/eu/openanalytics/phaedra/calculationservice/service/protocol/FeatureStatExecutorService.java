@@ -157,14 +157,13 @@ public class FeatureStatExecutorService {
 
 		if (featureStat.getPlateStat()) {
 			results.add(createResultStatDTO(feature, featureStat, output, plateValue, null));
-		} else if (featureStat.getWelltypeStat()) {
+		}
+		if (featureStat.getWelltypeStat()) {
 			List<String> wellTypes = ctx.getWells().stream().map(WellDTO::getWellType).distinct().toList();
             for (String wellType : wellTypes) {
             	Float numValue = Optional.ofNullable(wellTypeValues.get(wellType)).orElse(Float.NaN);
                 results.add(createResultStatDTO(feature, featureStat, output, numValue, wellType));
             }
-		} else {
-			throw new CalculationException(String.format("Invalid feature stat: %s", featureStat.getName()), feature);
 		}
 
     	return results;
