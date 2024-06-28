@@ -144,4 +144,9 @@ public class InMemoryResultDataServiceClient implements ResultDataServiceClient 
 		return null;
 	}
 
+	@Override
+	public List<ResultFeatureStatDTO> getLatestResultFeatureStatsForPlateId(long plateId) throws ResultFeatureStatUnresolvableException {
+		return null;
+	}
+
 }
