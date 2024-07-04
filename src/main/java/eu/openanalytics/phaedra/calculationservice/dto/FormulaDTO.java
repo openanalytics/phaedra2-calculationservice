@@ -22,15 +22,14 @@ package eu.openanalytics.phaedra.calculationservice.dto;
 
 import java.time.LocalDateTime;
 
-import javax.validation.constraints.NotBlank;
-import javax.validation.constraints.NotNull;
-import javax.validation.constraints.Null;
-
 import eu.openanalytics.phaedra.calculationservice.dto.validation.OnCreate;
 import eu.openanalytics.phaedra.calculationservice.dto.validation.OnUpdate;
 import eu.openanalytics.phaedra.calculationservice.enumeration.CalculationScope;
 import eu.openanalytics.phaedra.calculationservice.enumeration.FormulaCategory;
 import eu.openanalytics.phaedra.calculationservice.enumeration.ScriptLanguage;
+import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.NotNull;
+import jakarta.validation.constraints.Null;
 import lombok.AccessLevel;
 import lombok.AllArgsConstructor;
 import lombok.Builder;

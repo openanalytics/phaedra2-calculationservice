@@ -1,4 +1,4 @@
-FROM registry.openanalytics.eu/library/openjdk:16-jdk-slim-buster
+FROM registry.openanalytics.eu/proxy/library/eclipse-temurin:21-jre-jammy
 
 ARG JAR_FILE
 ADD $JAR_FILE /opt/phaedra/service.jar

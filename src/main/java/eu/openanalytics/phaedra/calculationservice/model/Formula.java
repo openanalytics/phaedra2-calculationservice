@@ -22,13 +22,12 @@ package eu.openanalytics.phaedra.calculationservice.model;
 
 import java.time.LocalDateTime;
 
-import javax.validation.constraints.NotNull;
-
 import org.springframework.data.annotation.Id;
 
 import eu.openanalytics.phaedra.calculationservice.enumeration.CalculationScope;
 import eu.openanalytics.phaedra.calculationservice.enumeration.FormulaCategory;
 import eu.openanalytics.phaedra.calculationservice.enumeration.ScriptLanguage;
+import jakarta.validation.constraints.NotNull;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Value;
