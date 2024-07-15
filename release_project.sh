@@ -22,12 +22,12 @@ mvn versions:set -DnewVersion="$release_version"
 mvn versions:update-properties -Dincludes=eu.openanalytics.phaedra -U
 mvn versions:update-child-modules
 
-if [ "$parent_id" = "phaedra2-parent"]; then
+if [ "$parent_id" = "phaedra2-parent" ]; then
   mvn versions:update-parent -U
 fi
 
 # Commit updated pom files
-git add pom.xml */*pom.xml
+find . -name 'pom.xml' | xargs git add
 git commit -m "Updated version to $release_version"
 
 # --------------------------------------------------------------
@@ -44,17 +44,17 @@ mvn -B -DskipTestProject=true -DpushRemote=false gitflow:release-start gitflow:r
 mvn versions:update-child-modules -DallowSnapshots=true
 mvn versions:update-properties -DallowSnapshots=true -Dincludes=eu.openanalytics.phaedra -U
 
-if [ "$parent_id" = "phaedra2-parent"]; then
+if [ "$parent_id" = "phaedra2-parent" ]; then
   mvn versions:update-parent -DallowSnapshots=true -U
 fi
 
 # Commit updated pom files
-git add pom.xml */*pom.xml
-git commit -m "Updated version to the next development snapshot"
+find . -name 'pom.xml' | xargs git add
+git commit -m "Updated version to the next development snapshot" || echo "Proceeding, no child project pom.xml files to commit"
 
 # --------------------------------------------------------------
 # Step 5: push all branches and tags, cleanup
 # --------------------------------------------------------------
 
-#git push origin develop master --tags
+git push origin develop master --tags
 find . -name "pom.xml.versionsBackup" -type f | xargs rm
