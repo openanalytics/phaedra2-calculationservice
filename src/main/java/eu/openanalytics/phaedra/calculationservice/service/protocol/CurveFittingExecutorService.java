@@ -98,7 +98,7 @@ public class CurveFittingExecutorService {
 
     public void execute(CalculationContext ctx, FeatureDTO feature) {
         List<String> substanceNames = ctx.getWells().stream()
-            .filter(w -> w.getWellSubstance() != null)
+        	.filter(w -> w.getWellSubstance() != null && w.getWellSubstance().getName() != null)
             .map(w -> w.getWellSubstance().getName())
             .distinct().toList();
 
