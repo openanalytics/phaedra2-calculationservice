@@ -27,7 +27,6 @@ import java.util.Map;
 
 import eu.openanalytics.phaedra.calculationservice.execution.CalculationContext;
 import eu.openanalytics.phaedra.plateservice.dto.WellDTO;
-import eu.openanalytics.phaedra.util.WellNumberUtils;
 
 public class CalculationInputHelper {
 
@@ -48,14 +47,8 @@ public class CalculationInputHelper {
 		}
 
 		if (wells != null) {
-			// Sort wells by wellNumber
-			List<WellDTO> sortedWells = new ArrayList<>(wells);
-			int columnCount = ctx.getPlate().getColumns();
-			sortedWells.sort((w1, w2) -> {
-				return WellNumberUtils.getWellNr(w1.getRow(), w1.getColumn(), columnCount) - WellNumberUtils.getWellNr(w2.getRow(), w2.getColumn(), columnCount);
-			});
-
-			inputMap.put(InputName.wellNumbers.name(), sortedWells.stream().map(w -> WellNumberUtils.getWellNr(w.getRow(), w.getColumn(), columnCount)).toList());
+			List<WellDTO> sortedWells = sortByNr(wells);
+			inputMap.put(InputName.wellNumbers.name(), sortedWells.stream().map(WellDTO::getWellNr).toList());
 			inputMap.put(InputName.wellTypes.name(), sortedWells.stream().map(WellDTO::getWellType).toList());
 			inputMap.put(InputName.wellRows.name(), sortedWells.stream().map(WellDTO::getRow).toList());
 			inputMap.put(InputName.wellColumns.name(), sortedWells.stream().map(WellDTO::getColumn).toList());
@@ -69,5 +62,11 @@ public class CalculationInputHelper {
 
 	public static boolean isReservedInputName(String name) {
 		return getReservedInputNames().contains(name);
+	}
+	
+	public static List<WellDTO> sortByNr(List<WellDTO> wells) {
+		List<WellDTO> sortedWells = new ArrayList<>(wells);
+		sortedWells.sort((w1, w2) -> w1.getWellNr() - w2.getWellNr());
+		return sortedWells;
 	}
 }
