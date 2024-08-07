@@ -23,6 +23,7 @@ package eu.openanalytics.phaedra.calculationservice.service.protocol;
 import static eu.openanalytics.phaedra.calculationservice.util.LoggerHelper.log;
 
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -39,6 +40,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 
 import eu.openanalytics.phaedra.calculationservice.exception.CalculationException;
 import eu.openanalytics.phaedra.calculationservice.execution.CalculationContext;
+import eu.openanalytics.phaedra.calculationservice.execution.input.CalculationInputHelper;
 import eu.openanalytics.phaedra.calculationservice.execution.progress.CalculationStage;
 import eu.openanalytics.phaedra.calculationservice.execution.progress.CalculationStateEventCode;
 import eu.openanalytics.phaedra.calculationservice.execution.script.ScriptExecutionRequest;
@@ -60,6 +62,8 @@ import eu.openanalytics.phaedra.scriptengine.dto.ScriptExecutionOutputDTO;
  * but also stats for each welltype present in the plate.
  *
  * Feature Stats can be calculated as soon as the Feature itself has been calculated.
+ * 
+ * TODO: wellType is still named "welltype" in protocol-service and resultdata-service. Fix naming across all services
  */
 @Service
 public class FeatureStatExecutorService {
@@ -133,12 +137,11 @@ public class FeatureStatExecutorService {
 
     private Map<String, Object> collectStatInputData(CalculationContext ctx, FeatureDTO feature, FeatureStatDTO featureStat) {
     	Map<String, Object> input = new HashMap<String, Object>();
-        input.put("lowWelltype", ctx.getProtocolData().protocol.getLowWelltype());
-        input.put("highWelltype", ctx.getProtocolData().protocol.getHighWelltype());
-        input.put("welltypes", ctx.getWells().stream().map(WellDTO::getWellType).toList());
+    	CalculationInputHelper.addWellInfo(input, ctx, ctx.getWells());
+    	// Note: assuming here that the feature values are already sorted by well nr
         input.put("featureValues", ctx.getFeatureResults().get(feature.getId()).getValues());
         input.put("isPlateStat", featureStat.getPlateStat());
-        input.put("isWelltypeStat", featureStat.getWelltypeStat());
+        input.put("isWellTypeStat", featureStat.getWelltypeStat());
         return input;
     }
 
@@ -146,11 +149,12 @@ public class FeatureStatExecutorService {
     	List<ResultFeatureStatDTO> results = new ArrayList<>();
 
     	float plateValue = Float.NaN;
-    	Map<String, Float> wellTypeValues = null;
+    	Map<String, Float> wellTypeValues = Collections.emptyMap();
+    	
 		try {
 			OutputWrapper outputWrapper = objectMapper.readValue(output.getOutput(), OutputWrapper.class);
-			plateValue = outputWrapper.getPlateValue().orElse(Float.NaN);
-			wellTypeValues = outputWrapper.getWelltypeOutputs();
+			if (outputWrapper.getPlateValue() != null) plateValue = outputWrapper.getPlateValue();
+			if (outputWrapper.getWellTypeValues() != null) wellTypeValues= outputWrapper.getWellTypeValues();
 		} catch (JsonProcessingException e) {
 			throw new CalculationException("Invalid response JSON", e);
 		}
@@ -158,6 +162,7 @@ public class FeatureStatExecutorService {
 		if (featureStat.getPlateStat()) {
 			results.add(createResultStatDTO(feature, featureStat, output, plateValue, null));
 		}
+		
 		if (featureStat.getWelltypeStat()) {
 			List<String> wellTypes = ctx.getWells().stream().map(WellDTO::getWellType).distinct().toList();
             for (String wellType : wellTypes) {
@@ -185,23 +190,22 @@ public class FeatureStatExecutorService {
     private static class OutputWrapper {
 
         private final Float plateValue;
-        private final Map<String, Float> welltypeValues;
+        private final Map<String, Float> wellTypeValues;
 
         @JsonCreator
         private OutputWrapper(
                 @JsonProperty(value = "plateValue", required = true) Float plateValue,
-                @JsonProperty(value = "welltypeValues", required = true) Map<String, Float> welltypeValues) {
+                @JsonProperty(value = "wellTypeValues", required = true) Map<String, Float> wellTypeValues) {
             this.plateValue = plateValue;
-            this.welltypeValues = welltypeValues;
+            this.wellTypeValues = wellTypeValues;
         }
 
-        public Optional<Float> getPlateValue() {
-            return Optional.ofNullable(plateValue);
-        }
+        public Float getPlateValue() {
+			return plateValue;
+		}
 
-
-        public Map<String, Float> getWelltypeOutputs() {
-            return welltypeValues;
+        public Map<String, Float> getWellTypeValues() {
+        	return wellTypeValues;
         }
 
     }
