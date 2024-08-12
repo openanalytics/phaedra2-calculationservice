@@ -39,7 +39,7 @@ import eu.openanalytics.phaedra.calculationservice.execution.progress.Calculatio
 import eu.openanalytics.phaedra.calculationservice.execution.progress.CalculationStateEventCode;
 import eu.openanalytics.phaedra.calculationservice.service.KafkaProducerService;
 import eu.openanalytics.phaedra.plateservice.client.PlateServiceClient;
-import eu.openanalytics.phaedra.plateservice.client.exception.PlateUnresolvableException;
+import eu.openanalytics.phaedra.plateservice.client.exception.UnresolvableObjectException;
 import eu.openanalytics.phaedra.plateservice.dto.PlateCalculationStatusDTO;
 import eu.openanalytics.phaedra.plateservice.enumeration.CalculationStatus;
 import eu.openanalytics.phaedra.protocolservice.client.exception.ProtocolUnresolvableException;
@@ -106,7 +106,7 @@ public class ProtocolExecutorService {
     	ctx.getStateTracker().handleResultSetUpdate(payload);
     }
 
-    private void triggerProtocolExecution(CompletableFuture<Long> resultSetIdFuture, long protocolId, long plateId, long measId) throws ProtocolUnresolvableException, ResultSetUnresolvableException, PlateUnresolvableException {
+    private void triggerProtocolExecution(CompletableFuture<Long> resultSetIdFuture, long protocolId, long plateId, long measId) throws ProtocolUnresolvableException, ResultSetUnresolvableException, UnresolvableObjectException {
     	// Collect all required input data and create a ResultSet instance
         var protocolData = protocolDataCollector.getProtocolData(protocolId);
         var plate = plateServiceClient.getPlate(plateId);
