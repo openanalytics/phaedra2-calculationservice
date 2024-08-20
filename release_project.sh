@@ -34,7 +34,7 @@ git commit -m "Updated version to $release_version"
 # Step 3: gitflow release
 # --------------------------------------------------------------
 
-mvn -B -DskipTestProject=true -DpushRemote=false gitflow:release-start gitflow:release-finish
+mvn -B -DskipTestProject=true -DpushRemote=false -DversionDigitToIncrement=1 gitflow:release-start gitflow:release-finish
 
 # --------------------------------------------------------------
 # Step 4: modify version numbers in the POM files (for the next snapshot)
