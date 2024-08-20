@@ -23,7 +23,6 @@ package eu.openanalytics.phaedra.calculationservice.service.protocol;
 import static eu.openanalytics.phaedra.calculationservice.util.LoggerHelper.log;
 
 import java.util.ArrayList;
-import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -33,8 +32,6 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
 
-import com.fasterxml.jackson.annotation.JsonCreator;
-import com.fasterxml.jackson.annotation.JsonProperty;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 
@@ -145,16 +142,20 @@ public class FeatureStatExecutorService {
         return input;
     }
 
-    private List<ResultFeatureStatDTO> parseResults(CalculationContext ctx, FeatureDTO feature, FeatureStatDTO featureStat, ScriptExecutionOutputDTO output) {
+	private List<ResultFeatureStatDTO> parseResults(CalculationContext ctx, FeatureDTO feature, FeatureStatDTO featureStat, ScriptExecutionOutputDTO output) {
     	List<ResultFeatureStatDTO> results = new ArrayList<>();
 
     	float plateValue = Float.NaN;
-    	Map<String, Float> wellTypeValues = Collections.emptyMap();
+    	Map<String, Float> wellTypeValues = new HashMap<>();
     	
 		try {
-			OutputWrapper outputWrapper = objectMapper.readValue(output.getOutput(), OutputWrapper.class);
-			if (outputWrapper.getPlateValue() != null) plateValue = outputWrapper.getPlateValue();
-			if (outputWrapper.getWellTypeValues() != null) wellTypeValues= outputWrapper.getWellTypeValues();
+			Map<?,?> outputMap = objectMapper.readValue(output.getOutput(), Map.class);
+			outputMap = (Map<?,?>) outputMap.get("output"); // Output string contains a nested 'output' key, e.g.  output = "{\"output\":{\"plateValue\":384,\"wellTypeValues\":{\"HC\":32,\"LC\":32,\"SAMPLE\":320}}}\n" 
+			if (outputMap.get("plateValue") instanceof Number) plateValue = ((Number) outputMap.get("plateValue")).floatValue();
+			if (outputMap.get("wellTypeValues") instanceof Map) {
+				Map<?,?> wellTypeValuesMap = (Map<?,?>) outputMap.get("wellTypeValues");
+				wellTypeValuesMap.entrySet().stream().filter(e -> e.getValue() instanceof Number).forEach(e -> wellTypeValues.put((String) e.getKey(), ((Number) e.getValue()).floatValue()));
+			}
 		} catch (JsonProcessingException e) {
 			throw new CalculationException("Invalid response JSON", e);
 		}
@@ -186,28 +187,4 @@ public class FeatureStatExecutorService {
 	        .exitCode(output.getExitCode())
 	        .build();
     }
-
-    private static class OutputWrapper {
-
-        private final Float plateValue;
-        private final Map<String, Float> wellTypeValues;
-
-        @JsonCreator
-        private OutputWrapper(
-                @JsonProperty(value = "plateValue", required = true) Float plateValue,
-                @JsonProperty(value = "wellTypeValues", required = true) Map<String, Float> wellTypeValues) {
-            this.plateValue = plateValue;
-            this.wellTypeValues = wellTypeValues;
-        }
-
-        public Float getPlateValue() {
-			return plateValue;
-		}
-
-        public Map<String, Float> getWellTypeValues() {
-        	return wellTypeValues;
-        }
-
-    }
-
 }
