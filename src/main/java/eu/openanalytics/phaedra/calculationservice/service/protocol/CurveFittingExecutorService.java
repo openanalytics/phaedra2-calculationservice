@@ -25,7 +25,6 @@ import static java.lang.Float.parseFloat;
 import static java.util.stream.IntStream.range;
 import static org.apache.commons.lang3.math.NumberUtils.isCreatable;
 
-import eu.openanalytics.phaedra.calculationservice.enumeration.FormulaCategory;
 import java.util.ArrayList;
 import java.util.Date;
 import java.util.HashMap;
@@ -33,7 +32,6 @@ import java.util.List;
 import java.util.Optional;
 
 import org.apache.commons.lang3.ArrayUtils;
-import org.apache.commons.lang3.ObjectUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.math3.util.Precision;
 import org.slf4j.Logger;
@@ -49,6 +47,7 @@ import eu.openanalytics.curvedataservice.dto.CurveDTO;
 import eu.openanalytics.curvedataservice.dto.CurvePropertyDTO;
 import eu.openanalytics.phaedra.calculationservice.dto.CurveFittingRequestDTO;
 import eu.openanalytics.phaedra.calculationservice.dto.DRCInputDTO;
+import eu.openanalytics.phaedra.calculationservice.enumeration.FormulaCategory;
 import eu.openanalytics.phaedra.calculationservice.enumeration.ScriptLanguage;
 import eu.openanalytics.phaedra.calculationservice.exception.NoDRCModelDefinedForFeature;
 import eu.openanalytics.phaedra.calculationservice.execution.CalculationContext;
@@ -99,7 +98,7 @@ public class CurveFittingExecutorService {
 
     public void execute(CalculationContext ctx, FeatureDTO feature) {
         List<String> substanceNames = ctx.getWells().stream()
-            .filter(w -> w.getWellSubstance() != null)
+        	.filter(w -> w.getWellSubstance() != null && w.getWellSubstance().getName() != null)
             .map(w -> w.getWellSubstance().getName())
             .distinct().toList();
 
@@ -172,19 +171,22 @@ public class CurveFittingExecutorService {
         	PlateDTO plate = plateServiceClient.getPlate(request.getPlateId());
         	List<WellDTO> wells = plateServiceClient.getWells(plate.getId());
 
-          List<String> substanceNames = wells.stream().filter(w -> w.getWellSubstance() != null)
-              .map(w -> w.getWellSubstance().getName()).distinct().toList();
-          for (String substance : substanceNames) {
-              DRCInputDTO drcInput = collectCurveFitInputData(plate, wells, resultData, feature, substance);
-              ScriptExecutionRequest scriptRequest = executeReceptor2CurveFit(drcInput);
-              scriptRequest.addCallback(output -> {
-                  logger.info("Execute Receptor2 Curve Fit script request callback");
-                  DRCOutputDTO drcOutput = collectCurveFitOutputData(output);
-                  if (drcOutput != null) {
-                      createNewCurve(drcInput, drcOutput);
-                  }
-              });
-          }
+        	List<String> substanceNames = wells.stream()
+        			.filter(w -> w.getWellSubstance() != null && w.getWellSubstance().getName() != null)
+        			.map(w -> w.getWellSubstance().getName())
+        			.distinct().toList();
+        	
+        	for (String substanceName : substanceNames) {
+        		DRCInputDTO drcInput = collectCurveFitInputData(plate, wells, resultData, feature, substanceName);
+        		ScriptExecutionRequest scriptRequest = executeReceptor2CurveFit(drcInput);
+        		scriptRequest.addCallback(output -> {
+        			logger.info("Execute Receptor2 Curve Fit script request callback");
+        			DRCOutputDTO drcOutput = collectCurveFitOutputData(output);
+        			if (drcOutput != null) {
+        				createNewCurve(drcInput, drcOutput);
+        			}
+        		});
+        	}
     	} catch (Exception e) {
     		logger.error(String.format("Curve fit failed on plate %d, feature %d", request.getPlateId(), request.getFeatureId()), e);
     	}

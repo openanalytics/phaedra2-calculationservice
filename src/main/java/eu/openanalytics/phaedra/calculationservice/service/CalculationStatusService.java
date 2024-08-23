@@ -38,7 +38,7 @@ import eu.openanalytics.phaedra.calculationservice.execution.CalculationContext;
 import eu.openanalytics.phaedra.calculationservice.model.ModelMapper;
 import eu.openanalytics.phaedra.calculationservice.service.protocol.ProtocolDataCollector;
 import eu.openanalytics.phaedra.plateservice.client.PlateServiceClient;
-import eu.openanalytics.phaedra.plateservice.client.exception.PlateUnresolvableException;
+import eu.openanalytics.phaedra.plateservice.client.exception.UnresolvableObjectException;
 import eu.openanalytics.phaedra.plateservice.dto.WellDTO;
 import eu.openanalytics.phaedra.protocolservice.client.exception.ProtocolUnresolvableException;
 import eu.openanalytics.phaedra.protocolservice.dto.FeatureDTO;
@@ -104,9 +104,9 @@ public class CalculationStatusService {
      * @throws ResultSetUnresolvableException
      * @throws ResultFeatureStatUnresolvableException
      * @throws ProtocolUnresolvableException
-     * @throws PlateUnresolvableException
+     * @throws UnresolvableObjectException
      */
-    public CalculationStatus getStatus(Long resultSetId) throws ResultDataUnresolvableException, ResultSetUnresolvableException, ResultFeatureStatUnresolvableException, ProtocolUnresolvableException, PlateUnresolvableException {
+    public CalculationStatus getStatus(Long resultSetId) throws ResultDataUnresolvableException, ResultSetUnresolvableException, ResultFeatureStatUnresolvableException, ProtocolUnresolvableException, UnresolvableObjectException {
         var resultSet = resultDataServiceClient.getResultSet(resultSetId);
         var protocolData = protocolInfoCollector.getProtocolData(resultSet.getProtocolId());
         var wells = plateServiceClient.getWells(resultSet.getPlateId());

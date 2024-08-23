@@ -24,7 +24,7 @@ import eu.openanalytics.phaedra.calculationservice.dto.CalculationRequestDTO;
 import eu.openanalytics.phaedra.calculationservice.dto.CalculationStatus;
 import eu.openanalytics.phaedra.calculationservice.service.CalculationStatusService;
 import eu.openanalytics.phaedra.calculationservice.service.protocol.ProtocolExecutorService;
-import eu.openanalytics.phaedra.plateservice.client.exception.PlateUnresolvableException;
+import eu.openanalytics.phaedra.plateservice.client.exception.UnresolvableObjectException;
 import eu.openanalytics.phaedra.protocolservice.client.exception.ProtocolUnresolvableException;
 import eu.openanalytics.phaedra.resultdataservice.client.exception.ResultDataUnresolvableException;
 import eu.openanalytics.phaedra.resultdataservice.client.exception.ResultFeatureStatUnresolvableException;
@@ -65,7 +65,7 @@ public class CalculationController {
     }
 
     @GetMapping("/status")
-    public ResponseEntity<Map<Long, CalculationStatus>> status(@RequestParam(value = "resultSetId") List<Long> resultSetIds) throws ResultSetUnresolvableException, ResultDataUnresolvableException, ResultFeatureStatUnresolvableException, ProtocolUnresolvableException, PlateUnresolvableException {
+    public ResponseEntity<Map<Long, CalculationStatus>> status(@RequestParam(value = "resultSetId") List<Long> resultSetIds) throws ResultSetUnresolvableException, ResultDataUnresolvableException, ResultFeatureStatUnresolvableException, ProtocolUnresolvableException, UnresolvableObjectException {
         Map<Long, CalculationStatus> result = new HashMap<>();
         for (Long resultSetId: resultSetIds) {
             result.put(resultSetId, calculationStatusService.getStatus(resultSetId));

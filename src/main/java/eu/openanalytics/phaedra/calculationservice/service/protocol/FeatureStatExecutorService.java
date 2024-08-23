@@ -32,13 +32,12 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
 
-import com.fasterxml.jackson.annotation.JsonCreator;
-import com.fasterxml.jackson.annotation.JsonProperty;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 
 import eu.openanalytics.phaedra.calculationservice.exception.CalculationException;
 import eu.openanalytics.phaedra.calculationservice.execution.CalculationContext;
+import eu.openanalytics.phaedra.calculationservice.execution.input.CalculationInputHelper;
 import eu.openanalytics.phaedra.calculationservice.execution.progress.CalculationStage;
 import eu.openanalytics.phaedra.calculationservice.execution.progress.CalculationStateEventCode;
 import eu.openanalytics.phaedra.calculationservice.execution.script.ScriptExecutionRequest;
@@ -60,6 +59,8 @@ import eu.openanalytics.phaedra.scriptengine.dto.ScriptExecutionOutputDTO;
  * but also stats for each welltype present in the plate.
  *
  * Feature Stats can be calculated as soon as the Feature itself has been calculated.
+ * 
+ * TODO: wellType is still named "welltype" in protocol-service and resultdata-service. Fix naming across all services
  */
 @Service
 public class FeatureStatExecutorService {
@@ -133,24 +134,28 @@ public class FeatureStatExecutorService {
 
     private Map<String, Object> collectStatInputData(CalculationContext ctx, FeatureDTO feature, FeatureStatDTO featureStat) {
     	Map<String, Object> input = new HashMap<String, Object>();
-        input.put("lowWelltype", ctx.getProtocolData().protocol.getLowWelltype());
-        input.put("highWelltype", ctx.getProtocolData().protocol.getHighWelltype());
-        input.put("welltypes", ctx.getWells().stream().map(WellDTO::getWellType).toList());
+    	CalculationInputHelper.addWellInfo(input, ctx, ctx.getWells());
+    	// Note: assuming here that the feature values are already sorted by well nr
         input.put("featureValues", ctx.getFeatureResults().get(feature.getId()).getValues());
         input.put("isPlateStat", featureStat.getPlateStat());
-        input.put("isWelltypeStat", featureStat.getWelltypeStat());
+        input.put("isWellTypeStat", featureStat.getWelltypeStat());
         return input;
     }
 
-    private List<ResultFeatureStatDTO> parseResults(CalculationContext ctx, FeatureDTO feature, FeatureStatDTO featureStat, ScriptExecutionOutputDTO output) {
+	private List<ResultFeatureStatDTO> parseResults(CalculationContext ctx, FeatureDTO feature, FeatureStatDTO featureStat, ScriptExecutionOutputDTO output) {
     	List<ResultFeatureStatDTO> results = new ArrayList<>();
 
     	float plateValue = Float.NaN;
-    	Map<String, Float> wellTypeValues = null;
+    	Map<String, Float> wellTypeValues = new HashMap<>();
+    	
 		try {
-			OutputWrapper outputWrapper = objectMapper.readValue(output.getOutput(), OutputWrapper.class);
-			plateValue = outputWrapper.getPlateValue().orElse(Float.NaN);
-			wellTypeValues = outputWrapper.getWelltypeOutputs();
+			Map<?,?> outputMap = objectMapper.readValue(output.getOutput(), Map.class);
+			outputMap = (Map<?,?>) outputMap.get("output"); // Output string contains a nested 'output' key, e.g.  output = "{\"output\":{\"plateValue\":384,\"wellTypeValues\":{\"HC\":32,\"LC\":32,\"SAMPLE\":320}}}\n" 
+			if (outputMap.get("plateValue") instanceof Number) plateValue = ((Number) outputMap.get("plateValue")).floatValue();
+			if (outputMap.get("wellTypeValues") instanceof Map) {
+				Map<?,?> wellTypeValuesMap = (Map<?,?>) outputMap.get("wellTypeValues");
+				wellTypeValuesMap.entrySet().stream().filter(e -> e.getValue() instanceof Number).forEach(e -> wellTypeValues.put((String) e.getKey(), ((Number) e.getValue()).floatValue()));
+			}
 		} catch (JsonProcessingException e) {
 			throw new CalculationException("Invalid response JSON", e);
 		}
@@ -158,6 +163,7 @@ public class FeatureStatExecutorService {
 		if (featureStat.getPlateStat()) {
 			results.add(createResultStatDTO(feature, featureStat, output, plateValue, null));
 		}
+		
 		if (featureStat.getWelltypeStat()) {
 			List<String> wellTypes = ctx.getWells().stream().map(WellDTO::getWellType).distinct().toList();
             for (String wellType : wellTypes) {
@@ -181,29 +187,4 @@ public class FeatureStatExecutorService {
 	        .exitCode(output.getExitCode())
 	        .build();
     }
-
-    private static class OutputWrapper {
-
-        private final Float plateValue;
-        private final Map<String, Float> welltypeValues;
-
-        @JsonCreator
-        private OutputWrapper(
-                @JsonProperty(value = "plateValue", required = true) Float plateValue,
-                @JsonProperty(value = "welltypeValues", required = true) Map<String, Float> welltypeValues) {
-            this.plateValue = plateValue;
-            this.welltypeValues = welltypeValues;
-        }
-
-        public Optional<Float> getPlateValue() {
-            return Optional.ofNullable(plateValue);
-        }
-
-
-        public Map<String, Float> getWelltypeOutputs() {
-            return welltypeValues;
-        }
-
-    }
-
 }
