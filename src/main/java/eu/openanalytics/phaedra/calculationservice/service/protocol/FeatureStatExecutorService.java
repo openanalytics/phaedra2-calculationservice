@@ -184,7 +184,7 @@ public class FeatureStatExecutorService {
 	        .welltype(wellType)
 	        .statusCode(modelMapper.map(output.getStatusCode()))
 	        .statusMessage(output.getStatusMessage())
-	        .exitCode(output.getExitCode())
+	        .exitCode(0) //TODO Remove this unnecessary field from resultdata service
 	        .build();
     }
 }
