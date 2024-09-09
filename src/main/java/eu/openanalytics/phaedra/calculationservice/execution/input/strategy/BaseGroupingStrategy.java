@@ -153,7 +153,6 @@ public abstract class BaseGroupingStrategy implements InputGroupingStrategy {
 		        .values(values)
 		        .statusCode(modelMapper.map(statusOutput.getStatusCode()))
 		        .statusMessage(statusOutput.getStatusMessage())
-		        .exitCode(0) //TODO Remove this unnecessary field from resultdata service
 		        .build();
 	}
 

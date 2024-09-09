@@ -81,7 +81,6 @@ public class ErrorCollector {
                         .featureName(feature.getName());
             } else if (ctxObject instanceof ScriptExecutionOutputDTO output) {
                 errorBuilder
-                        .exitCode(0) //TODO Remove this unnecessary field from resultdata service
                         .statusMessage(output.getStatusMessage());
             } else if (ctxObject instanceof CalculationInputValueDTO civ) {
                 errorBuilder
