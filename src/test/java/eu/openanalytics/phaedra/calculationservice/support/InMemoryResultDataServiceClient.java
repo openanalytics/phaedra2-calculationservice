@@ -62,9 +62,9 @@ public class InMemoryResultDataServiceClient implements ResultDataServiceClient 
     }
 
     @Override
-    public synchronized ResultDataDTO addResultData(long resultSetId, long featureId, float[] values, StatusCode statusCode, String statusMessage, Integer exitCode) {
+    public synchronized ResultDataDTO addResultData(long resultSetId, long featureId, float[] values, StatusCode statusCode, String statusMessage) {
         var newId = resultData.get(resultSetId).size();
-        var res = new ResultDataDTO((long) newId, resultSetId, featureId, values, statusCode, statusMessage, exitCode, LocalDateTime.now(), null);
+        var res = new ResultDataDTO((long) newId, resultSetId, featureId, values, statusCode, statusMessage, LocalDateTime.now(), null);
         resultData.get(resultSetId).add(res);
         return res;
     }
@@ -81,9 +81,9 @@ public class InMemoryResultDataServiceClient implements ResultDataServiceClient 
     @Override
     public synchronized ResultFeatureStatDTO createResultFeatureStat(long resultSetId, long featureId, long featureStatId,
                                                                      Optional<Float> value, String statisticName, String welltype,
-                                                                     StatusCode statusCode, String statusMessage, Integer exitCode) {
+                                                                     StatusCode statusCode, String statusMessage) {
         var newId = (long) featureStats.size();
-        var res = new ResultFeatureStatDTO(newId, resultSetId, featureId, featureStatId, value.orElse(null), statisticName, welltype, statusCode, statusMessage, exitCode, LocalDateTime.now());
+        var res = new ResultFeatureStatDTO(newId, resultSetId, featureId, featureStatId, value.orElse(null), statisticName, welltype, statusCode, statusMessage, LocalDateTime.now());
         featureStats.add(res);
         return res;
     }

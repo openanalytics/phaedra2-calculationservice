@@ -81,7 +81,6 @@ public class ErrorCollector {
                         .featureName(feature.getName());
             } else if (ctxObject instanceof ScriptExecutionOutputDTO output) {
                 errorBuilder
-                        .exitCode(output.getExitCode())
                         .statusMessage(output.getStatusMessage());
             } else if (ctxObject instanceof CalculationInputValueDTO civ) {
                 errorBuilder
