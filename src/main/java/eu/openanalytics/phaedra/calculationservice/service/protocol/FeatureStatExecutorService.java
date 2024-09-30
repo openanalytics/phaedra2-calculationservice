@@ -108,7 +108,7 @@ public class FeatureStatExecutorService {
         			results.addAll(parseResults(ctx, feature, fs, req.getValue().getOutput()));
     			} catch (Exception e) {
     				ctx.getStateTracker().failStage(feature.getId(), CalculationStage.FeatureFormula,
-    	    				String.format("Feature statistic %s failed: cannot parse output: %s", fs.getName(), e.getMessage()), feature, e);
+    	    				String.format("Feature statistic '%s' failed: %s", fs.getName(), e.getMessage()), feature, e);
     			}
         	});
 
@@ -121,7 +121,7 @@ public class FeatureStatExecutorService {
         	requests.entrySet().stream().filter(req -> req.getValue().getOutput().getStatusCode() != ResponseStatusCode.SUCCESS).forEach(req -> {
         		FeatureStatDTO fs = findStat(ctx, feature.getId(), Long.valueOf(req.getKey()));
         		ScriptExecutionOutputDTO output = req.getValue().getOutput();
-        		ctx.getErrorCollector().addError(String.format("Feature statistic %s failed: %s", fs.getName(), output.getStatusMessage()), output, feature);
+        		ctx.getErrorCollector().addError(String.format("Feature statistic '%s' failed: %s", fs.getName(), output.getStatusMessage()), output, feature);
         	});
         });
     }
@@ -143,14 +143,18 @@ public class FeatureStatExecutorService {
     }
 
 	private List<ResultFeatureStatDTO> parseResults(CalculationContext ctx, FeatureDTO feature, FeatureStatDTO featureStat, ScriptExecutionOutputDTO output) {
+		if (output.getStatusCode() != ResponseStatusCode.SUCCESS) throw new CalculationException("Script execution error: %s", output.getStatusMessage());
+		
     	List<ResultFeatureStatDTO> results = new ArrayList<>();
 
     	float plateValue = Float.NaN;
     	Map<String, Float> wellTypeValues = new HashMap<>();
     	
 		try {
+			// Output string contains a nested 'output' key, e.g.  output = "{\"output\":{\"plateValue\":384,\"wellTypeValues\":{\"HC\":32,\"LC\":32,\"SAMPLE\":320}}}\n"
 			Map<?,?> outputMap = objectMapper.readValue(output.getOutput(), Map.class);
-			outputMap = (Map<?,?>) outputMap.get("output"); // Output string contains a nested 'output' key, e.g.  output = "{\"output\":{\"plateValue\":384,\"wellTypeValues\":{\"HC\":32,\"LC\":32,\"SAMPLE\":320}}}\n" 
+			outputMap = (Map<?,?>) outputMap.get("output");
+			
 			if (outputMap.get("plateValue") instanceof Number) plateValue = ((Number) outputMap.get("plateValue")).floatValue();
 			if (outputMap.get("wellTypeValues") instanceof Map) {
 				Map<?,?> wellTypeValuesMap = (Map<?,?>) outputMap.get("wellTypeValues");
@@ -184,7 +188,6 @@ public class FeatureStatExecutorService {
 	        .welltype(wellType)
 	        .statusCode(modelMapper.map(output.getStatusCode()))
 	        .statusMessage(output.getStatusMessage())
-	        .exitCode(output.getExitCode())
 	        .build();
     }
 }
