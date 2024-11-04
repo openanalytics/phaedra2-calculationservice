@@ -25,6 +25,7 @@ import static eu.openanalytics.phaedra.calculationservice.util.LoggerHelper.log;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.Collections;
+import java.util.Date;
 import java.util.List;
 import java.util.Optional;
 
@@ -68,7 +69,7 @@ public class ErrorCollector {
 
     public void addError(String description, Object... ctxObjects) {
         var errorBuilder = ErrorDTO.builder()
-                .timestamp(LocalDateTime.now())
+                .timestamp(new Date())
                 .description(description);
 
         Optional<Throwable> exception = Optional.empty();
@@ -120,7 +121,7 @@ public class ErrorCollector {
 
     public void addError(String description, int sequenceNumber) {
         var error = ErrorDTO.builder()
-                .timestamp(LocalDateTime.now())
+                .timestamp(new Date())
                 .description(description)
                 .sequenceNumber(sequenceNumber)
                 .build();
