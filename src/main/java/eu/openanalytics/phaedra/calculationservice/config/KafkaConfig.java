@@ -37,7 +37,8 @@ public class KafkaConfig {
     public static final String TOPIC_PLATES = "plates";
     public static final String TOPIC_CURVEDATA = "curvedata";
     public static final String TOPIC_RESULTDATA = "resultdata";
-    public static final String TOPIC_SCRIPTENGINE = "scriptengine";
+    public static final String TOPIC_SCRIPTENGINE_REQUESTS = "scriptengine-requests";
+    public static final String TOPIC_SCRIPTENGINE_UPDATES = "scriptengine-updates";
 
     // Event Keys
     public static final String EVENT_REQUEST_PLATE_CALCULATION = "requestPlateCalculation";
@@ -53,9 +54,6 @@ public class KafkaConfig {
     public static final String EVENT_RESULT_DATA_UPDATED = "resultDataUpdated";
     public static final String EVENT_RESULT_FEATURE_STAT_UPDATED = "resultFeatureStatUpdated";
 
-    public static final String EVENT_REQUEST_SCRIPT_EXECUTION = "requestScriptExecution";
-    public static final String EVENT_SCRIPT_EXECUTION_UPDATE = "scriptExecutionUpdate";
-
     @Bean
     public RecordFilterStrategy<String, Object> requestPlateCalculationFilter() {
         return rec -> !(rec.key().equalsIgnoreCase(EVENT_REQUEST_PLATE_CALCULATION));
@@ -64,11 +62,6 @@ public class KafkaConfig {
     @Bean
     public RecordFilterStrategy<String, Object> requestCurveFitFilter() {
         return rec -> !(rec.key().equalsIgnoreCase(EVENT_REQUEST_CURVE_FIT));
-    }
-
-    @Bean
-    public RecordFilterStrategy<String, Object> scriptExecutionUpdateFilter() {
-        return rec -> !(rec.key().equalsIgnoreCase(EVENT_SCRIPT_EXECUTION_UPDATE));
     }
 
     @Bean
