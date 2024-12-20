@@ -69,7 +69,7 @@ public class ErrorCollector {
 
     public void addError(String description, Object... ctxObjects) {
         var errorBuilder = ErrorDTO.builder()
-                .timestamp(new Date())
+                .timestamp(LocalDateTime.now())
                 .description(description);
 
         Optional<Throwable> exception = Optional.empty();
@@ -121,7 +121,7 @@ public class ErrorCollector {
 
     public void addError(String description, int sequenceNumber) {
         var error = ErrorDTO.builder()
-                .timestamp(new Date())
+                .timestamp(LocalDateTime.now())
                 .description(description)
                 .sequenceNumber(sequenceNumber)
                 .build();

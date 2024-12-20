@@ -5,17 +5,27 @@ metadata:
   labels:
     ci: phaedra2-builder
 spec:
+  volumes:
+    - name: dockerconfig
+      secret:
+        secretName: oa-sa-jenkins-registry-config
   containers:
    - name: builder
      image: registry.openanalytics.eu/openanalytics/phaedra2-build-container:latest
+     tty: true
+     imagePullPolicy: Always
      securityContext:
-        privileged: true
+       privileged: true
+     volumeMounts:
+       - name: dockerconfig
+         mountPath: /root/.docker/config.json
+         subPath: data
      resources:
        requests:
-         ephemeral-storage: "16Gi"
-         memory: "2Gi"
-         cpu: "1.0"
+         memory: "4Gi"
+         cpu: "500m"
+         ephemeral-storage: "30Gi"
        limits:
-         ephemeral-storage: "16Gi"
-         memory: "2Gi"
-         cpu: "1.0"
+         memory: "4Gi"
+         cpu: "1"
+         ephemeral-storage: "30Gi"

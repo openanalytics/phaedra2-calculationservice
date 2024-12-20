@@ -66,6 +66,6 @@ public class KafkaProducerService {
     }
 
     public void sendScriptExecutionRequest(ScriptExecutionInputDTO scriptRequest) {
-    	kafkaTemplate.send(KafkaConfig.TOPIC_SCRIPTENGINE, KafkaConfig.EVENT_REQUEST_SCRIPT_EXECUTION, scriptRequest);
+    	kafkaTemplate.send(KafkaConfig.TOPIC_SCRIPTENGINE_REQUESTS, null, scriptRequest);
     }
 }
