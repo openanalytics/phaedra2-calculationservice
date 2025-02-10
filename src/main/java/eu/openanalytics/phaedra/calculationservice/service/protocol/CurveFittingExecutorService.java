@@ -175,7 +175,7 @@ public class CurveFittingExecutorService {
         			.filter(w -> w.getWellSubstance() != null && w.getWellSubstance().getName() != null)
         			.map(w -> w.getWellSubstance().getName())
         			.distinct().toList();
-        	
+
         	for (String substanceName : substanceNames) {
         		DRCInputDTO drcInput = collectCurveFitInputData(plate, wells, resultData, feature, substanceName);
         		ScriptExecutionRequest scriptRequest = executeReceptor2CurveFit(drcInput);
@@ -349,7 +349,8 @@ public class CurveFittingExecutorService {
             throw new NoDRCModelDefinedForFeature("No DRCModel defined for feature %s (%d)", inputDTO.getFeature().getName(), inputDTO.getFeature().getId());
         }
 
-        var script = "library(receptor2)\n" +
+        var script = "options(warn=-1)\n" +
+                "library(receptor2)\n" +
                 "\n" +
                 "dose <- input$doses\n" +
                 "response <- input$responses\n" +
