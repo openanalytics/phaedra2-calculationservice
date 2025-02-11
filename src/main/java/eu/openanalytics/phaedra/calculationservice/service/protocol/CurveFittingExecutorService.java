@@ -575,6 +575,6 @@ public class CurveFittingExecutorService {
     }
 
     private static float parseFloat(String jsonValue) {
-    	return isCreatable(jsonValue) ? parseFloat(jsonValue) : Float.NaN;
+    	return isCreatable(jsonValue) ? Float.parseFloat(jsonValue) : Float.NaN;
     }
 }
