@@ -227,7 +227,7 @@ public class CurveFittingExecutorService {
             curvePropertieDTOs.add(CurvePropertyDTO.builder().name("Slope Upper CI").numericValue(NaN).build());
         }
 
-        if (drcOutput.rangeResults != null) {
+        if (drcOutput.rangeResults != null && drcOutput.rangeResults.eMin != null && drcOutput.rangeResults.eMax != null) {
             curvePropertieDTOs.add(CurvePropertyDTO.builder().name("eMin").numericValue(drcOutput.rangeResults.eMin.response).build());
             curvePropertieDTOs.add(CurvePropertyDTO.builder().name("eMin Conc").numericValue(drcOutput.rangeResults.eMin.dose).build());
             curvePropertieDTOs.add(CurvePropertyDTO.builder().name("eMax").numericValue(drcOutput.rangeResults.eMax.response).build());
@@ -519,10 +519,10 @@ public class CurveFittingExecutorService {
         public RangeResultDTO eMin;
 
         @JsonCreator
-        public RangeResultsDTO(@JsonProperty(value = "eMax") RangeResultDTO eMax,
-                               @JsonProperty(value = "eMin") RangeResultDTO eMin) {
-            this.eMax = eMax;
-            this.eMin = eMin;
+        public RangeResultsDTO(@JsonProperty(value = "eMax") RangeResultDTO[] eMax,
+                               @JsonProperty(value = "eMin") RangeResultDTO[] eMin) {
+            this.eMax = (eMax != null && eMax.length > 0) ? eMax[0] : null;
+            this.eMin = (eMin != null && eMin.length > 0) ? eMin[0] : null;
         }
     }
 
