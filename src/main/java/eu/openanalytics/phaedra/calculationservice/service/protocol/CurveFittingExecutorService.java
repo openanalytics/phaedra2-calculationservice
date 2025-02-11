@@ -129,13 +129,15 @@ public class CurveFittingExecutorService {
             feature.getId(), requests -> {
                 requests.entrySet().stream().forEach(req -> {
                     if (StringUtils.isBlank(req.getValue().getOutput().getOutput())) {
-                        logger.info("No output is created!!");
+                        logger.warn("Curve fit response without output: " + req.getValue().getOutput().getStatusMessage());
                     } else {
-                        DRCInputDTO drcInput = collectCurveFitInputData(ctx.getPlate(), ctx.getWells(), resultData, feature, req.getKey());
-                        DRCOutputDTO drcOutput = collectCurveFitOutputData(req.getValue().getOutput());
-                        if (drcOutput != null) {
-                            createNewCurve(drcInput, drcOutput);
-                        }
+                    	try {
+	                        DRCInputDTO drcInput = collectCurveFitInputData(ctx.getPlate(), ctx.getWells(), resultData, feature, req.getKey());
+	                        DRCOutputDTO drcOutput = collectCurveFitOutputData(req.getValue().getOutput());
+	                        createNewCurve(drcInput, drcOutput);
+                    	} catch (RuntimeException e) {
+                    		logger.error("Failed to process curve fit output", e);
+                    	}
                     }
                 });
                 //TODO CurveDataService should emit an event when the curve is saved, to which StateTracker can respond
@@ -175,16 +177,17 @@ public class CurveFittingExecutorService {
         			.filter(w -> w.getWellSubstance() != null && w.getWellSubstance().getName() != null)
         			.map(w -> w.getWellSubstance().getName())
         			.distinct().toList();
-        	
+
         	for (String substanceName : substanceNames) {
         		DRCInputDTO drcInput = collectCurveFitInputData(plate, wells, resultData, feature, substanceName);
         		ScriptExecutionRequest scriptRequest = executeReceptor2CurveFit(drcInput);
         		scriptRequest.addCallback(output -> {
-        			logger.info("Execute Receptor2 Curve Fit script request callback");
-        			DRCOutputDTO drcOutput = collectCurveFitOutputData(output);
-        			if (drcOutput != null) {
-        				createNewCurve(drcInput, drcOutput);
-        			}
+        			try {
+        				DRCOutputDTO drcOutput = collectCurveFitOutputData(output);
+                        createNewCurve(drcInput, drcOutput);
+                	} catch (RuntimeException e) {
+                		logger.error("Failed to process curve fit output", e);
+                	}
         		});
         	}
     	} catch (Exception e) {
@@ -195,6 +198,7 @@ public class CurveFittingExecutorService {
     private void createNewCurve(DRCInputDTO drcInput, DRCOutputDTO drcOutput) {
         logger.info("Create new curve for substance %s and feature %s (%d)", drcInput.getSubstance(), drcInput.getFeature().getName(), drcInput.getFeature().getId());
         List<CurvePropertyDTO> curvePropertieDTOs = new ArrayList<>();
+        
         if (isCreatable(drcOutput.pIC50toReport))
             curvePropertieDTOs.add(CurvePropertyDTO.builder().name("pIC50").numericValue(parseFloat(drcOutput.pIC50toReport)).build());
         else {
@@ -204,17 +208,17 @@ public class CurveFittingExecutorService {
             }
         }
 
-        if (isCreatable(drcOutput.validpIC50.stdError))
-            curvePropertieDTOs.add(CurvePropertyDTO.builder().name("pIC50 StdErr").numericValue(parseFloat(drcOutput.validpIC50.stdError)).build());
-        else
+//        if (drcOutput.validpIC50 != null && isCreatable(drcOutput.validpIC50.stdError))
+//        	curvePropertieDTOs.add(CurvePropertyDTO.builder().name("pIC50 StdErr").numericValue(parseFloat(drcOutput.validpIC50.stdError)).build());
+//        else
             curvePropertieDTOs.add(CurvePropertyDTO.builder().name("pIC50 StdErr").numericValue(NaN).build());
-
+        
         if (drcOutput.modelCoefs != null) {
-            curvePropertieDTOs.add(CurvePropertyDTO.builder().name("Bottom").numericValue(isCreatable(drcOutput.modelCoefs.bottom.estimate) ? parseFloat(drcOutput.modelCoefs.bottom.estimate) : NaN).build());
-            curvePropertieDTOs.add(CurvePropertyDTO.builder().name("Top").numericValue(isCreatable(drcOutput.modelCoefs.top.estimate) ? parseFloat(drcOutput.modelCoefs.top.estimate) : NaN).build());
-            curvePropertieDTOs.add(CurvePropertyDTO.builder().name("Slope").numericValue(isCreatable(drcOutput.modelCoefs.slope.estimate) ? parseFloat(drcOutput.modelCoefs.slope.estimate) : NaN).build());
-            curvePropertieDTOs.add(CurvePropertyDTO.builder().name("Slope Lower CI").numericValue(isCreatable(drcOutput.modelCoefs.slope.lowerCI) ? parseFloat(drcOutput.modelCoefs.slope.lowerCI) : NaN).build());
-            curvePropertieDTOs.add(CurvePropertyDTO.builder().name("Slope Upper CI").numericValue(isCreatable(drcOutput.modelCoefs.slope.upperCI) ? parseFloat(drcOutput.modelCoefs.slope.upperCI) : NaN).build());
+            curvePropertieDTOs.add(CurvePropertyDTO.builder().name("Bottom").numericValue(drcOutput.modelCoefs.bottom.estimate).build());
+            curvePropertieDTOs.add(CurvePropertyDTO.builder().name("Top").numericValue(drcOutput.modelCoefs.top.estimate).build());
+            curvePropertieDTOs.add(CurvePropertyDTO.builder().name("Slope").numericValue(drcOutput.modelCoefs.slope.estimate).build());
+            curvePropertieDTOs.add(CurvePropertyDTO.builder().name("Slope Lower CI").numericValue(drcOutput.modelCoefs.slope.lowerCI).build());
+            curvePropertieDTOs.add(CurvePropertyDTO.builder().name("Slope Upper CI").numericValue(drcOutput.modelCoefs.slope.upperCI).build());
         } else {
             curvePropertieDTOs.add(CurvePropertyDTO.builder().name("Bottom").numericValue(NaN).build());
             curvePropertieDTOs.add(CurvePropertyDTO.builder().name("Top").numericValue(NaN).build());
@@ -223,11 +227,11 @@ public class CurveFittingExecutorService {
             curvePropertieDTOs.add(CurvePropertyDTO.builder().name("Slope Upper CI").numericValue(NaN).build());
         }
 
-        if (drcOutput.rangeResults != null) {
-            curvePropertieDTOs.add(CurvePropertyDTO.builder().name("eMin").numericValue(isCreatable(drcOutput.rangeResults.eMin.response) ? parseFloat(drcOutput.rangeResults.eMin.response) : NaN).build());
-            curvePropertieDTOs.add(CurvePropertyDTO.builder().name("eMin Conc").numericValue(isCreatable(drcOutput.rangeResults.eMin.dose) ? parseFloat(drcOutput.rangeResults.eMin.dose) : NaN).build());
-            curvePropertieDTOs.add(CurvePropertyDTO.builder().name("eMax").numericValue(isCreatable(drcOutput.rangeResults.eMax.response) ? parseFloat(drcOutput.rangeResults.eMax.response) : NaN).build());
-            curvePropertieDTOs.add(CurvePropertyDTO.builder().name("eMax Conc").numericValue(isCreatable(drcOutput.rangeResults.eMax.dose) ? parseFloat(drcOutput.rangeResults.eMax.dose) : NaN).build());
+        if (drcOutput.rangeResults != null && drcOutput.rangeResults.eMin != null && drcOutput.rangeResults.eMax != null) {
+            curvePropertieDTOs.add(CurvePropertyDTO.builder().name("eMin").numericValue(drcOutput.rangeResults.eMin.response).build());
+            curvePropertieDTOs.add(CurvePropertyDTO.builder().name("eMin Conc").numericValue(drcOutput.rangeResults.eMin.dose).build());
+            curvePropertieDTOs.add(CurvePropertyDTO.builder().name("eMax").numericValue(drcOutput.rangeResults.eMax.response).build());
+            curvePropertieDTOs.add(CurvePropertyDTO.builder().name("eMax Conc").numericValue(drcOutput.rangeResults.eMax.dose).build());
         } else {
             curvePropertieDTOs.add(CurvePropertyDTO.builder().name("eMin").numericValue(NaN).build());
             curvePropertieDTOs.add(CurvePropertyDTO.builder().name("eMin Conc").numericValue(NaN).build());
@@ -235,20 +239,31 @@ public class CurveFittingExecutorService {
             curvePropertieDTOs.add(CurvePropertyDTO.builder().name("eMax Conc").numericValue(NaN).build());
         }
 
-        if (drcOutput.validpIC20 != null)
-            curvePropertieDTOs.add(CurvePropertyDTO.builder().name("pIC20").numericValue(isCreatable(drcOutput.validpIC20.estimate) ? parseFloat(drcOutput.validpIC20.estimate) : NaN).build());
-        else
+//        if (drcOutput.validpIC20 != null)
+//            curvePropertieDTOs.add(CurvePropertyDTO.builder().name("pIC20").numericValue(isCreatable(drcOutput.validpIC20.estimate) ? parseFloat(drcOutput.validpIC20.estimate) : NaN).build());
+//        else
             curvePropertieDTOs.add(CurvePropertyDTO.builder().name("pIC20").numericValue(NaN).build());
 
 
-        if (drcOutput.validpIC80 != null)
-            curvePropertieDTOs.add(CurvePropertyDTO.builder().name("pIC80").numericValue(isCreatable(drcOutput.validpIC80.estimate) ? parseFloat(drcOutput.validpIC80.estimate) : NaN).build());
-        else
+//        if (drcOutput.validpIC80 != null)
+//            curvePropertieDTOs.add(CurvePropertyDTO.builder().name("pIC80").numericValue(isCreatable(drcOutput.validpIC80.estimate) ? parseFloat(drcOutput.validpIC80.estimate) : NaN).build());
+//        else
             curvePropertieDTOs.add(CurvePropertyDTO.builder().name("pIC80").numericValue(NaN).build());
 
         curvePropertieDTOs.add(CurvePropertyDTO.builder().name("Residual Variance").numericValue(isCreatable(drcOutput.residualVariance) ? parseFloat(drcOutput.residualVariance) : NaN).build());
         curvePropertieDTOs.add(CurvePropertyDTO.builder().name("Warning").stringValue(drcOutput.warning).build());
 
+        float[] plotDoses = new float[0];
+        float[] plotResponses = new float[0];
+        if (drcOutput.dataPredict2Plot != null) {
+        	plotDoses = new float[drcOutput.dataPredict2Plot.length];
+        	plotResponses = new float[drcOutput.dataPredict2Plot.length];
+        	for (int i = 0; i < drcOutput.dataPredict2Plot.length; i++) {
+				plotDoses[i] = drcOutput.dataPredict2Plot[i].dose;
+				plotResponses[i] = drcOutput.dataPredict2Plot[i].prediction;
+			}
+        }
+        		
         CurveDTO curveDTO = CurveDTO.builder()
                 .substanceName(drcInput.getSubstance())
                 .plateId(drcInput.getPlateId())
@@ -260,8 +275,8 @@ public class CurveFittingExecutorService {
                 .featureValues(drcInput.getValues())
                 .fitDate(new Date())
                 .version("0.0.1")
-                .plotDoseData(drcOutput.dataPredict2Plot.dose)
-                .plotPredictionData(ArrayUtils.isNotEmpty(drcOutput.dataPredict2Plot.prediction) ? drcOutput.dataPredict2Plot.prediction : drcOutput.dataPredict2Plot.response)
+                .plotDoseData(plotDoses)
+                .plotPredictionData(plotResponses)
                 .weights(drcOutput.weights)
                 .curveProperties(curvePropertieDTOs)
                 .build();
@@ -321,7 +336,7 @@ public class CurveFittingExecutorService {
             OutputWrapper outputWrapper = objectMapper.readValue(outputDTO.getOutput(), OutputWrapper.class);
             return outputWrapper.output;
         } catch (JsonProcessingException e) {
-            return null;
+            throw new RuntimeException(e);
         }
     }
 
@@ -349,7 +364,8 @@ public class CurveFittingExecutorService {
             throw new NoDRCModelDefinedForFeature("No DRCModel defined for feature %s (%d)", inputDTO.getFeature().getName(), inputDTO.getFeature().getId());
         }
 
-        var script = "library(receptor2)\n" +
+        var script = "options(warn=-1)\n" +
+                "library(receptor2)\n" +
                 "\n" +
                 "dose <- input$doses\n" +
                 "response <- input$responses\n" +
@@ -409,30 +425,30 @@ public class CurveFittingExecutorService {
 
     private static class DRCOutputDTO {
         public String pIC50toReport;
-        public ValidIC50DTO validpIC50;
-        public ValidICDTO validpIC20;
-        public ValidICDTO validpIC80;
+//        public ValidIC50DTO validpIC50;
+//        public ValidICDTO validpIC20;
+//        public ValidICDTO validpIC80;
         public RangeResultsDTO rangeResults;
-        public DataPredict2PlotDTO dataPredict2Plot;
+        public DataPredict2PlotDTO[] dataPredict2Plot;
         public float[] weights;
         public ModelCoefsDTO modelCoefs;
         public String residualVariance;
         public String warning;
 
         public DRCOutputDTO(@JsonProperty(value = "pIC50toReport") String pIC50toReport,
-                            @JsonProperty(value = "validpIC50") ValidIC50DTO validpIC50,
-                            @JsonProperty(value = "validpIC20") ValidICDTO validpIC20,
-                            @JsonProperty(value = "validpIC80") ValidICDTO validpIC80,
+//                            @JsonProperty(value = "validpIC50") ValidIC50DTO validpIC50,
+//                            @JsonProperty(value = "validpIC20") ValidICDTO validpIC20,
+//                            @JsonProperty(value = "validpIC80") ValidICDTO validpIC80,
                             @JsonProperty(value = "rangeResults") RangeResultsDTO rangeResults,
-                            @JsonProperty(value = "dataPredict2Plot") DataPredict2PlotDTO dataPredict2Plot,
+                            @JsonProperty(value = "dataPredict2Plot") DataPredict2PlotDTO[] dataPredict2Plot,
                             @JsonProperty(value = "weights") float[] weights,
                             @JsonProperty(value = "modelCoefs") ModelCoefsDTO modelCoefs,
                             @JsonProperty(value = "residulaVariance") String residualVariance,
                             @JsonProperty(value = "warningFit") String warning) {
             this.pIC50toReport = pIC50toReport;
-            this.validpIC50 = validpIC50;
-            this.validpIC20 = validpIC20;
-            this.validpIC80 = validpIC80;
+//            this.validpIC50 = validpIC50;
+//            this.validpIC20 = validpIC20;
+//            this.validpIC80 = validpIC80;
             this.rangeResults = rangeResults;
             this.dataPredict2Plot = dataPredict2Plot;
             this.weights = weights;
@@ -444,21 +460,18 @@ public class CurveFittingExecutorService {
 
     private static class DataPredict2PlotDTO {
 
-        public float[] dose;
-        public float[] response;
-        public float[] prediction;
-        public float[] lower;
-        public float[] upper;
+        public float dose;
+        public float prediction;
+        public float lower;
+        public float upper;
 
         @JsonCreator
-        private DataPredict2PlotDTO(@JsonProperty(value = "dose") float[] dose,
-                                    @JsonProperty(value = "Prediction") float[] prediction,
-                                    @JsonProperty(value = "response") float[] response,
-                                    @JsonProperty(value = "Lower") float[] lower,
-                                    @JsonProperty(value = "Upper") float[] upper) {
+        private DataPredict2PlotDTO(@JsonProperty(value = "dose") float dose,
+                                    @JsonProperty(value = "Prediction") float prediction,
+                                    @JsonProperty(value = "Lower") float lower,
+                                    @JsonProperty(value = "Upper") float upper) {
             this.dose = dose;
             this.prediction = prediction;
-            this.response = response;
             this.lower = lower;
             this.upper = upper;
         }
@@ -471,38 +484,33 @@ public class CurveFittingExecutorService {
         public ModelCoefDTO negLog10ED50;
 
         @JsonCreator
-        private ModelCoefsDTO(@JsonProperty(value = "Slope") ModelCoefDTO slope,
-                              @JsonProperty(value = "Bottom") ModelCoefDTO bottom,
-                              @JsonProperty(value = "Top") ModelCoefDTO top,
-                              @JsonProperty(value = "negLog10ED50") ModelCoefDTO negLog10ED50) {
-            this.slope = slope;
-            this.bottom = bottom;
-            this.top = top;
-            this.negLog10ED50 = negLog10ED50;
+        private ModelCoefsDTO(@JsonProperty(value = "Slope") String[] slope,
+                              @JsonProperty(value = "Bottom") String[] bottom,
+                              @JsonProperty(value = "Top") String[] top,
+                              @JsonProperty(value = "negLog10ED50") String[] negLog10ED50) {
+            this.slope = new ModelCoefDTO(slope);
+            this.bottom = new ModelCoefDTO(bottom);
+            this.top = new ModelCoefDTO(top);
+            this.negLog10ED50 = new ModelCoefDTO(negLog10ED50);
         }
     }
 
     private static class ModelCoefDTO {
-        public String estimate;
-        public String stdError;
-        public String tValue;
-        public String pValue;
-        public String lowerCI;
-        public String upperCI;
+        public float estimate;
+        public float stdError;
+        public float tValue;
+        public float pValue;
+        public float lowerCI;
+        public float upperCI;
 
         @JsonCreator
-        public ModelCoefDTO(@JsonProperty(value = "Estimate") String estimate,
-                            @JsonProperty(value = "Std. Error") String stdError,
-                            @JsonProperty(value = "t-value") String tValue,
-                            @JsonProperty(value = "p-value") String pValue,
-                            @JsonProperty(value = "LowerCI") String lowerCI,
-                            @JsonProperty(value = "upperCI") String upperCI) {
-            this.estimate = estimate;
-            this.stdError = stdError;
-            this.tValue = tValue;
-            this.pValue = pValue;
-            this.lowerCI = lowerCI;
-            this.upperCI = upperCI;
+        public ModelCoefDTO(String[] values) {
+            this.estimate = parseFloat(values[0]);
+            this.stdError = parseFloat(values[1]);
+            this.tValue = parseFloat(values[2]);
+            this.pValue = parseFloat(values[3]);
+            this.lowerCI = parseFloat(values[4]);
+            this.upperCI = parseFloat(values[5]);
         }
     }
 
@@ -511,22 +519,22 @@ public class CurveFittingExecutorService {
         public RangeResultDTO eMin;
 
         @JsonCreator
-        public RangeResultsDTO(@JsonProperty(value = "eMax") RangeResultDTO eMax,
-                               @JsonProperty(value = "eMin") RangeResultDTO eMin) {
-            this.eMax = eMax;
-            this.eMin = eMin;
+        public RangeResultsDTO(@JsonProperty(value = "eMax") RangeResultDTO[] eMax,
+                               @JsonProperty(value = "eMin") RangeResultDTO[] eMin) {
+            this.eMax = (eMax != null && eMax.length > 0) ? eMax[0] : null;
+            this.eMin = (eMin != null && eMin.length > 0) ? eMin[0] : null;
         }
     }
 
     private static class RangeResultDTO {
-        public String dose;
-        public String response;
+        public float dose;
+        public float response;
 
         @JsonCreator
         public RangeResultDTO(@JsonProperty(value = "dose") String dose,
                               @JsonProperty(value = "response") String response) {
-            this.dose = dose;
-            this.response = response;
+            this.dose = parseFloat(dose);
+            this.response = parseFloat(response);
         }
     }
 
@@ -566,4 +574,7 @@ public class CurveFittingExecutorService {
         }
     }
 
+    private static float parseFloat(String jsonValue) {
+    	return isCreatable(jsonValue) ? Float.parseFloat(jsonValue) : Float.NaN;
+    }
 }
