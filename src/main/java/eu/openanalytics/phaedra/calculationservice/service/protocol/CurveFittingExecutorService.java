@@ -129,13 +129,15 @@ public class CurveFittingExecutorService {
             feature.getId(), requests -> {
                 requests.entrySet().stream().forEach(req -> {
                     if (StringUtils.isBlank(req.getValue().getOutput().getOutput())) {
-                        logger.info("No output is created!!");
+                        logger.warn("Curve fit response without output: " + req.getValue().getOutput().getStatusMessage());
                     } else {
-                        DRCInputDTO drcInput = collectCurveFitInputData(ctx.getPlate(), ctx.getWells(), resultData, feature, req.getKey());
-                        DRCOutputDTO drcOutput = collectCurveFitOutputData(req.getValue().getOutput());
-                        if (drcOutput != null) {
-                            createNewCurve(drcInput, drcOutput);
-                        }
+                    	try {
+	                        DRCInputDTO drcInput = collectCurveFitInputData(ctx.getPlate(), ctx.getWells(), resultData, feature, req.getKey());
+	                        DRCOutputDTO drcOutput = collectCurveFitOutputData(req.getValue().getOutput());
+	                        createNewCurve(drcInput, drcOutput);
+                    	} catch (RuntimeException e) {
+                    		logger.error("Failed to process curve fit output", e);
+                    	}
                     }
                 });
                 //TODO CurveDataService should emit an event when the curve is saved, to which StateTracker can respond
@@ -180,11 +182,12 @@ public class CurveFittingExecutorService {
         		DRCInputDTO drcInput = collectCurveFitInputData(plate, wells, resultData, feature, substanceName);
         		ScriptExecutionRequest scriptRequest = executeReceptor2CurveFit(drcInput);
         		scriptRequest.addCallback(output -> {
-        			logger.info("Execute Receptor2 Curve Fit script request callback");
-        			DRCOutputDTO drcOutput = collectCurveFitOutputData(output);
-        			if (drcOutput != null) {
-        				createNewCurve(drcInput, drcOutput);
-        			}
+        			try {
+        				DRCOutputDTO drcOutput = collectCurveFitOutputData(output);
+                        createNewCurve(drcInput, drcOutput);
+                	} catch (RuntimeException e) {
+                		logger.error("Failed to process curve fit output", e);
+                	}
         		});
         	}
     	} catch (Exception e) {
@@ -321,7 +324,7 @@ public class CurveFittingExecutorService {
             OutputWrapper outputWrapper = objectMapper.readValue(outputDTO.getOutput(), OutputWrapper.class);
             return outputWrapper.output;
         } catch (JsonProcessingException e) {
-            return null;
+            throw new RuntimeException(e);
         }
     }
 
