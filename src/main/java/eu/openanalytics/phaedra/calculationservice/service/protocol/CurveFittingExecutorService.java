@@ -208,12 +208,10 @@ public class CurveFittingExecutorService {
             }
         }
 
-        if (drcOutput.validpIC50 != null && isCreatable(drcOutput.validpIC50.stdError)) {
-        	curvePropertieDTOs.add(CurvePropertyDTO.builder().name("pIC50 StdErr").numericValue(parseFloat(drcOutput.validpIC50.stdError)).build());
-        	
-        } else {
+//        if (drcOutput.validpIC50 != null && isCreatable(drcOutput.validpIC50.stdError))
+//        	curvePropertieDTOs.add(CurvePropertyDTO.builder().name("pIC50 StdErr").numericValue(parseFloat(drcOutput.validpIC50.stdError)).build());
+//        else
             curvePropertieDTOs.add(CurvePropertyDTO.builder().name("pIC50 StdErr").numericValue(NaN).build());
-        }
         
         if (drcOutput.modelCoefs != null) {
             curvePropertieDTOs.add(CurvePropertyDTO.builder().name("Bottom").numericValue(drcOutput.modelCoefs.bottom.estimate).build());
@@ -241,15 +239,15 @@ public class CurveFittingExecutorService {
             curvePropertieDTOs.add(CurvePropertyDTO.builder().name("eMax Conc").numericValue(NaN).build());
         }
 
-        if (drcOutput.validpIC20 != null)
-            curvePropertieDTOs.add(CurvePropertyDTO.builder().name("pIC20").numericValue(isCreatable(drcOutput.validpIC20.estimate) ? parseFloat(drcOutput.validpIC20.estimate) : NaN).build());
-        else
+//        if (drcOutput.validpIC20 != null)
+//            curvePropertieDTOs.add(CurvePropertyDTO.builder().name("pIC20").numericValue(isCreatable(drcOutput.validpIC20.estimate) ? parseFloat(drcOutput.validpIC20.estimate) : NaN).build());
+//        else
             curvePropertieDTOs.add(CurvePropertyDTO.builder().name("pIC20").numericValue(NaN).build());
 
 
-        if (drcOutput.validpIC80 != null)
-            curvePropertieDTOs.add(CurvePropertyDTO.builder().name("pIC80").numericValue(isCreatable(drcOutput.validpIC80.estimate) ? parseFloat(drcOutput.validpIC80.estimate) : NaN).build());
-        else
+//        if (drcOutput.validpIC80 != null)
+//            curvePropertieDTOs.add(CurvePropertyDTO.builder().name("pIC80").numericValue(isCreatable(drcOutput.validpIC80.estimate) ? parseFloat(drcOutput.validpIC80.estimate) : NaN).build());
+//        else
             curvePropertieDTOs.add(CurvePropertyDTO.builder().name("pIC80").numericValue(NaN).build());
 
         curvePropertieDTOs.add(CurvePropertyDTO.builder().name("Residual Variance").numericValue(isCreatable(drcOutput.residualVariance) ? parseFloat(drcOutput.residualVariance) : NaN).build());
@@ -427,9 +425,9 @@ public class CurveFittingExecutorService {
 
     private static class DRCOutputDTO {
         public String pIC50toReport;
-        public ValidIC50DTO validpIC50;
-        public ValidICDTO validpIC20;
-        public ValidICDTO validpIC80;
+//        public ValidIC50DTO validpIC50;
+//        public ValidICDTO validpIC20;
+//        public ValidICDTO validpIC80;
         public RangeResultsDTO rangeResults;
         public DataPredict2PlotDTO[] dataPredict2Plot;
         public float[] weights;
