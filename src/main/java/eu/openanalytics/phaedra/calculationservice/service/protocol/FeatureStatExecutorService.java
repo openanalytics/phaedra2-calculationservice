@@ -82,6 +82,12 @@ public class FeatureStatExecutorService {
 
     public void executeFeatureStats(CalculationContext ctx, FeatureDTO feature) {
         List<FeatureStatDTO> statsToCalculate = ctx.getProtocolData().featureStats.get(feature.getId());
+        
+        if (statsToCalculate == null || statsToCalculate.isEmpty()) {
+        	ctx.getStateTracker().skipStage(feature.getId(), CalculationStage.FeatureStatistics);
+            return;
+        }
+        
         log(logger, ctx, "Calculating %d featureStats for feature %d", statsToCalculate.size(), feature.getId());
         ctx.getStateTracker().startStage(feature.getId(), CalculationStage.FeatureStatistics, statsToCalculate.size());
 
