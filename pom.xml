@@ -19,9 +19,9 @@
 		<phaedra2-resultdataservice-client.version>2.6.0-SNAPSHOT</phaedra2-resultdataservice-client.version>
 		<phaedra2-protocolservice-client.version>2.6.0-SNAPSHOT</phaedra2-protocolservice-client.version>
 		<phaedra2-plateservice-client.version>2.6.0-SNAPSHOT</phaedra2-plateservice-client.version>
-        <phaedra2-measurementservice-client.version>2.6.0-SNAPSHOT</phaedra2-measurementservice-client.version>
-        <phaedra2-curvedataservice-client.version>2.6.0-SNAPSHOT</phaedra2-curvedataservice-client.version>
-        <phaedra2-metadataservice-client.version>2.6.0-SNAPSHOT</phaedra2-metadataservice-client.version>
+    <phaedra2-measurementservice-client.version>2.6.0-SNAPSHOT</phaedra2-measurementservice-client.version>
+    <phaedra2-curvedataservice-client.version>2.6.0-SNAPSHOT</phaedra2-curvedataservice-client.version>
+    <phaedra2-metadataservice-client.version>2.6.0-SNAPSHOT</phaedra2-metadataservice-client.version>
 	</properties>
 
     <dependencies>

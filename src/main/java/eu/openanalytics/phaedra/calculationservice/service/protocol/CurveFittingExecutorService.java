@@ -198,7 +198,7 @@ public class CurveFittingExecutorService {
     private void createNewCurve(DRCInputDTO drcInput, DRCOutputDTO drcOutput) {
         logger.info("Create new curve for substance %s and feature %s (%d)", drcInput.getSubstance(), drcInput.getFeature().getName(), drcInput.getFeature().getId());
         List<CurvePropertyDTO> curvePropertieDTOs = new ArrayList<>();
-        
+
         if (isCreatable(drcOutput.pIC50toReport))
             curvePropertieDTOs.add(CurvePropertyDTO.builder().name("pIC50").numericValue(parseFloat(drcOutput.pIC50toReport)).build());
         else {
@@ -212,7 +212,7 @@ public class CurveFittingExecutorService {
 //        	curvePropertieDTOs.add(CurvePropertyDTO.builder().name("pIC50 StdErr").numericValue(parseFloat(drcOutput.validpIC50.stdError)).build());
 //        else
             curvePropertieDTOs.add(CurvePropertyDTO.builder().name("pIC50 StdErr").numericValue(NaN).build());
-        
+
         if (drcOutput.modelCoefs != null) {
             curvePropertieDTOs.add(CurvePropertyDTO.builder().name("Bottom").numericValue(drcOutput.modelCoefs.bottom.estimate).build());
             curvePropertieDTOs.add(CurvePropertyDTO.builder().name("Top").numericValue(drcOutput.modelCoefs.top.estimate).build());
@@ -263,7 +263,7 @@ public class CurveFittingExecutorService {
 				plotResponses[i] = drcOutput.dataPredict2Plot[i].prediction;
 			}
         }
-        		
+
         CurveDTO curveDTO = CurveDTO.builder()
                 .substanceName(drcInput.getSubstance())
                 .plateId(drcInput.getPlateId())
@@ -390,20 +390,20 @@ public class CurveFittingExecutorService {
                 "\tslope = slopeType)\n" +
                 "\n" +
                 "output <- NULL\n" +
-                "output$pIC50toReport <- value$pIC50toReport\n" +
-                "output$validpIC50 <- value$validpIC50\n" +
-                "output$rangeResults$eMin <- value$rangeResults[c(\"eMin\"),]\n" +
-                "output$rangeResults$eMax <- value$rangeResults[c(\"eMax\"),]\n" +
-                "output$dataPredict2Plot <- value$dataPredict2Plot \n" +
-                "output$dataPredict2Plot$dose <- -value$dataPredict2Plot$dose / 2.303 \n" +
-                "output$dataPredict2Plot$response <- value$dataPredict2Plot$response \n" +
-                "output$weights <- value$weights\n" +
-                "output$modelCoefs$Slope <- value$modelCoefs[c(\"Slope\"),]\n" +
-                "output$modelCoefs$Bottom <- value$modelCoefs[c(\"Bottom\"),]\n" +
-                "output$modelCoefs$Top <- value$modelCoefs[c(\"Top\"),]\n" +
-                "output$modelCoefs$negLog10ED50 <- value$modelCoefs[c(\"-log10ED50\"),]\n" +
-                "output$residulaVariance <- value$residulaVariance\n" +
-                "output$warningFit <- value$warningFit\n";
+                "if (is.null(value$pIC50toReport) == FALSE) output$pIC50toReport <- value$pIC50toReport\n" +
+                "if (is.null(value$validpIC50) == FALSE) output$validpIC50 <- value$validpIC50\n" +
+                "if (is.null(value$rangeResults) == FALSE) output$rangeResults$eMin <- value$rangeResults[c(\"eMin\"),]\n" +
+                "if (is.null(value$rangeResults) == FALSE) output$rangeResults$eMax <- value$rangeResults[c(\"eMax\"),]\n" +
+                "if (is.null(value$dataPredict2Plot) == FALSE) output$dataPredict2Plot <- value$dataPredict2Plot \n" +
+                "if (is.null(value$dataPredict2Plot$dose) == FALSE) output$dataPredict2Plot$dose <- -value$dataPredict2Plot$dose / 2.303 \n" +
+                "if (is.null(value$dataPredict2Plot$response) == FALSE) output$dataPredict2Plot$response <- value$dataPredict2Plot$response \n" +
+                "if (is.null(value$weights) == FALSE) output$weights <- value$weights\n" +
+                "if (is.null(value$modelCoefs) == FALSE) output$modelCoefs$Slope <- value$modelCoefs[c(\"Slope\"),]\n" +
+                "if (is.null(value$modelCoefs) == FALSE) output$modelCoefs$Bottom <- value$modelCoefs[c(\"Bottom\"),]\n" +
+                "if (is.null(value$modelCoefs) == FALSE) output$modelCoefs$Top <- value$modelCoefs[c(\"Top\"),]\n" +
+                "if (is.null(value$modelCoefs) == FALSE) output$modelCoefs$negLog10ED50 <- value$modelCoefs[c(\"-log10ED50\"),]\n" +
+                "if (is.null(value$residulaVariance) == FALSE) output$residulaVariance <- value$residulaVariance\n" +
+                "if (is.null(value$warningFit) == FALSE) output$warningFit <- value$warningFit\n";
 //                 TODO: Later include pIC50Location value(s)
 //                 "output$pIC50Location <- value$pIC50Location[1]\n" +
 //                 "output$pIC50LocationPrediction <- value$pIC50Location[2]\n" +
