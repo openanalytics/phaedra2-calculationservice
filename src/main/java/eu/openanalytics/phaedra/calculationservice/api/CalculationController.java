@@ -20,21 +20,12 @@
  */
 package eu.openanalytics.phaedra.calculationservice.api;
 
-import eu.openanalytics.phaedra.calculationservice.dto.CalculationRequestDTO;
-import eu.openanalytics.phaedra.calculationservice.dto.CalculationStatus;
-import eu.openanalytics.phaedra.calculationservice.service.CalculationStatusService;
-import eu.openanalytics.phaedra.calculationservice.service.protocol.ProtocolExecutorService;
-import eu.openanalytics.phaedra.plateservice.client.exception.UnresolvableObjectException;
-import eu.openanalytics.phaedra.protocolservice.client.exception.ProtocolUnresolvableException;
-import eu.openanalytics.phaedra.resultdataservice.client.exception.ResultDataUnresolvableException;
-import eu.openanalytics.phaedra.resultdataservice.client.exception.ResultFeatureStatUnresolvableException;
-import eu.openanalytics.phaedra.resultdataservice.client.exception.ResultSetUnresolvableException;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ExecutionException;
-import lombok.RequiredArgsConstructor;
+
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -43,11 +34,26 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
+import eu.openanalytics.phaedra.calculationservice.dto.AdHocCalculationRequestDTO;
+import eu.openanalytics.phaedra.calculationservice.dto.AdHocCalculationResponseDTO;
+import eu.openanalytics.phaedra.calculationservice.dto.CalculationRequestDTO;
+import eu.openanalytics.phaedra.calculationservice.dto.CalculationStatus;
+import eu.openanalytics.phaedra.calculationservice.service.CalculationStatusService;
+import eu.openanalytics.phaedra.calculationservice.service.protocol.AdHocCalculationService;
+import eu.openanalytics.phaedra.calculationservice.service.protocol.ProtocolExecutorService;
+import eu.openanalytics.phaedra.plateservice.client.exception.UnresolvableObjectException;
+import eu.openanalytics.phaedra.protocolservice.client.exception.ProtocolUnresolvableException;
+import eu.openanalytics.phaedra.resultdataservice.client.exception.ResultDataUnresolvableException;
+import eu.openanalytics.phaedra.resultdataservice.client.exception.ResultFeatureStatUnresolvableException;
+import eu.openanalytics.phaedra.resultdataservice.client.exception.ResultSetUnresolvableException;
+import lombok.RequiredArgsConstructor;
+
 @RestController
 @RequiredArgsConstructor
 public class CalculationController {
 
     private final ProtocolExecutorService protocolExecutorService;
+    private final AdHocCalculationService adHocCalculationService;
     private final CalculationStatusService calculationStatusService;
 
     @PostMapping("/calculation")
@@ -62,6 +68,12 @@ public class CalculationController {
             executions.add(execution.get());
         }
         return new ResponseEntity<>(executions, HttpStatus.CREATED);
+    }
+    
+    @PostMapping("/calculation/adhoc")
+    public ResponseEntity<AdHocCalculationResponseDTO> calculateAdhoc(@RequestBody AdHocCalculationRequestDTO calculationRequestDTO) {
+        AdHocCalculationResponseDTO response = adHocCalculationService.execute(calculationRequestDTO);
+        return new ResponseEntity<>(response, HttpStatus.OK);
     }
 
     @GetMapping("/status")
