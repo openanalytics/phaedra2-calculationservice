@@ -56,79 +56,82 @@ public class AdHocCalculationService {
 	
 	public AdHocCalculationResponseDTO execute(AdHocCalculationRequestDTO calcRequest) throws CalculationException {
 		Map<Long, float[]> valuesPerPlate = new HashMap<>();
-		try {
-			ProtocolData protocolData = new ProtocolData();
-			protocolData.formulas = formulaService.getFormulasByIds(Collections.singletonList(calcRequest.getFormulaId()));
-			Formula formula = protocolData.formulas.get(calcRequest.getFormulaId());
+		
+		ProtocolData protocolData = new ProtocolData();
+		protocolData.formulas = formulaService.getFormulasByIds(Collections.singletonList(calcRequest.getFormulaId()));
+		Formula formula = protocolData.formulas.get(calcRequest.getFormulaId());
+		if (formula == null) throw new CalculationException("Invalid formula ID: %d", calcRequest.getFormulaId());
+		
+		//TODO Support other types of InputSource
+		List<CalculationInputValueDTO> civs = calcRequest.getCivs().entrySet().stream().map(e -> {
+			return CalculationInputValueDTO.builder()
+					.variableName(e.getKey())
+					.sourceMeasColName(e.getValue())
+					.inputSource(InputSource.MEASUREMENT_WELL_COLUMN)
+					.build();
+		}).toList();
+		
+		FeatureDTO feature = new FeatureDTO();
+		feature.setType(FeatureType.CALCULATION);
+		feature.setName("AdHoc Feature");
+		feature.setSequence(0);
+		feature.setFormulaId(calcRequest.getFormulaId());
+		feature.setCivs(civs);
+		
+		//TODO Parallellize execution across Plates and InputGroups
+		
+		for (Long plateId: calcRequest.getPlateIds()) {
+			long startTime = System.currentTimeMillis();
 			
-			//TODO Support other types of InputSource
-			List<CalculationInputValueDTO> civs = calcRequest.getCivs().entrySet().stream().map(e -> {
-				return CalculationInputValueDTO.builder()
-						.variableName(e.getKey())
-						.sourceMeasColName(e.getValue())
-						.inputSource(InputSource.MEASUREMENT_WELL_COLUMN)
-						.build();
-			}).toList();
-			
-			FeatureDTO feature = new FeatureDTO();
-			feature.setType(FeatureType.CALCULATION);
-			feature.setName("AdHoc Feature");
-			feature.setSequence(0);
-			feature.setFormulaId(calcRequest.getFormulaId());
-			feature.setCivs(civs);
-			
-			//TODO Parallellize execution across Plates and InputGroups
-			
-			for (Long plateId: calcRequest.getPlateIds()) {
-				long startTime = System.currentTimeMillis();
-				
-				PlateDTO plate = plateServiceClient.getPlate(plateId);
-				List<WellDTO> wells = plateServiceClient.getWells(plateId);
-				
-				Long measId = (calcRequest.getMeasIds() == null) ? null : calcRequest.getMeasIds().get(plateId);
-				if (measId == null) measId = plate.getMeasurementId();
-				
-				// Note: for ad-hoc calculations, there is no resultSetId. Its result data is not persistent.
-				CalculationContext ctx = CalculationContext.create(protocolData, plate, wells, null, measId);
-				
-				InputGroupingStrategy groupingStrategy = strategyProvider.getStrategy(ctx, feature);
-				Set<InputGroup> groups = groupingStrategy.createGroups(ctx, feature);
-				Map<String, ScriptExecutionOutputDTO> outputs = new HashMap<>();
-				
-				long dataLoadEndTime = System.currentTimeMillis();
-				
-				for (InputGroup group: groups) {
-					ScriptExecutionRequest request = scriptExecutionService.submit(formula.getLanguage(), formula.getFormula(), formula.getCategory().name(), group.getInputVariables());
-					Pair<ScriptExecutionRequest, ScriptExecutionOutputDTO> scriptRef = MutablePair.of(request, null);
-				
-					// Block the thread until the script callback is done and output is available.
-					Semaphore threadBlocker = new Semaphore(1);
-					try { threadBlocker.acquire(); } catch (InterruptedException e) {}
-					request.addCallback(output -> {
-						scriptRef.setValue(output);
-						threadBlocker.release();
-					});
-					try { threadBlocker.acquire(); } catch (InterruptedException e) {}
-					
-					if (scriptRef.getValue().getStatusCode() != ResponseStatusCode.SUCCESS) {
-						throw new CalculationException("Script error on formula %d: %s", formula, scriptRef.getValue().getStatusMessage());
-					}
-					outputs.put(String.valueOf(group.getGroupNumber()), scriptRef.getValue());
-				}
-
-				long scriptExecutionEndTime = System.currentTimeMillis();
-				long dataLoadDuration = dataLoadEndTime - startTime;
-				long scriptExecDuration = scriptExecutionEndTime - dataLoadEndTime;
-				logger.debug(String.format("AdHoc Calculation for plate %d: data loading: %d ms, script execution: %d ms.", plateId, dataLoadDuration, scriptExecDuration));
-				
-				ResultDataDTO resultData = groupingStrategy.mergeOutput(ctx, feature, outputs);
-				valuesPerPlate.put(plateId, resultData.getValues());
+			PlateDTO plate;
+			List<WellDTO> wells;
+			try {
+				plate = plateServiceClient.getPlate(plateId);
+				wells = plateServiceClient.getWells(plateId);
+			} catch (UnresolvableObjectException e) {
+				throw new CalculationException("Invalid plate IDs: %s", calcRequest.getPlateIds());
 			}
+			Long measId = (calcRequest.getMeasIds() == null) ? null : calcRequest.getMeasIds().get(plateId);
+			if (measId == null) measId = plate.getMeasurementId();
 			
-			return new AdHocCalculationResponseDTO(valuesPerPlate);
-		} catch (UnresolvableObjectException e) {
-			throw new CalculationException("Invalid plate ID: %s", calcRequest.getPlateIds());
+			// Note: for ad-hoc calculations, there is no resultSetId. Its result data is not persistent.
+			CalculationContext ctx = CalculationContext.create(protocolData, plate, wells, null, measId);
+			
+			InputGroupingStrategy groupingStrategy = strategyProvider.getStrategy(ctx, feature);
+			Set<InputGroup> groups = groupingStrategy.createGroups(ctx, feature);
+			Map<String, ScriptExecutionOutputDTO> outputs = new HashMap<>();
+			
+			long dataLoadEndTime = System.currentTimeMillis();
+			
+			for (InputGroup group: groups) {
+				ScriptExecutionRequest request = scriptExecutionService.submit(formula.getLanguage(), formula.getFormula(), formula.getCategory().name(), group.getInputVariables());
+				Pair<ScriptExecutionRequest, ScriptExecutionOutputDTO> scriptRef = MutablePair.of(request, null);
+			
+				// Block the thread until the script callback is done and output is available.
+				Semaphore threadBlocker = new Semaphore(1);
+				try { threadBlocker.acquire(); } catch (InterruptedException e) {}
+				request.addCallback(output -> {
+					scriptRef.setValue(output);
+					threadBlocker.release();
+				});
+				try { threadBlocker.acquire(); } catch (InterruptedException e) {}
+				
+				if (scriptRef.getValue().getStatusCode() != ResponseStatusCode.SUCCESS) {
+					throw new CalculationException("Script error on formula %d: %s", formula, scriptRef.getValue().getStatusMessage());
+				}
+				outputs.put(String.valueOf(group.getGroupNumber()), scriptRef.getValue());
+			}
+
+			long scriptExecutionEndTime = System.currentTimeMillis();
+			long dataLoadDuration = dataLoadEndTime - startTime;
+			long scriptExecDuration = scriptExecutionEndTime - dataLoadEndTime;
+			logger.debug(String.format("AdHoc Calculation for plate %d: data loading: %d ms, script execution: %d ms.", plateId, dataLoadDuration, scriptExecDuration));
+			
+			ResultDataDTO resultData = groupingStrategy.mergeOutput(ctx, feature, outputs);
+			valuesPerPlate.put(plateId, resultData.getValues());
 		}
+		
+		return new AdHocCalculationResponseDTO(valuesPerPlate);
 	}
 	
 }
