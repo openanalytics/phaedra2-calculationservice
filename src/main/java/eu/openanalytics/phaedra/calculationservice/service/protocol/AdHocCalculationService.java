@@ -11,7 +11,6 @@ import java.util.Set;
 import java.util.concurrent.Semaphore;
 import java.util.regex.Pattern;
 
-import org.apache.commons.lang3.tuple.MutablePair;
 import org.apache.commons.lang3.tuple.Pair;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -78,8 +77,6 @@ public class AdHocCalculationService {
 		Formula formula = protocolData.formulas.get(calcRequest.getFormulaId());
 		if (formula == null) throw new CalculationException("Invalid formula ID: %d", calcRequest.getFormulaId());
 		
-		//TODO Parallellize execution across Plates, Features and InputGroups
-		
 		for (Long plateId: calcRequest.getPlateIds()) {
 			long startTime = System.currentTimeMillis();
 			
@@ -108,8 +105,14 @@ public class AdHocCalculationService {
 			long plateLoadDuration = System.currentTimeMillis() - startTime;
 			long dataLoadDuration = 0;
 			long scriptExecDuration = 0;
+			startTime = System.currentTimeMillis();
+			
+			int scriptCount = 0;
+			Semaphore threadBlocker = new Semaphore(0);
 			
 			List<FeatureDTO> features = makeAdHocFeatures(calcRequest, measId);
+			Map<Pair<FeatureDTO,String>, ScriptExecutionOutputDTO> outputs = Collections.synchronizedMap(new HashMap<>()); 
+			
 			for (FeatureDTO feature: features) {
 				long dataLoadStartTime = System.currentTimeMillis();
 				
@@ -117,23 +120,44 @@ public class AdHocCalculationService {
 				Set<InputGroup> groups = groupingStrategy.createGroups(ctx, feature);
 				
 				long dataLoadEndTime = System.currentTimeMillis();
-				
-				Map<String, ScriptExecutionOutputDTO> outputs = new HashMap<>();
-				for (InputGroup group: groups) {
-					ScriptExecutionOutputDTO output = executeScript(formula, group);
-					outputs.put(String.valueOf(group.getGroupNumber()), output);
-				}
-				
-				long scriptExecutionEndTime = System.currentTimeMillis();
-				
-				ResultDataDTO resultData = groupingStrategy.mergeOutput(ctx, feature, outputs);
-				response.getResultData().add(new AdHocResultData(plateId, measId, feature.getName(), resultData.getValues()));
-				
 				dataLoadDuration += (dataLoadEndTime - dataLoadStartTime);
-				scriptExecDuration += (scriptExecutionEndTime - dataLoadEndTime);
+				
+				for (InputGroup group: groups) {
+					String groupKey = String.valueOf(group.getGroupNumber());
+					ScriptExecutionRequest request = scriptExecutionService.submit(formula.getLanguage(), formula.getFormula(), formula.getCategory().name(), group.getInputVariables());
+					scriptCount++;
+					request.addCallback(output -> {
+						outputs.put(Pair.of(feature, groupKey), output);
+						threadBlocker.release(1);
+					});
+				}
 			}
 			
-			logger.debug(String.format("AdHoc Calculation [Plate %d] [Meas %d] [%d Features]: plateLoad: %d ms, dataLoad: %d ms, scriptExec: %d ms.", 
+			// Block until all script executions are done.
+			try {
+				threadBlocker.acquire(scriptCount);
+			} catch (InterruptedException e) {}
+
+			scriptExecDuration = (System.currentTimeMillis() - startTime) - dataLoadDuration;
+			
+			// Assemble all outputs and store in the response object
+			for (FeatureDTO feature: features) {
+				Map<String, ScriptExecutionOutputDTO> featureOutputs = new HashMap<>();
+				
+				for (Pair<FeatureDTO,String> outputKey: outputs.keySet()) {
+					if (outputKey.getLeft() != feature) continue;
+					ScriptExecutionOutputDTO output = outputs.get(outputKey);
+					if (output.getStatusCode() != ResponseStatusCode.SUCCESS) {
+						throw new CalculationException("Script error on formula %d: %s", formula.getId(), output.getStatusMessage());
+					}
+					featureOutputs.put(outputKey.getRight(), output);
+				}
+				
+				ResultDataDTO resultData = strategyProvider.getStrategy(ctx, feature).mergeOutput(ctx, feature, featureOutputs);
+				response.getResultData().add(new AdHocResultData(plateId, measId, feature.getName(), resultData.getValues()));
+			}
+			
+			logger.debug(String.format("AdHoc Calculation [Plate %d] [Meas %d] [%d Features]: plateLoad: %d ms, inputDataLoad: %d ms, scriptExec: %d ms.", 
 					plateId, measId, features.size(), plateLoadDuration, dataLoadDuration, scriptExecDuration));
 		}
 		
@@ -188,25 +212,5 @@ public class AdHocCalculationService {
 		}
 		
 		return features;
-	}
-	
-	private ScriptExecutionOutputDTO executeScript(Formula formula, InputGroup group) {
-		ScriptExecutionRequest request = scriptExecutionService.submit(formula.getLanguage(), formula.getFormula(), formula.getCategory().name(), group.getInputVariables());
-		Pair<ScriptExecutionRequest, ScriptExecutionOutputDTO> scriptRef = MutablePair.of(request, null);
-	
-		// Block the thread until the script callback is done and output is available.
-		Semaphore threadBlocker = new Semaphore(1);
-		try { threadBlocker.acquire(); } catch (InterruptedException e) {}
-		request.addCallback(output -> {
-			scriptRef.setValue(output);
-			threadBlocker.release();
-		});
-		try { threadBlocker.acquire(); } catch (InterruptedException e) {}
-		
-		if (scriptRef.getValue().getStatusCode() != ResponseStatusCode.SUCCESS) {
-			throw new CalculationException("Script error on formula %d: %s", formula.getId(), scriptRef.getValue().getStatusMessage());
-		}
-		
-		return scriptRef.getValue();
 	}
 }
