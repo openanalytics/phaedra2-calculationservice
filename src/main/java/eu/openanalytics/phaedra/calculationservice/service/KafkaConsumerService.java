@@ -20,6 +20,7 @@
  */
 package eu.openanalytics.phaedra.calculationservice.service;
 
+import eu.openanalytics.phaedra.calculationservice.dto.ScriptExecutionOutputDTO;
 import java.util.concurrent.ExecutionException;
 
 import org.slf4j.Logger;
@@ -39,7 +40,6 @@ import eu.openanalytics.phaedra.calculationservice.service.protocol.ProtocolExec
 import eu.openanalytics.phaedra.resultdataservice.dto.ResultDataDTO;
 import eu.openanalytics.phaedra.resultdataservice.dto.ResultFeatureStatDTO;
 import eu.openanalytics.phaedra.resultdataservice.dto.ResultSetDTO;
-import eu.openanalytics.phaedra.scriptengine.dto.ScriptExecutionOutputDTO;
 
 @Service
 public class KafkaConsumerService {

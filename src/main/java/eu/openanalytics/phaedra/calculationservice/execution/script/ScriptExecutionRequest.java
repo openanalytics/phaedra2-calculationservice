@@ -20,13 +20,13 @@
  */
 package eu.openanalytics.phaedra.calculationservice.execution.script;
 
+import eu.openanalytics.phaedra.calculationservice.dto.ScriptExecutionInputDTO;
+import eu.openanalytics.phaedra.calculationservice.dto.ScriptExecutionOutputDTO;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.ForkJoinPool;
 import java.util.function.Consumer;
 
-import eu.openanalytics.phaedra.scriptengine.dto.ScriptExecutionInputDTO;
-import eu.openanalytics.phaedra.scriptengine.dto.ScriptExecutionOutputDTO;
 import lombok.Builder;
 import lombok.Data;
 

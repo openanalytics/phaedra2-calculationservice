@@ -20,6 +20,7 @@
  */
 package eu.openanalytics.phaedra.calculationservice.service.protocol;
 
+import eu.openanalytics.phaedra.calculationservice.enumeration.ResponseStatusCode;
 import java.util.Set;
 import java.util.stream.Collectors;
 
@@ -38,7 +39,6 @@ import eu.openanalytics.phaedra.calculationservice.model.Formula;
 import eu.openanalytics.phaedra.calculationservice.service.KafkaProducerService;
 import eu.openanalytics.phaedra.protocolservice.dto.FeatureDTO;
 import eu.openanalytics.phaedra.resultdataservice.dto.ResultDataDTO;
-import eu.openanalytics.phaedra.scriptengine.dto.ResponseStatusCode;
 
 /**
  * Feature execution is a part of the protocol execution procedure.

@@ -20,6 +20,8 @@
  */
 package eu.openanalytics.phaedra.calculationservice.execution.input.strategy;
 
+import eu.openanalytics.phaedra.calculationservice.dto.ScriptExecutionOutputDTO;
+import eu.openanalytics.phaedra.calculationservice.enumeration.ResponseStatusCode;
 import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
@@ -45,8 +47,6 @@ import eu.openanalytics.phaedra.protocolservice.dto.FeatureDTO;
 import eu.openanalytics.phaedra.resultdataservice.client.ResultDataServiceClient;
 import eu.openanalytics.phaedra.resultdataservice.client.exception.ResultDataUnresolvableException;
 import eu.openanalytics.phaedra.resultdataservice.dto.ResultDataDTO;
-import eu.openanalytics.phaedra.scriptengine.dto.ResponseStatusCode;
-import eu.openanalytics.phaedra.scriptengine.dto.ScriptExecutionOutputDTO;
 
 public abstract class BaseGroupingStrategy implements InputGroupingStrategy {
 

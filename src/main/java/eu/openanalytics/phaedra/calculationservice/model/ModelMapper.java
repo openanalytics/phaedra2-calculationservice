@@ -20,6 +20,7 @@
  */
 package eu.openanalytics.phaedra.calculationservice.model;
 
+import eu.openanalytics.phaedra.calculationservice.enumeration.ResponseStatusCode;
 import org.modelmapper.Conditions;
 import org.modelmapper.config.Configuration;
 import org.modelmapper.convention.NameTransformers;
@@ -29,7 +30,6 @@ import org.springframework.stereotype.Service;
 import eu.openanalytics.phaedra.calculationservice.dto.FormulaDTO;
 import eu.openanalytics.phaedra.calculationservice.enumeration.CalculationStatusCode;
 import eu.openanalytics.phaedra.resultdataservice.enumeration.StatusCode;
-import eu.openanalytics.phaedra.scriptengine.dto.ResponseStatusCode;
 
 @Service
 public class ModelMapper {
