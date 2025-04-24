@@ -164,6 +164,12 @@ public class AdHocCalculationService {
 		return response;
 	}
 	
+	/**
+	 * Will instantiate one or more Features, depending on the presence of wildcards in the civs.
+	 * If no wildcards are present, a single Feature is created.
+	 * If wildcards are present, a number of Features is created equal to the number of meas columns
+	 * that match the wildcarded pattern.
+	 */
 	private List<FeatureDTO> makeAdHocFeatures(AdHocCalculationRequestDTO calcRequest, long measId) {
 		List<FeatureDTO> features = new ArrayList<>();
 		
@@ -182,7 +188,7 @@ public class AdHocCalculationService {
 			}
 		}
 		
-		long featureCount = civNames.values().stream().flatMap(names -> names.stream()).distinct().count();
+		long featureCount = civNames.values().stream().mapToLong(list -> list.size()).max().orElse(0);
 		for (int i = 0; i < featureCount; i++) {
 			FeatureDTO feature = new FeatureDTO();
 			feature.setType(FeatureType.CALCULATION);
