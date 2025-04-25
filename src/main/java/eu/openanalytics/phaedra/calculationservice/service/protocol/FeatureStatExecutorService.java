@@ -22,6 +22,8 @@ package eu.openanalytics.phaedra.calculationservice.service.protocol;
 
 import static eu.openanalytics.phaedra.calculationservice.util.LoggerHelper.log;
 
+import eu.openanalytics.phaedra.calculationservice.dto.ScriptExecutionOutputDTO;
+import eu.openanalytics.phaedra.calculationservice.enumeration.ResponseStatusCode;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -49,8 +51,6 @@ import eu.openanalytics.phaedra.plateservice.dto.WellDTO;
 import eu.openanalytics.phaedra.protocolservice.dto.FeatureDTO;
 import eu.openanalytics.phaedra.protocolservice.dto.FeatureStatDTO;
 import eu.openanalytics.phaedra.resultdataservice.dto.ResultFeatureStatDTO;
-import eu.openanalytics.phaedra.scriptengine.dto.ResponseStatusCode;
-import eu.openanalytics.phaedra.scriptengine.dto.ScriptExecutionOutputDTO;
 
 /**
  * Feature Stats are sets of statistical values about a feature.
@@ -59,7 +59,7 @@ import eu.openanalytics.phaedra.scriptengine.dto.ScriptExecutionOutputDTO;
  * but also stats for each welltype present in the plate.
  *
  * Feature Stats can be calculated as soon as the Feature itself has been calculated.
- * 
+ *
  * TODO: wellType is still named "welltype" in protocol-service and resultdata-service. Fix naming across all services
  */
 @Service
@@ -82,12 +82,12 @@ public class FeatureStatExecutorService {
 
     public void executeFeatureStats(CalculationContext ctx, FeatureDTO feature) {
         List<FeatureStatDTO> statsToCalculate = ctx.getProtocolData().featureStats.get(feature.getId());
-        
+
         if (statsToCalculate == null || statsToCalculate.isEmpty()) {
         	ctx.getStateTracker().skipStage(feature.getId(), CalculationStage.FeatureStatistics);
             return;
         }
-        
+
         log(logger, ctx, "Calculating %d featureStats for feature %d", statsToCalculate.size(), feature.getId());
         ctx.getStateTracker().startStage(feature.getId(), CalculationStage.FeatureStatistics, statsToCalculate.size());
 
@@ -150,17 +150,17 @@ public class FeatureStatExecutorService {
 
 	private List<ResultFeatureStatDTO> parseResults(CalculationContext ctx, FeatureDTO feature, FeatureStatDTO featureStat, ScriptExecutionOutputDTO output) {
 		if (output.getStatusCode() != ResponseStatusCode.SUCCESS) throw new CalculationException("Script execution error: %s", output.getStatusMessage());
-		
+
     	List<ResultFeatureStatDTO> results = new ArrayList<>();
 
     	float plateValue = Float.NaN;
     	Map<String, Float> wellTypeValues = new HashMap<>();
-    	
+
 		try {
 			// Output string contains a nested 'output' key, e.g.  output = "{\"output\":{\"plateValue\":384,\"wellTypeValues\":{\"HC\":32,\"LC\":32,\"SAMPLE\":320}}}\n"
 			Map<?,?> outputMap = objectMapper.readValue(output.getOutput(), Map.class);
 			outputMap = (Map<?,?>) outputMap.get("output");
-			
+
 			if (outputMap.get("plateValue") instanceof Number) plateValue = ((Number) outputMap.get("plateValue")).floatValue();
 			if (outputMap.get("wellTypeValues") instanceof Map) {
 				Map<?,?> wellTypeValuesMap = (Map<?,?>) outputMap.get("wellTypeValues");
@@ -173,7 +173,7 @@ public class FeatureStatExecutorService {
 		if (featureStat.getPlateStat()) {
 			results.add(createResultStatDTO(feature, featureStat, output, plateValue, null));
 		}
-		
+
 		if (featureStat.getWelltypeStat()) {
 			List<String> wellTypes = ctx.getWells().stream().map(WellDTO::getWellType).distinct().toList();
             for (String wellType : wellTypes) {

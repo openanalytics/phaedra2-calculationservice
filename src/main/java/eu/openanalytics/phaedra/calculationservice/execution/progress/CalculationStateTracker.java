@@ -22,6 +22,7 @@ package eu.openanalytics.phaedra.calculationservice.execution.progress;
 
 import static eu.openanalytics.phaedra.calculationservice.util.LoggerHelper.log;
 
+import eu.openanalytics.phaedra.calculationservice.enumeration.ResponseStatusCode;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
@@ -47,16 +48,15 @@ import eu.openanalytics.phaedra.protocolservice.dto.FeatureDTO;
 import eu.openanalytics.phaedra.resultdataservice.dto.ResultDataDTO;
 import eu.openanalytics.phaedra.resultdataservice.dto.ResultFeatureStatDTO;
 import eu.openanalytics.phaedra.resultdataservice.enumeration.StatusCode;
-import eu.openanalytics.phaedra.scriptengine.dto.ResponseStatusCode;
 import lombok.Builder;
 
 /**
  * This class tracks the state (progress) of an ongoing calculation execution.
  * Listeners can be attached to respond to various calculation lifecycle events.
- * 
+ *
  * The calculation process is split into CalculationStages.
  * A typical calculation lifecycle looks like this:
- * 
+ *
  * <ol>
  * <li>Protocol Started</li>
  * <li>Sequence1 Started</li>
@@ -83,12 +83,12 @@ public class CalculationStateTracker {
 	private Integer currentSequence;
 	private SequenceProgress sequenceProgress;
 	private Set<TrackedScriptExecution> trackedExecutions;
-	
+
 	private List<BiConsumer<CalculationStateEvent,Map<String, ScriptExecutionRequest>>> eventListeners;
 	private Executor eventExecutor;
-	
+
 	private final Logger logger = LoggerFactory.getLogger(getClass());
-	
+
 	public CalculationStateTracker(CalculationContext ctx) {
 		this.ctx = ctx;
 		sequenceProgress = new SequenceProgress();
@@ -96,22 +96,22 @@ public class CalculationStateTracker {
 		eventListeners = Collections.synchronizedList(new ArrayList<>());
 		eventExecutor = Executors.newSingleThreadExecutor();
 	}
-	
+
 	public void startStage(long featureId, CalculationStage stage, int size) {
 		sequenceProgress.initStage(featureId, stage, size);
 	}
-	
+
 	public void skipStage(long featureId, CalculationStage stage) {
 		startStage(featureId, stage, 1);
 		updateProgress(featureId, stage, "1", CalculationStateEventCode.Complete);
 	}
-	
+
 	public void failStage(long featureId, CalculationStage stage, String errorMessage, Object... errorContext) {
 		ctx.getErrorCollector().addError(errorMessage, errorContext);
 		startStage(featureId, stage, 1);
 		updateProgress(featureId, stage, "1", CalculationStateEventCode.Error);
 	}
-	
+
 	public void trackScriptExecution(long featureId, CalculationStage stage, Object groupKey, ScriptExecutionRequest request) {
 		String groupId = String.valueOf(groupKey);
 		TrackedScriptExecution trackedExec = TrackedScriptExecution.builder()
@@ -127,7 +127,7 @@ public class CalculationStateTracker {
 			updateProgress(trackedExec.featureId, trackedExec.stage, groupId, stageOutcome);
 		});
 	}
-	
+
 	public void handleResultSetUpdate(Object payload) {
 		if (payload instanceof ResultDataDTO) {
 			// ResultData for a feature has been saved successfully or encountered an error
@@ -139,7 +139,7 @@ public class CalculationStateTracker {
 			}
 		} else if (payload instanceof ResultFeatureStatDTO) {
 			// A statistic for a feature has been saved successfully or encountered an error
-			ResultFeatureStatDTO featureStat = (ResultFeatureStatDTO) payload; 
+			ResultFeatureStatDTO featureStat = (ResultFeatureStatDTO) payload;
 			String groupId = String.format("%d-%s", featureStat.getFeatureStatId(), featureStat.getWelltype());
 			if (featureStat.getStatusCode() == StatusCode.SUCCESS) {
 				updateProgress(featureStat.getFeatureId(), CalculationStage.FeatureStatistics, groupId, CalculationStateEventCode.Complete);
@@ -148,7 +148,7 @@ public class CalculationStateTracker {
 			}
 		}
 	}
-	
+
 	public Integer getCurrentSequence() {
 		return currentSequence;
 	}
@@ -159,7 +159,7 @@ public class CalculationStateTracker {
 			log(logger, ctx, "Nothing to calculate: no sequences defined");
 			return;
 		}
-		
+
 		if (currentSequence == null) {
 			log(logger, ctx, "Executing protocol %d", ctx.getProtocolData().protocol.getId());
 			emit(new CalculationStateEvent(CalculationStage.Protocol, CalculationStateEventCode.Started, null));
@@ -174,7 +174,7 @@ public class CalculationStateTracker {
 			}
 		}
 	}
-	
+
 	public void addEventListener(CalculationStage stage, CalculationStateEventCode code, Long featureId, Consumer<Map<String, ScriptExecutionRequest>> handler) {
 		eventListeners.add(new FilterEventListener(stage, code, featureId, handler));
 	}
@@ -186,49 +186,49 @@ public class CalculationStateTracker {
 		trackedExecutions.clear();
 		emit(new CalculationStateEvent(CalculationStage.Sequence, CalculationStateEventCode.Started, null));
 	}
-	
+
 	private void updateProgress(long featureId, CalculationStage stage, String groupId, CalculationStateEventCode code) {
 		if (sequenceProgress.hasErrors()) {
 			// If the current sequence already encountered an error, do not process any further codes.
 			return;
 		}
-		
+
 		sequenceProgress.add(featureId, stage, groupId, code);
-		
+
 		CalculationStateEventCode stageOutcome = sequenceProgress.getStageOutcome(featureId, stage);
 		CalculationStateEventCode sequenceOutcome = sequenceProgress.getSequenceOutcome(currentSequence, ctx);
-		
+
 		log(logger, ctx, String.format("Progress update [Feature %d] [Stage %s] [Group %s] = %s. Progress: [Stage: %s] [Sequence: %s]", featureId, stage, groupId, code, stageOutcome, sequenceOutcome));
-		
+
 		if (stageOutcome != null) {
 			emit(new CalculationStateEvent(stage, stageOutcome, featureId));
 		}
-		
+
 		if (sequenceOutcome != null) {
 			emit(new CalculationStateEvent(CalculationStage.Sequence, sequenceOutcome, null));
 		}
 	}
-	
+
 	private void emit(CalculationStateEvent event) {
 		Map<String, ScriptExecutionRequest> requests;
 		synchronized (trackedExecutions) {
 			requests = trackedExecutions.stream()
-					.filter(exec -> (event.getFeatureId() == null || event.getFeatureId().equals(exec.featureId))) 
+					.filter(exec -> (event.getFeatureId() == null || event.getFeatureId().equals(exec.featureId)))
 					.filter(exec -> (event.getStage() == null || exec.stage == event.getStage()))
 					.filter(exec -> (event.getCode() != CalculationStateEventCode.Error || exec.request.getOutput() != null))
 					.collect(Collectors.toMap(exec -> exec.groupId, exec -> exec.request));
 		}
-		
+
 		final List<BiConsumer<CalculationStateEvent,Map<String, ScriptExecutionRequest>>> listCopy = new ArrayList<>();
 		synchronized (eventListeners) {
 			listCopy.addAll(eventListeners);
 		}
-		
+
 		eventExecutor.execute(() -> {
 			listCopy.forEach(l -> l.accept(event, requests));
 		});
 	}
-	
+
 	private static CalculationStateEventCode aggregateCodes(List<CalculationStateEventCode> codes, int expectedSize) {
 		if (codes == null || codes.isEmpty()) return null;
 		if (codes.stream().anyMatch(code -> code == CalculationStateEventCode.Error)) return CalculationStateEventCode.Error;
@@ -237,7 +237,7 @@ public class CalculationStateTracker {
 		if (codes.stream().allMatch(code -> code == CalculationStateEventCode.Complete)) return CalculationStateEventCode.Complete;
 		return null;
 	}
-	
+
 	@Builder
 	private static class TrackedScriptExecution {
 		private Long featureId;
@@ -248,12 +248,12 @@ public class CalculationStateTracker {
 
 	@Builder
 	private static class FilterEventListener implements BiConsumer<CalculationStateEvent,Map<String, ScriptExecutionRequest>> {
-		
+
 		private CalculationStage stage;
 		private CalculationStateEventCode code;
 		private Long featureId;
 		private Consumer<Map<String, ScriptExecutionRequest>> handler;
-		
+
 		@Override
 		public void accept(CalculationStateEvent event, Map<String, ScriptExecutionRequest> requests) {
 			if ((stage == null || event.getStage() == stage) && (code == null || event.getCode() == code) && (featureId == null || featureId.equals(event.getFeatureId()))) {
@@ -263,17 +263,17 @@ public class CalculationStateTracker {
 	}
 
 	private static class SequenceProgress {
-		
+
 		private Map<Pair<Long, CalculationStage>, StageProgress> progressMap = new HashMap<>();
-		
+
 		public synchronized void reset() {
 			progressMap.clear();
 		}
-		
+
 		public synchronized void initStage(long featureId, CalculationStage stage, int size) {
 			progressMap.put(Pair.of(featureId, stage), new StageProgress(size));
 		}
-		
+
 		public synchronized void add(long featureId, CalculationStage stage, String id, CalculationStateEventCode code) {
 			StageProgress stageProgress = progressMap.get(Pair.of(featureId, stage));
 			if (stageProgress == null) {
@@ -281,38 +281,38 @@ public class CalculationStateTracker {
 			}
 			stageProgress.add(id, code);
 		}
-		
+
 		public synchronized boolean hasErrors() {
 			return progressMap.values().stream().anyMatch(stage -> stage.getStageOutcome() == CalculationStateEventCode.Error);
 		}
-		
+
 		public synchronized CalculationStateEventCode getStageOutcome(long featureId, CalculationStage stage) {
 			StageProgress stageProgress = progressMap.get(Pair.of(featureId, stage));
 			return Optional.ofNullable(stageProgress).map(p -> p.getStageOutcome()).orElse(null);
 		}
-		
+
 		public synchronized CalculationStateEventCode getFeatureOutcome(long featureId) {
 			List<StageProgress> stages = progressMap.entrySet().stream()
 					.filter(e -> e.getKey().getLeft() == featureId).map(e -> e.getValue()).toList();
 			return aggregateCodes(stages.stream().map(stage -> stage.getStageOutcome()).toList(), 3);
 		}
-		
+
 		public synchronized CalculationStateEventCode getSequenceOutcome(int sequence, CalculationContext ctx) {
 			List<FeatureDTO> features = ctx.getProtocolData().sequences.get(sequence);
 			return aggregateCodes(features.stream().map(f -> getFeatureOutcome(f.getId())).toList(), features.size());
 		}
 	}
-	
+
 	private static class StageProgress {
-		
+
 		private int stageSize;
 		private Map<String, CalculationStateEventCode> codes;
-		
+
 		public StageProgress(int stageSize) {
 			this.stageSize = stageSize;
 			this.codes = new HashMap<>();
 		}
-		
+
 		public void add(String id, CalculationStateEventCode code) {
 			if (id == null) {
 				// If no id is given, the whole stage will be updated.
@@ -323,7 +323,7 @@ public class CalculationStateTracker {
 				codes.put(id, code);
 			}
 		}
-		
+
 		public CalculationStateEventCode getStageOutcome() {
 			return aggregateCodes(codes.values().stream().toList(), stageSize);
 		}

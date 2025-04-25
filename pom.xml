@@ -15,7 +15,6 @@
 
 	<properties>
 		<docker.filter>${docker.imageName}${docker.imageNameSuffix}</docker.filter> <!-- Only build app docker image, no liquibase image -->
-		<phaedra2-scriptengine-dto.version>2.7.0-SNAPSHOT</phaedra2-scriptengine-dto.version>
 		<phaedra2-resultdataservice-client.version>2.7.0-SNAPSHOT</phaedra2-resultdataservice-client.version>
 		<phaedra2-protocolservice-client.version>2.7.0-SNAPSHOT</phaedra2-protocolservice-client.version>
 		<phaedra2-plateservice-client.version>2.7.0-SNAPSHOT</phaedra2-plateservice-client.version>
@@ -40,11 +39,6 @@
             <groupId>eu.openanalytics.phaedra</groupId>
             <artifactId>phaedra2-resultdataservice-client</artifactId>
             <version>${phaedra2-resultdataservice-client.version}</version>
-        </dependency>
-        <dependency>
-            <groupId>eu.openanalytics.phaedra</groupId>
-            <artifactId>phaedra2-scriptengine-dto</artifactId>
-            <version>${phaedra2-scriptengine-dto.version}</version>
         </dependency>
         <dependency>
             <groupId>eu.openanalytics.phaedra</groupId>

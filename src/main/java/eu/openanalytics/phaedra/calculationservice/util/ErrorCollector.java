@@ -22,23 +22,20 @@ package eu.openanalytics.phaedra.calculationservice.util;
 
 import static eu.openanalytics.phaedra.calculationservice.util.LoggerHelper.log;
 
-import java.time.LocalDateTime;
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.Date;
-import java.util.List;
-import java.util.Optional;
-
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
+import eu.openanalytics.phaedra.calculationservice.dto.ScriptExecutionOutputDTO;
 import eu.openanalytics.phaedra.calculationservice.execution.CalculationContext;
 import eu.openanalytics.phaedra.calculationservice.model.Formula;
 import eu.openanalytics.phaedra.protocolservice.dto.CalculationInputValueDTO;
 import eu.openanalytics.phaedra.protocolservice.dto.FeatureDTO;
 import eu.openanalytics.phaedra.protocolservice.dto.FeatureStatDTO;
 import eu.openanalytics.phaedra.resultdataservice.dto.ErrorDTO;
-import eu.openanalytics.phaedra.scriptengine.dto.ScriptExecutionOutputDTO;
+import java.time.LocalDateTime;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.List;
+import java.util.Optional;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public class ErrorCollector {
 
