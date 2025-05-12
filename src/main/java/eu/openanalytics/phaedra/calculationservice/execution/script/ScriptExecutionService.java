@@ -20,6 +20,8 @@
  */
 package eu.openanalytics.phaedra.calculationservice.execution.script;
 
+import eu.openanalytics.phaedra.calculationservice.dto.ScriptExecutionInputDTO;
+import eu.openanalytics.phaedra.calculationservice.dto.ScriptExecutionOutputDTO;
 import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
 
@@ -32,8 +34,6 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import eu.openanalytics.phaedra.calculationservice.enumeration.ScriptLanguage;
 import eu.openanalytics.phaedra.calculationservice.exception.CalculationException;
 import eu.openanalytics.phaedra.calculationservice.service.KafkaProducerService;
-import eu.openanalytics.phaedra.scriptengine.dto.ScriptExecutionInputDTO;
-import eu.openanalytics.phaedra.scriptengine.dto.ScriptExecutionOutputDTO;
 
 @Service
 public class ScriptExecutionService {

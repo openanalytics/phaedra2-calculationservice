@@ -20,6 +20,7 @@
  */
 package eu.openanalytics.phaedra.calculationservice.execution.input.strategy;
 
+import eu.openanalytics.phaedra.calculationservice.dto.ScriptExecutionOutputDTO;
 import java.util.Collections;
 import java.util.Map;
 import java.util.Set;
@@ -37,7 +38,6 @@ import eu.openanalytics.phaedra.measurementservice.client.MeasurementServiceClie
 import eu.openanalytics.phaedra.protocolservice.dto.FeatureDTO;
 import eu.openanalytics.phaedra.resultdataservice.client.ResultDataServiceClient;
 import eu.openanalytics.phaedra.resultdataservice.dto.ResultDataDTO;
-import eu.openanalytics.phaedra.scriptengine.dto.ScriptExecutionOutputDTO;
 
 /**
  * The default input grouping strategy creates one big input group for the whole feature.
@@ -47,19 +47,19 @@ import eu.openanalytics.phaedra.scriptengine.dto.ScriptExecutionOutputDTO;
 public class DefaultInputGroupingStrategy extends BaseGroupingStrategy {
 
 	public DefaultInputGroupingStrategy(
-			MeasurementServiceClient measurementServiceClient, 
-			ResultDataServiceClient resultDataServiceClient, 
+			MeasurementServiceClient measurementServiceClient,
+			ResultDataServiceClient resultDataServiceClient,
 			ModelMapper modelMapper,
 			ObjectMapper objectMapper) {
 		super(measurementServiceClient, resultDataServiceClient, modelMapper, objectMapper);
 	}
-	
+
 	@Override
 	public boolean isSuited(CalculationContext ctx, FeatureDTO feature) {
 		// Is always suited, but has lowest priority.
 		return true;
 	}
-	
+
 	@Override
 	public Set<InputGroup> createGroups(CalculationContext ctx, FeatureDTO feature) {
 		return Collections.singleton(createGroup(ctx, feature, ctx.getWells(), 1));

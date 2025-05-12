@@ -20,6 +20,7 @@
  */
 package eu.openanalytics.phaedra.calculationservice.execution.input.strategy;
 
+import eu.openanalytics.phaedra.calculationservice.dto.ScriptExecutionOutputDTO;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -40,7 +41,6 @@ import eu.openanalytics.phaedra.protocolservice.dto.FeatureDTO;
 import eu.openanalytics.phaedra.protocolservice.enumeration.InputSource;
 import eu.openanalytics.phaedra.resultdataservice.client.ResultDataServiceClient;
 import eu.openanalytics.phaedra.resultdataservice.dto.ResultDataDTO;
-import eu.openanalytics.phaedra.scriptengine.dto.ScriptExecutionOutputDTO;
 
 @Component
 @Priority(1)

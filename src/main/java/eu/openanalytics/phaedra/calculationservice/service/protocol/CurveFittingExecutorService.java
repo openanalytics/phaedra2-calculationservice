@@ -21,33 +21,20 @@
 package eu.openanalytics.phaedra.calculationservice.service.protocol;
 
 import static java.lang.Float.NaN;
-import static java.lang.Float.parseFloat;
 import static java.util.stream.IntStream.range;
 import static org.apache.commons.lang3.math.NumberUtils.isCreatable;
-
-import java.util.ArrayList;
-import java.util.Date;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Optional;
-
-import org.apache.commons.lang3.ArrayUtils;
-import org.apache.commons.lang3.StringUtils;
-import org.apache.commons.math3.util.Precision;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-import org.springframework.stereotype.Service;
 
 import com.fasterxml.jackson.annotation.JsonCreator;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
-
 import eu.openanalytics.curvedataservice.dto.CurveDTO;
 import eu.openanalytics.curvedataservice.dto.CurvePropertyDTO;
 import eu.openanalytics.phaedra.calculationservice.dto.CurveFittingRequestDTO;
 import eu.openanalytics.phaedra.calculationservice.dto.DRCInputDTO;
+import eu.openanalytics.phaedra.calculationservice.dto.ScriptExecutionOutputDTO;
 import eu.openanalytics.phaedra.calculationservice.enumeration.FormulaCategory;
+import eu.openanalytics.phaedra.calculationservice.enumeration.ResponseStatusCode;
 import eu.openanalytics.phaedra.calculationservice.enumeration.ScriptLanguage;
 import eu.openanalytics.phaedra.calculationservice.exception.NoDRCModelDefinedForFeature;
 import eu.openanalytics.phaedra.calculationservice.execution.CalculationContext;
@@ -64,9 +51,17 @@ import eu.openanalytics.phaedra.protocolservice.dto.DRCModelDTO;
 import eu.openanalytics.phaedra.protocolservice.dto.FeatureDTO;
 import eu.openanalytics.phaedra.protocolservice.record.InputParameter;
 import eu.openanalytics.phaedra.resultdataservice.dto.ResultDataDTO;
-import eu.openanalytics.phaedra.scriptengine.dto.ResponseStatusCode;
-import eu.openanalytics.phaedra.scriptengine.dto.ScriptExecutionOutputDTO;
 import eu.openanalytics.phaedra.util.WellNumberUtils;
+import java.util.ArrayList;
+import java.util.Date;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Optional;
+import org.apache.commons.lang3.StringUtils;
+import org.apache.commons.math3.util.Precision;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.springframework.stereotype.Service;
 
 @Service
 public class CurveFittingExecutorService {
