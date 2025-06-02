@@ -20,8 +20,6 @@
  */
 package eu.openanalytics.phaedra.calculationservice.dto;
 
-import java.time.LocalDateTime;
-
 import eu.openanalytics.phaedra.calculationservice.dto.validation.OnCreate;
 import eu.openanalytics.phaedra.calculationservice.dto.validation.OnUpdate;
 import eu.openanalytics.phaedra.calculationservice.enumeration.CalculationScope;
@@ -30,13 +28,15 @@ import eu.openanalytics.phaedra.calculationservice.enumeration.ScriptLanguage;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Null;
+import java.time.LocalDateTime;
+import java.util.List;
 import lombok.AccessLevel;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
+import lombok.Data;
 import lombok.NoArgsConstructor;
-import lombok.Value;
 
-@Value
+@Data
 @Builder
 @AllArgsConstructor
 @NoArgsConstructor(force = true, access = AccessLevel.PRIVATE) // Jackson deserialize compatibility
@@ -79,4 +79,7 @@ public class FormulaDTO {
 
     @Null(groups = {OnCreate.class, OnUpdate.class}, message = "UpdatedOn must be null when creating a formula")
     LocalDateTime updatedOn;
+
+    List<String> tags;
+    List<PropertyDTO> properties;
 }

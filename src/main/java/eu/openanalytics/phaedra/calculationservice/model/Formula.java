@@ -20,25 +20,23 @@
  */
 package eu.openanalytics.phaedra.calculationservice.model;
 
-import java.time.LocalDateTime;
-
-import org.springframework.data.annotation.Id;
-
 import eu.openanalytics.phaedra.calculationservice.enumeration.CalculationScope;
 import eu.openanalytics.phaedra.calculationservice.enumeration.FormulaCategory;
 import eu.openanalytics.phaedra.calculationservice.enumeration.ScriptLanguage;
 import jakarta.validation.constraints.NotNull;
+import java.time.LocalDateTime;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
-import lombok.Value;
+import lombok.Data;
 import lombok.With;
+import org.springframework.data.annotation.Id;
 
-@Value
+@Data
 @With
 @Builder(toBuilder = true)
 @AllArgsConstructor
 public class Formula {
-	
+
     @Id
     Long id;
 
@@ -64,7 +62,7 @@ public class Formula {
 
     @NotNull
     String versionNumber;
-    
+
     boolean deprecated;
 
     @NotNull
