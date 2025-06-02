@@ -36,21 +36,18 @@ public class ModelMapper {
 
   public ModelMapper() {
     Configuration builderConfiguration = modelMapper.getConfiguration().copy()
-        .setDestinationNameTransformer(NameTransformers.builder())
-        .setDestinationNamingConvention(NamingConventions.builder());
+            .setDestinationNameTransformer(NameTransformers.builder())
+            .setDestinationNamingConvention(NamingConventions.builder());
 
     modelMapper.createTypeMap(FormulaDTO.class, Formula.FormulaBuilder.class, builderConfiguration)
-        .setPropertyCondition(Conditions.isNotNull());
+            .setPropertyCondition(Conditions.isNotNull());
 
-    modelMapper.createTypeMap(Formula.class, FormulaDTO.FormulaDTOBuilder.class,
-            builderConfiguration)
-        .setPropertyCondition(Conditions.isNotNull())
-        .addMappings(mapper -> {
-          // Skip the properties and tags as they don't exist in Formula
-          mapper.skip(FormulaDTO.FormulaDTOBuilder::properties);
-          mapper.skip(FormulaDTO.FormulaDTOBuilder::tags);
-        });
-    ;
+    modelMapper.createTypeMap(Formula.class, FormulaDTO.FormulaDTOBuilder.class, builderConfiguration)
+            .setPropertyCondition(Conditions.isNotNull())
+            .addMappings(mapper -> {
+                mapper.skip(FormulaDTO.FormulaDTOBuilder::properties);
+                mapper.skip(FormulaDTO.FormulaDTOBuilder::tags);
+            });
 
     modelMapper.validate(); // ensure that objects can be mapped
   }
