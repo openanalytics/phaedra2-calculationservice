@@ -19,7 +19,6 @@
 		<phaedra2-protocolservice-client.version>2.8.0-SNAPSHOT</phaedra2-protocolservice-client.version>
 		<phaedra2-plateservice-client.version>2.8.0-SNAPSHOT</phaedra2-plateservice-client.version>
     <phaedra2-measurementservice-client.version>2.8.0-SNAPSHOT</phaedra2-measurementservice-client.version>
-<!--    <phaedra2-curvedataservice-client.version>2.8.0-SNAPSHOT</phaedra2-curvedataservice-client.version>-->
     <phaedra2-metadataservice-client.version>2.8.0-SNAPSHOT</phaedra2-metadataservice-client.version>
 	</properties>
 
@@ -55,11 +54,6 @@
             <artifactId>phaedra2-measurementservice-client</artifactId>
             <version>${phaedra2-measurementservice-client.version}</version>
         </dependency>
-<!--        <dependency>-->
-<!--            <groupId>eu.openanalytics.phaedra</groupId>-->
-<!--            <artifactId>phaedra2-curvedataservice-client</artifactId>-->
-<!--            <version>${phaedra2-curvedataservice-client.version}</version>-->
-<!--        </dependency>-->
         <dependency>
             <groupId>eu.openanalytics.phaedra</groupId>
             <artifactId>phaedra2-metadataservice-client</artifactId>

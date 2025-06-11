@@ -28,8 +28,6 @@ import com.fasterxml.jackson.annotation.JsonCreator;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
-//import eu.openanalytics.curvedataservice.dto.CurveDTO;
-//import eu.openanalytics.curvedataservice.dto.CurvePropertyDTO;
 import eu.openanalytics.phaedra.calculationservice.dto.CurveFittingRequestDTO;
 import eu.openanalytics.phaedra.calculationservice.dto.DRCInputDTO;
 import eu.openanalytics.phaedra.calculationservice.dto.ScriptExecutionOutputDTO;
@@ -194,7 +192,6 @@ public class CurveFittingExecutorService {
 
     private void createNewCurve(DRCInputDTO drcInput, DRCOutputDTO drcOutput) {
         logger.info("Create new curve for substance %s and feature %s (%d)", drcInput.getSubstance(), drcInput.getFeature().getName(), drcInput.getFeature().getId());
-//        List<CurvePropertyDTO> curvePropertieDTOs = new ArrayList<>();
         List<CurveOutputParamDTO> curvePropertieDTOs = new ArrayList<>();
 
         if (isCreatable(drcOutput.pIC50toReport))
