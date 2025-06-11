@@ -28,8 +28,8 @@ import com.fasterxml.jackson.annotation.JsonCreator;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import eu.openanalytics.curvedataservice.dto.CurveDTO;
-import eu.openanalytics.curvedataservice.dto.CurvePropertyDTO;
+//import eu.openanalytics.curvedataservice.dto.CurveDTO;
+//import eu.openanalytics.curvedataservice.dto.CurvePropertyDTO;
 import eu.openanalytics.phaedra.calculationservice.dto.CurveFittingRequestDTO;
 import eu.openanalytics.phaedra.calculationservice.dto.DRCInputDTO;
 import eu.openanalytics.phaedra.calculationservice.dto.ScriptExecutionOutputDTO;
@@ -50,6 +50,8 @@ import eu.openanalytics.phaedra.protocolservice.client.ProtocolServiceClient;
 import eu.openanalytics.phaedra.protocolservice.dto.DRCModelDTO;
 import eu.openanalytics.phaedra.protocolservice.dto.FeatureDTO;
 import eu.openanalytics.phaedra.protocolservice.record.InputParameter;
+import eu.openanalytics.phaedra.resultdataservice.dto.CurveDTO;
+import eu.openanalytics.phaedra.resultdataservice.dto.CurveOutputParamDTO;
 import eu.openanalytics.phaedra.resultdataservice.dto.ResultDataDTO;
 import eu.openanalytics.phaedra.util.WellNumberUtils;
 import java.util.ArrayList;
@@ -192,61 +194,62 @@ public class CurveFittingExecutorService {
 
     private void createNewCurve(DRCInputDTO drcInput, DRCOutputDTO drcOutput) {
         logger.info("Create new curve for substance %s and feature %s (%d)", drcInput.getSubstance(), drcInput.getFeature().getName(), drcInput.getFeature().getId());
-        List<CurvePropertyDTO> curvePropertieDTOs = new ArrayList<>();
+//        List<CurvePropertyDTO> curvePropertieDTOs = new ArrayList<>();
+        List<CurveOutputParamDTO> curvePropertieDTOs = new ArrayList<>();
 
         if (isCreatable(drcOutput.pIC50toReport))
-            curvePropertieDTOs.add(CurvePropertyDTO.builder().name("pIC50").numericValue(parseFloat(drcOutput.pIC50toReport)).build());
+            curvePropertieDTOs.add(CurveOutputParamDTO.builder().name("pIC50").numericValue(parseFloat(drcOutput.pIC50toReport)).build());
         else {
             if (drcOutput.pIC50toReport.startsWith("<") || drcOutput.pIC50toReport.startsWith(">")) {
-                curvePropertieDTOs.add(CurvePropertyDTO.builder().name("pIC50").numericValue(parseFloat(drcOutput.pIC50toReport.substring(1).trim())).build());
-                curvePropertieDTOs.add(CurvePropertyDTO.builder().name("pIC50 Censor").stringValue(drcOutput.pIC50toReport.substring(0,1)).build());
+                curvePropertieDTOs.add(CurveOutputParamDTO.builder().name("pIC50").numericValue(parseFloat(drcOutput.pIC50toReport.substring(1).trim())).build());
+                curvePropertieDTOs.add(CurveOutputParamDTO.builder().name("pIC50 Censor").stringValue(drcOutput.pIC50toReport.substring(0,1)).build());
             }
         }
 
 //        if (drcOutput.validpIC50 != null && isCreatable(drcOutput.validpIC50.stdError))
 //        	curvePropertieDTOs.add(CurvePropertyDTO.builder().name("pIC50 StdErr").numericValue(parseFloat(drcOutput.validpIC50.stdError)).build());
 //        else
-            curvePropertieDTOs.add(CurvePropertyDTO.builder().name("pIC50 StdErr").numericValue(NaN).build());
+            curvePropertieDTOs.add(CurveOutputParamDTO.builder().name("pIC50 StdErr").numericValue(NaN).build());
 
         if (drcOutput.modelCoefs != null) {
-            curvePropertieDTOs.add(CurvePropertyDTO.builder().name("Bottom").numericValue(drcOutput.modelCoefs.bottom.estimate).build());
-            curvePropertieDTOs.add(CurvePropertyDTO.builder().name("Top").numericValue(drcOutput.modelCoefs.top.estimate).build());
-            curvePropertieDTOs.add(CurvePropertyDTO.builder().name("Slope").numericValue(drcOutput.modelCoefs.slope.estimate).build());
-            curvePropertieDTOs.add(CurvePropertyDTO.builder().name("Slope Lower CI").numericValue(drcOutput.modelCoefs.slope.lowerCI).build());
-            curvePropertieDTOs.add(CurvePropertyDTO.builder().name("Slope Upper CI").numericValue(drcOutput.modelCoefs.slope.upperCI).build());
+            curvePropertieDTOs.add(CurveOutputParamDTO.builder().name("Bottom").numericValue(drcOutput.modelCoefs.bottom.estimate).build());
+            curvePropertieDTOs.add(CurveOutputParamDTO.builder().name("Top").numericValue(drcOutput.modelCoefs.top.estimate).build());
+            curvePropertieDTOs.add(CurveOutputParamDTO.builder().name("Slope").numericValue(drcOutput.modelCoefs.slope.estimate).build());
+            curvePropertieDTOs.add(CurveOutputParamDTO.builder().name("Slope Lower CI").numericValue(drcOutput.modelCoefs.slope.lowerCI).build());
+            curvePropertieDTOs.add(CurveOutputParamDTO.builder().name("Slope Upper CI").numericValue(drcOutput.modelCoefs.slope.upperCI).build());
         } else {
-            curvePropertieDTOs.add(CurvePropertyDTO.builder().name("Bottom").numericValue(NaN).build());
-            curvePropertieDTOs.add(CurvePropertyDTO.builder().name("Top").numericValue(NaN).build());
-            curvePropertieDTOs.add(CurvePropertyDTO.builder().name("Slope").numericValue(NaN).build());
-            curvePropertieDTOs.add(CurvePropertyDTO.builder().name("Slope Lower CI").numericValue(NaN).build());
-            curvePropertieDTOs.add(CurvePropertyDTO.builder().name("Slope Upper CI").numericValue(NaN).build());
+            curvePropertieDTOs.add(CurveOutputParamDTO.builder().name("Bottom").numericValue(NaN).build());
+            curvePropertieDTOs.add(CurveOutputParamDTO.builder().name("Top").numericValue(NaN).build());
+            curvePropertieDTOs.add(CurveOutputParamDTO.builder().name("Slope").numericValue(NaN).build());
+            curvePropertieDTOs.add(CurveOutputParamDTO.builder().name("Slope Lower CI").numericValue(NaN).build());
+            curvePropertieDTOs.add(CurveOutputParamDTO.builder().name("Slope Upper CI").numericValue(NaN).build());
         }
 
         if (drcOutput.rangeResults != null && drcOutput.rangeResults.eMin != null && drcOutput.rangeResults.eMax != null) {
-            curvePropertieDTOs.add(CurvePropertyDTO.builder().name("eMin").numericValue(drcOutput.rangeResults.eMin.response).build());
-            curvePropertieDTOs.add(CurvePropertyDTO.builder().name("eMin Conc").numericValue(drcOutput.rangeResults.eMin.dose).build());
-            curvePropertieDTOs.add(CurvePropertyDTO.builder().name("eMax").numericValue(drcOutput.rangeResults.eMax.response).build());
-            curvePropertieDTOs.add(CurvePropertyDTO.builder().name("eMax Conc").numericValue(drcOutput.rangeResults.eMax.dose).build());
+            curvePropertieDTOs.add(CurveOutputParamDTO.builder().name("eMin").numericValue(drcOutput.rangeResults.eMin.response).build());
+            curvePropertieDTOs.add(CurveOutputParamDTO.builder().name("eMin Conc").numericValue(drcOutput.rangeResults.eMin.dose).build());
+            curvePropertieDTOs.add(CurveOutputParamDTO.builder().name("eMax").numericValue(drcOutput.rangeResults.eMax.response).build());
+            curvePropertieDTOs.add(CurveOutputParamDTO.builder().name("eMax Conc").numericValue(drcOutput.rangeResults.eMax.dose).build());
         } else {
-            curvePropertieDTOs.add(CurvePropertyDTO.builder().name("eMin").numericValue(NaN).build());
-            curvePropertieDTOs.add(CurvePropertyDTO.builder().name("eMin Conc").numericValue(NaN).build());
-            curvePropertieDTOs.add(CurvePropertyDTO.builder().name("eMax").numericValue(NaN).build());
-            curvePropertieDTOs.add(CurvePropertyDTO.builder().name("eMax Conc").numericValue(NaN).build());
+            curvePropertieDTOs.add(CurveOutputParamDTO.builder().name("eMin").numericValue(NaN).build());
+            curvePropertieDTOs.add(CurveOutputParamDTO.builder().name("eMin Conc").numericValue(NaN).build());
+            curvePropertieDTOs.add(CurveOutputParamDTO.builder().name("eMax").numericValue(NaN).build());
+            curvePropertieDTOs.add(CurveOutputParamDTO.builder().name("eMax Conc").numericValue(NaN).build());
         }
 
 //        if (drcOutput.validpIC20 != null)
 //            curvePropertieDTOs.add(CurvePropertyDTO.builder().name("pIC20").numericValue(isCreatable(drcOutput.validpIC20.estimate) ? parseFloat(drcOutput.validpIC20.estimate) : NaN).build());
 //        else
-            curvePropertieDTOs.add(CurvePropertyDTO.builder().name("pIC20").numericValue(NaN).build());
+            curvePropertieDTOs.add(CurveOutputParamDTO.builder().name("pIC20").numericValue(NaN).build());
 
 
 //        if (drcOutput.validpIC80 != null)
 //            curvePropertieDTOs.add(CurvePropertyDTO.builder().name("pIC80").numericValue(isCreatable(drcOutput.validpIC80.estimate) ? parseFloat(drcOutput.validpIC80.estimate) : NaN).build());
 //        else
-            curvePropertieDTOs.add(CurvePropertyDTO.builder().name("pIC80").numericValue(NaN).build());
+            curvePropertieDTOs.add(CurveOutputParamDTO.builder().name("pIC80").numericValue(NaN).build());
 
-        curvePropertieDTOs.add(CurvePropertyDTO.builder().name("Residual Variance").numericValue(isCreatable(drcOutput.residualVariance) ? parseFloat(drcOutput.residualVariance) : NaN).build());
-        curvePropertieDTOs.add(CurvePropertyDTO.builder().name("Warning").stringValue(drcOutput.warning).build());
+        curvePropertieDTOs.add(CurveOutputParamDTO.builder().name("Residual Variance").numericValue(isCreatable(drcOutput.residualVariance) ? parseFloat(drcOutput.residualVariance) : NaN).build());
+        curvePropertieDTOs.add(CurveOutputParamDTO.builder().name("Warning").stringValue(drcOutput.warning).build());
 
         float[] plotDoses = new float[0];
         float[] plotResponses = new float[0];
