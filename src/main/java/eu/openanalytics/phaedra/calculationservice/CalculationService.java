@@ -54,71 +54,72 @@ import org.springframework.security.web.SecurityFilterChain;
 @EnableWebSecurity
 @EnableKafka
 @Import({
-        ProtocolServiceClientAutoConfiguration.class,
-        ResultDataServiceClientAutoConfiguration.class,
-        MetadataServiceClientAutoConfiguration.class,
-        PlateServiceClientAutoConfiguration.class,
-        MeasurementServiceClientAutoConfiguration.class})
+    ProtocolServiceClientAutoConfiguration.class,
+    ResultDataServiceClientAutoConfiguration.class,
+    MetadataServiceClientAutoConfiguration.class,
+    PlateServiceClientAutoConfiguration.class,
+    MeasurementServiceClientAutoConfiguration.class})
 public class CalculationService {
 
-    private final Environment environment;
+  private final Environment environment;
 
-    public CalculationService(Environment environment) {
-        this.environment = environment;
+  public CalculationService(Environment environment) {
+    this.environment = environment;
+  }
+
+  public static void main(String[] args) {
+    SpringApplication.run(CalculationService.class, args);
+  }
+
+  @Bean
+  public DataSource dataSource() {
+    return JDBCUtils.createDataSource(environment);
+  }
+
+  @Bean
+  public PhaedraRestTemplate restTemplate() {
+    PhaedraRestTemplate restTemplate = new PhaedraRestTemplate();
+    return restTemplate;
+  }
+
+  @Bean
+  public SpringLiquibase liquibase() {
+    SpringLiquibase liquibase = new SpringLiquibase();
+    liquibase.setChangeLog("classpath:liquibase-changeLog.xml");
+
+    String schema = environment.getProperty("DB_SCHEMA");
+    if (!StringUtils.isEmpty(schema)) {
+      liquibase.setDefaultSchema(schema);
     }
 
-    public static void main(String[] args) {
-        SpringApplication.run(CalculationService.class, args);
-    }
+    liquibase.setDataSource(dataSource());
+    return liquibase;
+  }
 
-    @Bean
-    public DataSource dataSource() {
-    	return JDBCUtils.createDataSource(environment);
-    }
+  @Bean
+  public OpenAPI customOpenAPI() {
+    Server server = new Server().url(environment.getProperty("API_URL"))
+        .description("Default Server URL");
+    return new OpenAPI().addServersItem(server);
+  }
 
-    @Bean
-    public PhaedraRestTemplate restTemplate() {
-        PhaedraRestTemplate restTemplate = new PhaedraRestTemplate();
-        return restTemplate;
-    }
+  @Bean
+  public Clock clock() {
+    return Clock.systemDefaultZone();
+  }
 
-    @Bean
-    public SpringLiquibase liquibase() {
-        SpringLiquibase liquibase = new SpringLiquibase();
-        liquibase.setChangeLog("classpath:liquibase-changeLog.xml");
+  @Bean
+  public ClientCredentialsTokenGenerator ccTokenGenerator(ClientRegistrationRepository clientRegistrationRepository) {
+    return new ClientCredentialsTokenGenerator("keycloak", clientRegistrationRepository);
+  }
 
-        String schema = environment.getProperty("DB_SCHEMA");
-        if (!StringUtils.isEmpty(schema)) {
-            liquibase.setDefaultSchema(schema);
-        }
+  @Bean
+  public IAuthorizationService authService(ClientCredentialsTokenGenerator ccTokenGenerator) {
+    return AuthorizationServiceFactory.create(ccTokenGenerator);
+  }
 
-        liquibase.setDataSource(dataSource());
-        return liquibase;
-    }
-
-    @Bean
-    public OpenAPI customOpenAPI() {
-        Server server = new Server().url(environment.getProperty("API_URL")).description("Default Server URL");
-        return new OpenAPI().addServersItem(server);
-    }
-
-    @Bean
-    public Clock clock() {
-        return Clock.systemDefaultZone();
-    }
-
-    @Bean
-    public ClientCredentialsTokenGenerator ccTokenGenerator(ClientRegistrationRepository clientRegistrationRepository) {
-    	return new ClientCredentialsTokenGenerator("keycloak", clientRegistrationRepository);
-    }
-
-	@Bean
-	public IAuthorizationService authService(ClientCredentialsTokenGenerator ccTokenGenerator) {
-		return AuthorizationServiceFactory.create(ccTokenGenerator);
-	}
-
-	@Bean
-	public SecurityFilterChain httpSecurity(HttpSecurity http) throws Exception {
-		return AuthenticationConfigHelper.configure(http);
-	}
+  @Bean
+  public SecurityFilterChain httpSecurity(HttpSecurity http) throws Exception {
+    return AuthenticationConfigHelper.configure(http);
+  }
 }

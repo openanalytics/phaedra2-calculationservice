@@ -20,18 +20,16 @@
  */
 package eu.openanalytics.phaedra.calculationservice.service;
 
-import eu.openanalytics.phaedra.calculationservice.dto.ScriptExecutionInputDTO;
-import eu.openanalytics.phaedra.resultdataservice.dto.CurveDTO;
-import org.springframework.kafka.core.KafkaTemplate;
-import org.springframework.stereotype.Service;
-
-//import eu.openanalytics.curvedataservice.dto.CurveDTO;
 import eu.openanalytics.phaedra.calculationservice.config.KafkaConfig;
 import eu.openanalytics.phaedra.calculationservice.dto.CurveFittingRequestDTO;
+import eu.openanalytics.phaedra.calculationservice.dto.ScriptExecutionInputDTO;
 import eu.openanalytics.phaedra.calculationservice.dto.event.CalculationEvent;
 import eu.openanalytics.phaedra.plateservice.dto.PlateCalculationStatusDTO;
+import eu.openanalytics.phaedra.resultdataservice.dto.CurveDTO;
 import eu.openanalytics.phaedra.resultdataservice.dto.ResultDataDTO;
 import eu.openanalytics.phaedra.resultdataservice.dto.ResultFeatureStatDTO;
+import org.springframework.kafka.core.KafkaTemplate;
+import org.springframework.stereotype.Service;
 
 @Service
 public class KafkaProducerService {

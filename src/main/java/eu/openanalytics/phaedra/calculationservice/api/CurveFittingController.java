@@ -20,18 +20,15 @@
  */
 package eu.openanalytics.phaedra.calculationservice.api;
 
+import eu.openanalytics.phaedra.calculationservice.dto.CurveFittingRequestDTO;
+import eu.openanalytics.phaedra.calculationservice.service.protocol.CurveFittingExecutorService;
 import eu.openanalytics.phaedra.resultdataservice.dto.CurveDTO;
 import java.util.List;
 import java.util.concurrent.ExecutionException;
-
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RestController;
-
-//import eu.openanalytics.curvedataservice.dto.CurveDTO;
-import eu.openanalytics.phaedra.calculationservice.dto.CurveFittingRequestDTO;
-import eu.openanalytics.phaedra.calculationservice.service.protocol.CurveFittingExecutorService;
 
 @RestController
 public class CurveFittingController {
