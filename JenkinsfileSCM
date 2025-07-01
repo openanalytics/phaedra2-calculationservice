@@ -62,6 +62,7 @@ pipeline {
         }
 
         stage("Deploy to Nexus") {
+            when { anyOf { branch 'master'; branch 'develop' } }
             steps {
                 container('builder') {
                     configFileProvider([configFile(fileId: 'maven-settings-rsb', variable: 'MAVEN_SETTINGS_RSB')]) {
@@ -72,6 +73,7 @@ pipeline {
         }
 
         stage('Build Docker image') {
+            when { anyOf { branch 'master'; branch 'develop' } }
             steps {
                 container('builder') {
                     configFileProvider([configFile(fileId: 'maven-settings-rsb', variable: 'MAVEN_SETTINGS_RSB')]) {
@@ -82,6 +84,7 @@ pipeline {
         }
 
         stage('Push to OA registry') {
+            when { anyOf { branch 'master'; branch 'develop' } }
             steps {
                 container('builder') {
                     configFileProvider([configFile(fileId: 'maven-settings-rsb', variable: 'MAVEN_SETTINGS_RSB')]) {
