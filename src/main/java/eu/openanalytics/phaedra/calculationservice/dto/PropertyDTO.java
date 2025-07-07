@@ -18,13 +18,7 @@
  * You should have received a copy of the Apache License
  * along with this program.  If not, see <http://www.apache.org/licenses/>
  */
-package eu.openanalytics.phaedra.calculationservice.execution.progress;
+package eu.openanalytics.phaedra.calculationservice.dto;
 
-public enum CalculationStateEventCode {
-
-	Started,
-	ScriptOutputAvailable,
-	Complete,
-	Error
-
+public record PropertyDTO(String propertyName, String propertyValue) {
 }

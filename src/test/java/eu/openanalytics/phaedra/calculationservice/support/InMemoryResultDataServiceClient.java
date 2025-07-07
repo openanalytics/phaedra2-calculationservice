@@ -1,7 +1,7 @@
 /**
  * Phaedra II
  *
- * Copyright (C) 2016-2024 Open Analytics
+ * Copyright (C) 2016-2025 Open Analytics
  *
  * ===========================================================================
  *
@@ -21,15 +21,16 @@
 package eu.openanalytics.phaedra.calculationservice.support;
 
 import eu.openanalytics.phaedra.resultdataservice.client.ResultDataServiceClient;
+import eu.openanalytics.phaedra.resultdataservice.client.exception.CurveUnresolvedException;
 import eu.openanalytics.phaedra.resultdataservice.client.exception.ResultDataUnresolvableException;
 import eu.openanalytics.phaedra.resultdataservice.client.exception.ResultFeatureStatUnresolvableException;
 import eu.openanalytics.phaedra.resultdataservice.client.exception.ResultSetUnresolvableException;
+import eu.openanalytics.phaedra.resultdataservice.dto.CurveDTO;
 import eu.openanalytics.phaedra.resultdataservice.dto.ErrorDTO;
 import eu.openanalytics.phaedra.resultdataservice.dto.ResultDataDTO;
 import eu.openanalytics.phaedra.resultdataservice.dto.ResultFeatureStatDTO;
 import eu.openanalytics.phaedra.resultdataservice.dto.ResultSetDTO;
 import eu.openanalytics.phaedra.resultdataservice.enumeration.StatusCode;
-
 import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -158,5 +159,18 @@ public class InMemoryResultDataServiceClient implements ResultDataServiceClient 
 	public List<ResultFeatureStatDTO> getLatestResultFeatureStatsForPlateIdAndFeatureId(long plateId, long featureId) throws ResultFeatureStatUnresolvableException {
 		return null;
 	}
+
+  @Override
+  public CurveDTO createNewCurve(String substanceName, Long plateId, Long protocolId,
+      Long featureId, Long resultSetId) throws CurveUnresolvedException {
+    return null;
+  }
+
+  @Override
+  public CurveDTO createNewCurve(String substanceName, Long plateId, Long protocolId,
+      Long featureId, Long resultSetId, float[] dose, float[] prediction)
+      throws CurveUnresolvedException {
+    return null;
+  }
 
 }

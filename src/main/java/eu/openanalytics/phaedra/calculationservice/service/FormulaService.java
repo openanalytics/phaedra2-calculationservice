@@ -1,7 +1,7 @@
 /**
  * Phaedra II
  *
- * Copyright (C) 2016-2024 Open Analytics
+ * Copyright (C) 2016-2025 Open Analytics
  *
  * ===========================================================================
  *
@@ -21,13 +21,21 @@
 package eu.openanalytics.phaedra.calculationservice.service;
 
 
+import eu.openanalytics.phaedra.calculationservice.dto.PropertyDTO;
+import eu.openanalytics.phaedra.metadataservice.client.MetadataServiceGraphQlClient;
+import eu.openanalytics.phaedra.metadataservice.dto.MetadataDTO;
+import eu.openanalytics.phaedra.metadataservice.dto.TagDTO;
+import eu.openanalytics.phaedra.metadataservice.enumeration.ObjectClass;
 import java.time.Clock;
 import java.time.LocalDateTime;
+import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.stream.Collectors;
 
+import org.apache.commons.collections4.CollectionUtils;
 import org.springframework.stereotype.Service;
 
 import eu.openanalytics.phaedra.calculationservice.dto.FormulaDTO;
@@ -47,12 +55,15 @@ public class FormulaService {
     private final ModelMapper modelMapper;
     private final Clock clock;
     private final IAuthorizationService authService;
+    private final MetadataServiceGraphQlClient metadataServiceGraphQlClient;
 
-    public FormulaService(FormulaRepository formulaRepository, ModelMapper modelMapper, Clock clock, IAuthorizationService authService) {
+    public FormulaService(FormulaRepository formulaRepository, ModelMapper modelMapper, Clock clock,
+        IAuthorizationService authService, MetadataServiceGraphQlClient metadataServiceGraphQlClient) {
         this.formulaRepository = formulaRepository;
         this.modelMapper = modelMapper;
         this.clock = clock;
         this.authService = authService;
+        this.metadataServiceGraphQlClient = metadataServiceGraphQlClient;
     }
 
     public FormulaDTO createFormula(FormulaDTO formulaDTO) {
@@ -105,17 +116,26 @@ public class FormulaService {
     }
 
     public List<FormulaDTO> getAllFormulas() {
-        return ((List<Formula>) formulaRepository.findAll())
-                .stream()
-                .map((f) -> modelMapper.map(f).build())
-                .collect(Collectors.toList());
+        List<Formula> formulas = (List<Formula>) formulaRepository.findAll();
+        List<FormulaDTO> formulaDTOs = formulas.stream()
+            .map((f) -> modelMapper.map(f).build())
+            .collect(Collectors.toList());
+
+        enrichWithMetadata(formulaDTOs);
+
+        return formulaDTOs;
+
     }
 
     public List<FormulaDTO> getFormulasByCategory(FormulaCategory category) {
-        return formulaRepository.findFormulasByCategory(category)
-                .stream()
+        List<Formula> formulas = formulaRepository.findFormulasByCategory(category);
+        List<FormulaDTO> formulaDTOs = formulas.stream()
                 .map((f) -> modelMapper.map(f).build())
                 .collect(Collectors.toList());
+
+        enrichWithMetadata(formulaDTOs);
+
+        return formulaDTOs;
     }
 
     public Map<Long, Formula> getFormulasByIds(List<Long> formulaIds) {
@@ -137,4 +157,33 @@ public class FormulaService {
         return modelMapper.map(newFormula).build();
     }
 
+    private void enrichWithMetadata(List<FormulaDTO> formulas) {
+        if (CollectionUtils.isNotEmpty(formulas)) {
+            // Create a map of plate ID to PlateDTO for quick lookup
+            Map<Long, FormulaDTO> formulaMap = new HashMap<>();
+            List<Long> formulaIds = new ArrayList<>(formulas.size());
+            for (FormulaDTO formula : formulas) {
+                formulaMap.put(formula.getId(), formula);
+                formulaIds.add(formula.getId());
+            }
+
+            // Retrieve the metadata using the list of plate IDs
+            List<MetadataDTO> formulaMetadata = metadataServiceGraphQlClient
+                .getMetadata(formulaIds, ObjectClass.FORMULA);
+
+            for (MetadataDTO metadata : formulaMetadata) {
+                FormulaDTO formula = formulaMap.get(metadata.getObjectId());
+                if (formula != null) {
+                    formula.setTags(metadata.getTags().stream()
+                        .map(TagDTO::getTag)
+                        .toList());
+                    List<PropertyDTO> propertyDTOs = new ArrayList<>(metadata.getProperties().size());
+                    for (eu.openanalytics.phaedra.metadataservice.dto.PropertyDTO property : metadata.getProperties()) {
+                        propertyDTOs.add(new PropertyDTO(property.getPropertyName(), property.getPropertyValue()));
+                    }
+                    formula.setProperties(propertyDTOs);
+                }
+            }
+        }
+    }
 }
