@@ -66,6 +66,11 @@ public class FormulaController implements MethodArgumentNotValidExceptionHandler
     public FormulaDTO updateFormula(@Validated(OnUpdate.class) @RequestBody FormulaDTO formulaDTO, @PathVariable long formulaId) throws FormulaNotFoundException {
         return formulaService.updateFormula(formulaId, formulaDTO);
     }
+    
+    @PutMapping("/{formulaId}/status")
+    public FormulaDTO updateFormulaStatus(@RequestBody FormulaDTO formulaDTO, @PathVariable long formulaId) throws FormulaNotFoundException {
+        return formulaService.updateFormulaStatus(formulaId, formulaDTO);
+    }
 
     @DeleteMapping("/{formulaId}")
     @ResponseStatus(HttpStatus.NO_CONTENT)
