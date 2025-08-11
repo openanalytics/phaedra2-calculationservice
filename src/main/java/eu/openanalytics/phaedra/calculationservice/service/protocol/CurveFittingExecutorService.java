@@ -20,7 +20,6 @@
  */
 package eu.openanalytics.phaedra.calculationservice.service.protocol;
 
-import static java.lang.Float.NaN;
 import static java.util.stream.IntStream.range;
 import static org.apache.commons.lang3.math.NumberUtils.isCreatable;
 
@@ -234,7 +233,7 @@ public class CurveFittingExecutorService {
 
     float[] plotResponses = new float[0];
     if (drcOutput.containsKey("plotPredictionResponse")) {
-      ArrayList<Double> values = (ArrayList<Double>) drcOutput.get("plotPredictionResponse");
+      ArrayList<Number> values = (ArrayList<Number>) drcOutput.get("plotPredictionResponse");
       plotResponses = new float[values.size()];
       for (int i = 0; i < values.size(); i++) {
         plotResponses[i] = values.get(i).floatValue();
@@ -242,7 +241,7 @@ public class CurveFittingExecutorService {
     }
     float[] plotDoses = new float[0];
     if (drcOutput.containsKey("plotPredictionDose")) {
-      ArrayList<Double> values = (ArrayList<Double>) drcOutput.get("plotPredictionDose");
+      ArrayList<Number> values = (ArrayList<Number>) drcOutput.get("plotPredictionDose");
       plotDoses = new float[values.size()];
       for (int i = 0; i < values.size(); i++) {
         plotDoses[i] = values.get(i).floatValue();
@@ -250,7 +249,7 @@ public class CurveFittingExecutorService {
     }
     float[] weights = new float[0];
     if (drcOutput.containsKey("weights")) {
-      ArrayList<Double> values = (ArrayList<Double>) drcOutput.get("weights");
+      ArrayList<Number> values = (ArrayList<Number>) drcOutput.get("weights");
       weights = new float[values.size()];
       for (int i = 0; i < values.size(); i++) {
         weights[i] = values.get(i).floatValue();
