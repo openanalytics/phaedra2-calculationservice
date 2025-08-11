@@ -141,7 +141,7 @@ public class CurveFittingExecutorService {
               try {
                 DRCInputDTO drcInput = collectCurveFitInputData(ctx.getPlate(), ctx.getWells(),
                     resultData, feature, req.getKey());
-                DRCOutputDTO drcOutput = collectCurveFitOutputData(req.getValue().getOutput());
+                Map<String, Object> drcOutput = collectCurveFitOutputData(req.getValue().getOutput());
                 createNewCurve(drcInput, drcOutput);
               } catch (RuntimeException e) {
                 logger.error("Failed to process curve fit output", e);
@@ -196,7 +196,7 @@ public class CurveFittingExecutorService {
         ScriptExecutionRequest scriptRequest = executeCurveFittingModel(drcInput);
         scriptRequest.addCallback(output -> {
           try {
-            DRCOutputDTO drcOutput = collectCurveFitOutputData(output);
+            Map<String, Object> drcOutput = collectCurveFitOutputData(output);
             createNewCurve(drcInput, drcOutput);
           } catch (RuntimeException e) {
             logger.error("Failed to process curve fit output", e);
@@ -209,158 +209,51 @@ public class CurveFittingExecutorService {
     }
   }
 
-  private void createNewCurve(DRCInputDTO drcInput, DRCOutputDTO drcOutput) {
+  private void createNewCurve(DRCInputDTO drcInput, Map<String, Object> drcOutput) {
     logger.info("Create new curve for substance %s and feature %s (%d)", drcInput.getSubstance(),
         drcInput.getFeature().getName(), drcInput.getFeature().getId());
     List<CurveOutputParamDTO> curvePropertieDTOs = new ArrayList<>();
+    for (String key : drcOutput.keySet()) {
+      if (drcOutput.get(key) != null)
+        if (drcOutput.get(key) instanceof String) {
+          String value = (String) drcOutput.get(key);
+          curvePropertieDTOs
+              .add(CurveOutputParamDTO.builder()
+                  .name(key)
+                  .stringValue(value)
+                  .build());
+        } else if (drcOutput.get(key) instanceof Number) {
+          Number value = (Number) drcOutput.get(key);
+          curvePropertieDTOs
+              .add(CurveOutputParamDTO.builder()
+                  .name(key)
+                  .numericValue(value.floatValue())
+                  .build());
+        }
+    }
 
-    if (isCreatable(drcOutput.pIC50toReport)) {
-      curvePropertieDTOs
-          .add(CurveOutputParamDTO.builder()
-              .name("pIC50")
-              .numericValue(parseFloat(drcOutput.pIC50toReport))
-              .build());
-    } else {
-      if (drcOutput.pIC50toReport.startsWith("<") || drcOutput.pIC50toReport.startsWith(">")) {
-        curvePropertieDTOs
-            .add(CurveOutputParamDTO.builder()
-                .name("pIC50")
-                .numericValue(parseFloat(drcOutput.pIC50toReport.substring(1).trim()))
-                .build());
-        curvePropertieDTOs
-            .add(CurveOutputParamDTO.builder()
-                .name("pIC50 Censor")
-                .stringValue(drcOutput.pIC50toReport.substring(0, 1))
-                .build());
+    float[] plotResponses = new float[0];
+    if (drcOutput.containsKey("plotPredictionResponse")) {
+      ArrayList<Double> values = (ArrayList<Double>) drcOutput.get("plotPredictionResponse");
+      plotResponses = new float[values.size()];
+      for (int i = 0; i < values.size(); i++) {
+        plotResponses[i] = values.get(i).floatValue();
       }
     }
-
-    curvePropertieDTOs
-        .add(CurveOutputParamDTO.builder()
-            .name("pIC50 StdErr")
-            .numericValue(NaN)
-            .build());
-
-    if (drcOutput.modelCoefs != null) {
-      curvePropertieDTOs
-          .add(CurveOutputParamDTO.builder()
-              .name("Bottom")
-              .numericValue(drcOutput.modelCoefs.bottom.estimate)
-              .build());
-      curvePropertieDTOs
-          .add(CurveOutputParamDTO.builder()
-              .name("Top")
-              .numericValue(drcOutput.modelCoefs.top.estimate)
-              .build());
-      curvePropertieDTOs
-          .add(CurveOutputParamDTO.builder()
-              .name("Slope")
-              .numericValue(drcOutput.modelCoefs.slope.estimate)
-              .build());
-      curvePropertieDTOs
-          .add(CurveOutputParamDTO.builder()
-              .name("Slope Lower CI")
-              .numericValue(drcOutput.modelCoefs.slope.lowerCI)
-              .build());
-      curvePropertieDTOs
-          .add(CurveOutputParamDTO.builder()
-              .name("Slope Upper CI")
-              .numericValue(drcOutput.modelCoefs.slope.upperCI)
-              .build());
-    } else {
-      curvePropertieDTOs
-          .add(CurveOutputParamDTO.builder()
-              .name("Bottom")
-              .numericValue(NaN)
-              .build());
-      curvePropertieDTOs
-          .add(CurveOutputParamDTO.builder()
-              .name("Top")
-              .numericValue(NaN)
-              .build());
-      curvePropertieDTOs
-          .add(CurveOutputParamDTO.builder()
-              .name("Slope")
-              .numericValue(NaN)
-              .build());
-      curvePropertieDTOs
-          .add(CurveOutputParamDTO.builder()
-              .name("Slope Lower CI")
-              .numericValue(NaN)
-              .build());
-      curvePropertieDTOs
-          .add(CurveOutputParamDTO.builder()
-              .name("Slope Upper CI")
-              .numericValue(NaN)
-              .build());
-    }
-
-    if (drcOutput.rangeResults != null && drcOutput.rangeResults.eMin != null
-        && drcOutput.rangeResults.eMax != null) {
-      curvePropertieDTOs
-          .add(CurveOutputParamDTO.builder()
-              .name("eMin")
-              .numericValue(drcOutput.rangeResults.eMin.response)
-              .build());
-      curvePropertieDTOs
-          .add(CurveOutputParamDTO.builder()
-              .name("eMin Conc")
-              .numericValue(drcOutput.rangeResults.eMin.dose)
-              .build());
-      curvePropertieDTOs
-          .add(CurveOutputParamDTO.builder()
-              .name("eMax")
-              .numericValue(drcOutput.rangeResults.eMax.response)
-              .build());
-      curvePropertieDTOs
-          .add(CurveOutputParamDTO.builder()
-              .name("eMax Conc")
-              .numericValue(drcOutput.rangeResults.eMax.dose)
-              .build());
-    } else {
-      curvePropertieDTOs
-          .add(CurveOutputParamDTO.builder()
-              .name("eMin")
-              .numericValue(NaN)
-              .build());
-      curvePropertieDTOs
-          .add(CurveOutputParamDTO.builder()
-              .name("eMin Conc")
-              .numericValue(NaN)
-              .build());
-      curvePropertieDTOs
-          .add(CurveOutputParamDTO.builder()
-              .name("eMax")
-              .numericValue(NaN)
-              .build());
-      curvePropertieDTOs
-          .add(CurveOutputParamDTO.builder()
-              .name("eMax Conc")
-              .numericValue(NaN)
-              .build());
-    }
-
-    curvePropertieDTOs.add(CurveOutputParamDTO.builder().name("pIC20").numericValue(NaN).build());
-    curvePropertieDTOs.add(CurveOutputParamDTO.builder().name("pIC80").numericValue(NaN).build());
-    curvePropertieDTOs
-        .add(CurveOutputParamDTO.builder()
-            .name("Residual Variance")
-            .numericValue(isCreatable(drcOutput.residualVariance) ? parseFloat(drcOutput.residualVariance) : NaN)
-            .build());
-    curvePropertieDTOs
-        .add(CurveOutputParamDTO.builder()
-            .name("Warning")
-            .stringValue(drcOutput.warning)
-            .build());
-
     float[] plotDoses = new float[0];
-    float[] plotResponses = new float[0];
-    if (drcOutput.dataPredict2Plot != null) {
-      plotDoses = new float[drcOutput.dataPredict2Plot.length];
-      plotResponses = new float[drcOutput.dataPredict2Plot.length];
-      for (int i = 0; i < drcOutput.dataPredict2Plot.length; i++) {
-        plotDoses[i] = drcOutput.dataPredict2Plot[i].dose;
-        plotResponses[i] = drcOutput.dataPredict2Plot[i].prediction;
+    if (drcOutput.containsKey("plotPredictionDose")) {
+      ArrayList<Double> values = (ArrayList<Double>) drcOutput.get("plotPredictionDose");
+      plotDoses = new float[values.size()];
+      for (int i = 0; i < values.size(); i++) {
+        plotDoses[i] = values.get(i).floatValue();
+      }
+    }
+    float[] weights = new float[0];
+    if (drcOutput.containsKey("weights")) {
+      ArrayList<Double> values = (ArrayList<Double>) drcOutput.get("weights");
+      weights = new float[values.size()];
+      for (int i = 0; i < values.size(); i++) {
+        weights[i] = values.get(i).floatValue();
       }
     }
 
@@ -377,7 +270,7 @@ public class CurveFittingExecutorService {
         .version("0.0.1")
         .plotDoseData(plotDoses)
         .plotPredictionData(plotResponses)
-        .weights(drcOutput.weights)
+        .weights(weights)
         .curveOutputParameters(curvePropertieDTOs)
         .build();
     kafkaProducerService.sendCurveData(curveDTO);
@@ -437,10 +330,9 @@ public class CurveFittingExecutorService {
         .build();
   }
 
-  private DRCOutputDTO collectCurveFitOutputData(ScriptExecutionOutputDTO outputDTO) {
+  private Map<String, Object> collectCurveFitOutputData(ScriptExecutionOutputDTO outputDTO) {
     try {
-      OutputWrapper outputWrapper = objectMapper.readValue(outputDTO.getOutput(),
-          OutputWrapper.class);
+      OutputWrapper outputWrapper = objectMapper.readValue(outputDTO.getOutput(), OutputWrapper.class);
       return outputWrapper.output;
     } catch (JsonProcessingException e) {
       throw new RuntimeException(e);
@@ -514,10 +406,10 @@ public class CurveFittingExecutorService {
 
   private static class OutputWrapper {
 
-    public final DRCOutputDTO output;
+    public final Map<String, Object> output;
 
     @JsonCreator
-    private OutputWrapper(@JsonProperty(value = "output", required = true) DRCOutputDTO output) {
+    private OutputWrapper(@JsonProperty(value = "output", required = true) Map<String, Object> output) {
       this.output = output;
     }
   }
