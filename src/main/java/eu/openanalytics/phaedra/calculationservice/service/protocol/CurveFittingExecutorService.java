@@ -34,12 +34,14 @@ import eu.openanalytics.phaedra.calculationservice.dto.ScriptExecutionOutputDTO;
 import eu.openanalytics.phaedra.calculationservice.enumeration.FormulaCategory;
 import eu.openanalytics.phaedra.calculationservice.enumeration.ResponseStatusCode;
 import eu.openanalytics.phaedra.calculationservice.enumeration.ScriptLanguage;
+import eu.openanalytics.phaedra.calculationservice.exception.FormulaNotFoundException;
 import eu.openanalytics.phaedra.calculationservice.exception.NoDRCModelDefinedForFeature;
 import eu.openanalytics.phaedra.calculationservice.execution.CalculationContext;
 import eu.openanalytics.phaedra.calculationservice.execution.progress.CalculationStage;
 import eu.openanalytics.phaedra.calculationservice.execution.progress.CalculationStateEventCode;
 import eu.openanalytics.phaedra.calculationservice.execution.script.ScriptExecutionRequest;
 import eu.openanalytics.phaedra.calculationservice.execution.script.ScriptExecutionService;
+import eu.openanalytics.phaedra.calculationservice.service.FormulaService;
 import eu.openanalytics.phaedra.calculationservice.service.KafkaProducerService;
 import eu.openanalytics.phaedra.plateservice.client.PlateServiceClient;
 import eu.openanalytics.phaedra.plateservice.dto.PlateDTO;
@@ -56,9 +58,9 @@ import java.util.ArrayList;
 import java.util.Date;
 import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 import org.apache.commons.lang3.StringUtils;
-import org.apache.commons.math3.util.Precision;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
@@ -74,13 +76,14 @@ public class CurveFittingExecutorService {
 
   private final ObjectMapper objectMapper;
   private final Logger logger = LoggerFactory.getLogger(getClass());
+  private final FormulaService formulaService;
 
   public CurveFittingExecutorService(
       PlateServiceClient plateServiceClient,
       ProtocolServiceClient protocolServiceClient,
       KafkaProducerService kafkaProducerService,
       ScriptExecutionService scriptExecutionService,
-      ObjectMapper objectMapper) {
+      ObjectMapper objectMapper, FormulaService formulaService) {
 
     this.plateServiceClient = plateServiceClient;
     this.protocolServiceClient = protocolServiceClient;
@@ -89,6 +92,7 @@ public class CurveFittingExecutorService {
     this.scriptExecutionService = scriptExecutionService;
 
     this.objectMapper = objectMapper;
+    this.formulaService = formulaService;
   }
 
   public void execute(CalculationContext ctx, FeatureDTO feature) {
@@ -120,7 +124,7 @@ public class CurveFittingExecutorService {
     for (String substance : substanceNames) {
       DRCInputDTO drcInput = collectCurveFitInputData(ctx.getPlate(), ctx.getWells(), resultData,
           feature, substance);
-      ScriptExecutionRequest request = executeReceptor2CurveFit(drcInput);
+      ScriptExecutionRequest request = executeCurveFittingModel(drcInput);
       ctx.getStateTracker()
           .trackScriptExecution(feature.getId(), CalculationStage.FeatureCurveFit, substance,
               request);
@@ -189,7 +193,7 @@ public class CurveFittingExecutorService {
       for (String substanceName : substanceNames) {
         DRCInputDTO drcInput = collectCurveFitInputData(plate, wells, resultData, feature,
             substanceName);
-        ScriptExecutionRequest scriptRequest = executeReceptor2CurveFit(drcInput);
+        ScriptExecutionRequest scriptRequest = executeCurveFittingModel(drcInput);
         scriptRequest.addCallback(output -> {
           try {
             DRCOutputDTO drcOutput = collectCurveFitOutputData(output);
@@ -405,7 +409,7 @@ public class CurveFittingExecutorService {
 
       // Set the well substance concentration value
       float conc = validWells.get(i).getWellSubstance().getConcentration().floatValue();
-      concs[i] = (float) Precision.round(-Math.log10(conc), 3);
+      concs[i] = conc;
 
       // Set the well accept value (true or false)
       accepts[i] = (validWells.get(i).getStatus().getCode() >= 0
@@ -443,8 +447,7 @@ public class CurveFittingExecutorService {
     }
   }
 
-  //TODO: Replace this by curve fitting model from formula
-  private ScriptExecutionRequest executeReceptor2CurveFit(DRCInputDTO inputDTO) {
+  private ScriptExecutionRequest executeCurveFittingModel(DRCInputDTO inputDTO) {
     logger.info(
         String.format("Fitting curve for substance %s and feature ID %s", inputDTO.getSubstance(),
             inputDTO.getFeature().getId()));
@@ -456,94 +459,57 @@ public class CurveFittingExecutorService {
     inputVariables.put("accepts", inputDTO.getAccepts());
 
     if (inputDTO.getDrcModel().isPresent()) {
-      DRCModelDTO drcModel = inputDTO.getDrcModel().get();
-      logger.info("Input DRCModel: " + drcModel);
-      inputVariables.put("fixedBottom", drcModel.getInputParameters().stream()
-          .filter(inParam -> inParam.name().equals("fixedBottom"))
-          .findFirst().orElseGet(() -> new InputParameter("fixedBottom", "NA"))
-          .value());
-      inputVariables.put("fixedTop", drcModel.getInputParameters().stream()
-          .filter(inParam -> inParam.name().equals("fixedTop"))
-          .findFirst().orElseGet(() -> new InputParameter("fixedTop", "NA"))
-          .value());
-      inputVariables.put("fixedSlope", drcModel.getInputParameters().stream()
-          .filter(inParam -> inParam.name().equals("fixedSlope"))
-          .findFirst().orElseGet(() -> new InputParameter("fixedSlope", "NA"))
-          .value());
-      inputVariables.put("confLevel", drcModel.getInputParameters().stream()
-          .filter(inParam -> inParam.name().equals("confLevel"))
-          .findFirst().orElseGet(() -> new InputParameter("confLevel", "0.95"))
-          .value());
-      inputVariables.put("robustMethod", drcModel.getInputParameters().stream()
-          .filter(inParam -> inParam.name().equals("robustMethod"))
-          .findFirst().orElseGet(() -> new InputParameter("robustMethod", "mean"))
-          .value());
-      inputVariables.put("slopeType", drcModel.getInputParameters().stream()
-          .filter(inParam -> inParam.name().equals("slopeType"))
-          .findFirst().orElseGet(() -> new InputParameter("slopeType", "ascending"))
-          .value());
-      inputVariables.put("responseName", inputDTO.getFeature().getName());
+      try {
+        DRCModelDTO drcModel = inputDTO.getDrcModel().get();
+        logger.info("Input DRCModel: " + drcModel);
+
+        var drcModelId = drcModel.getInputParameters().stream()
+            .filter(inParam -> inParam.name().equals("drcModelId"))
+            .findFirst()
+            .orElseThrow(
+                () -> new NoDRCModelDefinedForFeature("No DRCModel provided for feature %s (%d)",
+                    inputDTO.getFeature().getName(), inputDTO.getFeature().getId()))
+            .value();
+
+        var curveFittingFormula = formulaService.getFormulaById(Long.parseLong(drcModelId));
+        var script = curveFittingFormula.getFormula();
+
+        inputVariables.put("fixedBottom", drcModel.getInputParameters().stream()
+            .filter(inParam -> inParam.name().equals("fixedBottom"))
+            .findFirst().orElseGet(() -> new InputParameter("fixedBottom", "NA"))
+            .value());
+        inputVariables.put("fixedTop", drcModel.getInputParameters().stream()
+            .filter(inParam -> inParam.name().equals("fixedTop"))
+            .findFirst().orElseGet(() -> new InputParameter("fixedTop", "NA"))
+            .value());
+        inputVariables.put("fixedSlope", drcModel.getInputParameters().stream()
+            .filter(inParam -> inParam.name().equals("fixedSlope"))
+            .findFirst().orElseGet(() -> new InputParameter("fixedSlope", "NA"))
+            .value());
+        inputVariables.put("confLevel", drcModel.getInputParameters().stream()
+            .filter(inParam -> inParam.name().equals("confLevel"))
+            .findFirst().orElseGet(() -> new InputParameter("confLevel", "0.95"))
+            .value());
+        inputVariables.put("robustMethod", drcModel.getInputParameters().stream()
+            .filter(inParam -> inParam.name().equals("robustMethod"))
+            .findFirst().orElseGet(() -> new InputParameter("robustMethod", "mean"))
+            .value());
+        inputVariables.put("slopeType", drcModel.getInputParameters().stream()
+            .filter(inParam -> inParam.name().equals("slopeType"))
+            .findFirst().orElseGet(() -> new InputParameter("slopeType", "ascending"))
+            .value());
+        inputVariables.put("responseName", inputDTO.getFeature().getName());
+
+        return scriptExecutionService.submit(ScriptLanguage.R, script,
+            FormulaCategory.CURVE_FITTING.name(), inputVariables);
+      } catch (FormulaNotFoundException e) {
+        throw new NoDRCModelDefinedForFeature("No DRCModel defined for feature %s (%d)",
+            inputDTO.getFeature().getName(), inputDTO.getFeature().getId());
+      }
     } else {
       throw new NoDRCModelDefinedForFeature("No DRCModel defined for feature %s (%d)",
           inputDTO.getFeature().getName(), inputDTO.getFeature().getId());
     }
-
-    var script = "options(warn=-1)\n" +
-        "library(receptor2)\n" +
-        "\n" +
-        "dose <- input$doses\n" +
-        "response <- input$responses\n" +
-        "accept <- input$accepts\n" +
-        "if (is.null(input$fixedBottom) == TRUE) fixedBottom <- NA else fixedBottom <- as.numeric(input$fixedBottom)\n"
-        +
-        "if (is.null(input$fixedTop) == TRUE) fixedTop <- NA else fixedTop <- as.numeric(input$fixedTop)\n"
-        +
-        "if (is.null(input$fixedSlope) == TRUE) fixedSlope <- NA else fixedSlope <- as.numeric(input$fixedSlope)\n"
-        +
-        "if (is.null(input$confLevel) == TRUE) confLevel <- 0.95 else confLevel <- as.numeric(input$confLevel)\n"
-        +
-        "robustMethod <- input$robustMethod\n" +
-        "responseName <- input$responseName\n" +
-        "slopeType <- input$slopeType\n" +
-        "\n" +
-        "value <- fittingLogisticModel(\n" +
-        "\tinputData = data.frame(dose, response),\n" +
-        "\taccept = accept,\n" +
-        "\tfixedBottom = fixedBottom,\n" +
-        "\tfixedTop = fixedTop,\n" +
-        "\tfixedSlope = fixedSlope,\n" +
-        "\tconfLevel = confLevel,\n" +
-        "\trobustMethod = robustMethod,\n" +
-        "\tresponseName = responseName,\n" +
-        "\tslope = slopeType)\n" +
-        "\n" +
-        "output <- NULL\n" +
-        "if (is.null(value$pIC50toReport) == FALSE) output$pIC50toReport <- value$pIC50toReport\n" +
-        "if (is.null(value$validpIC50) == FALSE) output$validpIC50 <- value$validpIC50\n" +
-        "if (is.null(value$rangeResults) == FALSE) output$rangeResults$eMin <- value$rangeResults[c(\"eMin\"),]\n"
-        +
-        "if (is.null(value$rangeResults) == FALSE) output$rangeResults$eMax <- value$rangeResults[c(\"eMax\"),]\n"
-        +
-        "if (is.null(value$dataPredict2Plot) == FALSE) output$dataPredict2Plot <- value$dataPredict2Plot \n"
-        +
-        "if (is.null(value$dataPredict2Plot$dose) == FALSE) output$dataPredict2Plot$dose <- -value$dataPredict2Plot$dose / 2.303 \n"
-        +
-        "if (is.null(value$dataPredict2Plot$response) == FALSE) output$dataPredict2Plot$response <- value$dataPredict2Plot$response \n"
-        +
-        "if (is.null(value$weights) == FALSE) output$weights <- value$weights\n" +
-        "if (is.null(value$modelCoefs) == FALSE) output$modelCoefs$Slope <- value$modelCoefs[c(\"Slope\"),]\n"
-        +
-        "if (is.null(value$modelCoefs) == FALSE) output$modelCoefs$Bottom <- value$modelCoefs[c(\"Bottom\"),]\n"
-        +
-        "if (is.null(value$modelCoefs) == FALSE) output$modelCoefs$Top <- value$modelCoefs[c(\"Top\"),]\n"
-        +
-        "if (is.null(value$modelCoefs) == FALSE) output$modelCoefs$negLog10ED50 <- value$modelCoefs[c(\"-log10ED50\"),]\n"
-        +
-        "if (is.null(value$residulaVariance) == FALSE) output$residulaVariance <- value$residulaVariance\n"
-        +
-        "if (is.null(value$warningFit) == FALSE) output$warningFit <- value$warningFit\n";
-    return scriptExecutionService.submit(ScriptLanguage.R, script,
-        FormulaCategory.CURVE_FITTING.name(), inputVariables);
   }
 
   private static class OutputWrapper {
