@@ -37,7 +37,10 @@ public class CalculationInputHelper {
 		wellTypes,
 		wellRows,
 		wellColumns,
-		wellStatus
+		wellStatus,
+		doses,
+		responses,
+		accepts
 	}
 
 	public static void addWellInfo(Map<String, Object> inputMap, CalculationContext ctx, List<WellDTO> wells) {
@@ -63,7 +66,7 @@ public class CalculationInputHelper {
 	public static boolean isReservedInputName(String name) {
 		return getReservedInputNames().contains(name);
 	}
-	
+
 	public static List<WellDTO> sortByNr(List<WellDTO> wells) {
 		List<WellDTO> sortedWells = new ArrayList<>(wells);
 		sortedWells.sort((w1, w2) -> w1.getWellNr() - w2.getWellNr());
