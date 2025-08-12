@@ -40,7 +40,8 @@ public class CalculationInputHelper {
 		wellStatus,
 		doses,
 		responses,
-		accepts
+		accepts,
+		drcModelId
 	}
 
 	public static void addWellInfo(Map<String, Object> inputMap, CalculationContext ctx, List<WellDTO> wells) {
