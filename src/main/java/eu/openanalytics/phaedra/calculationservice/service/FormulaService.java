@@ -86,17 +86,34 @@ public class FormulaService {
         LocalDateTime date = LocalDateTime.now(clock);
         Formula previousFormula = existingFormula.get();
         Long previousFormulaId = previousFormula.getId();
+        
+        // Note: deprecation status cannot be updated via this method. Ignore any attempt to modify it here.
+        boolean currentDeprecationStatus = previousFormula.isDeprecated();
 
         Formula updatedFormula = modelMapper.map(formulaDTO, previousFormula)
                 .id(null) //To create new formula
                 .versionNumber(VersionUtils.generateNewVersion(formulaDTO.getVersionNumber(), false))
                 .previousVersionId(previousFormulaId)
+                .deprecated(currentDeprecationStatus)
                 .updatedBy(authService.getCurrentPrincipalName())
                 .updatedOn(date)
                 .build();
         return save(updatedFormula);
     }
 
+    public FormulaDTO updateFormulaStatus(long formulaId, FormulaDTO formulaDTO) throws FormulaNotFoundException {
+    	Formula existingFormula = formulaRepository.findById(formulaId).orElse(null);
+        if (existingFormula == null) {
+            throw new FormulaNotFoundException(formulaId);
+        }
+        authService.performOwnershipCheck(existingFormula.getCreatedBy());
+
+        existingFormula.setDeprecated(formulaDTO.isDeprecated());
+        existingFormula.setUpdatedBy(authService.getCurrentPrincipalName());
+        existingFormula.setUpdatedOn(LocalDateTime.now(clock));
+        return save(existingFormula);
+    }
+    
     public void deleteFormula(long formulaId) throws FormulaNotFoundException {
         Optional<Formula> formula = formulaRepository.findById(formulaId);
         if (formula.isEmpty()) {
