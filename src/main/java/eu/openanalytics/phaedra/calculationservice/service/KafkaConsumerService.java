@@ -73,7 +73,7 @@ public class KafkaConsumerService {
     @KafkaListener(topics = KafkaConfig.TOPIC_SCRIPTENGINE_UPDATES, groupId = KafkaConfig.GROUP_ID + "_scriptExecUpdate")
     public void onScriptExecutionEvent(ScriptExecutionOutputDTO output) {
     	logger.info(KafkaConfig.GROUP_ID + ": received a script execution update event");
-		scriptExecutionService.handleScriptExecutionUpdate(output);
+		  scriptExecutionService.handleScriptExecutionUpdate(output);
     }
 
     @KafkaListener(topics = KafkaConfig.TOPIC_RESULTDATA, groupId = KafkaConfig.GROUP_ID + "_resSet", filter = "resultSetUpdatedFilter")

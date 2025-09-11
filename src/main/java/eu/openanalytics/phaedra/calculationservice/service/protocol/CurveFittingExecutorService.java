@@ -50,6 +50,7 @@ import eu.openanalytics.phaedra.protocolservice.dto.DRCModelDTO;
 import eu.openanalytics.phaedra.protocolservice.dto.FeatureDTO;
 import eu.openanalytics.phaedra.protocolservice.record.InputParameter;
 import eu.openanalytics.phaedra.resultdataservice.dto.CurveDTO;
+import eu.openanalytics.phaedra.resultdataservice.dto.CurveInputParamDTO;
 import eu.openanalytics.phaedra.resultdataservice.dto.CurveOutputParamDTO;
 import eu.openanalytics.phaedra.resultdataservice.dto.ResultDataDTO;
 import eu.openanalytics.phaedra.util.WellNumberUtils;
@@ -209,8 +210,9 @@ public class CurveFittingExecutorService {
   }
 
   private void createNewCurve(DRCInputDTO drcInput, Map<String, Object> drcOutput) {
-    logger.info("Create new curve for substance %s and feature %s (%d)", drcInput.getSubstance(),
-        drcInput.getFeature().getName(), drcInput.getFeature().getId());
+    logger.info("Create new curve for substance {} and feature {} {}",
+        drcInput.getSubstance(), drcInput.getFeature().getName(), drcInput.getFeature().getId());
+
     List<CurveOutputParamDTO> curvePropertieDTOs = new ArrayList<>();
     for (String key : drcOutput.keySet()) {
       if (drcOutput.get(key) != null)
@@ -256,6 +258,16 @@ public class CurveFittingExecutorService {
       }
     }
 
+    List<CurveInputParamDTO> curveInputParams = new ArrayList<>();
+    if (drcInput.getDrcModel().isPresent()) {
+      drcInput.getDrcModel().get().getInputParameters().forEach(param -> {
+        curveInputParams.add(CurveInputParamDTO.builder()
+            .name(param.name())
+            .stringValue(param.value())
+            .build());
+      });
+    }
+
     CurveDTO curveDTO = CurveDTO.builder()
         .substanceName(drcInput.getSubstance())
         .plateId(drcInput.getPlateId())
@@ -271,6 +283,7 @@ public class CurveFittingExecutorService {
         .plotPredictionData(plotResponses)
         .weights(weights)
         .curveOutputParameters(curvePropertieDTOs)
+        .inputParameters(curveInputParams)
         .build();
     kafkaProducerService.sendCurveData(curveDTO);
   }
