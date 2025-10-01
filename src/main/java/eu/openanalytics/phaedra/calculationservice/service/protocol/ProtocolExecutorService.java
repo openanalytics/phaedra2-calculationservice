@@ -130,7 +130,7 @@ public class ProtocolExecutorService {
     private void triggerNextSequence(CalculationContext ctx) {
     	ctx.getStateTracker().incrementCurrentSequence();
     	ctx.getProtocolData().protocol.getFeatures().parallelStream()
-    		.filter(f -> f.getSequence() == ctx.getStateTracker().getCurrentSequence())
+    		.filter(f -> f.getSequence().equals(ctx.getStateTracker().getCurrentSequence()))
     		.forEach(f -> featureExecutorService.executeFeature(ctx, f));
     }
 
