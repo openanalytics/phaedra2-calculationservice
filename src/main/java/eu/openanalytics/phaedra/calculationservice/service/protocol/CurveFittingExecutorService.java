@@ -21,7 +21,6 @@
 package eu.openanalytics.phaedra.calculationservice.service.protocol;
 
 import static java.util.stream.IntStream.range;
-import static org.apache.commons.lang3.math.NumberUtils.isCreatable;
 
 import com.fasterxml.jackson.annotation.JsonCreator;
 import com.fasterxml.jackson.annotation.JsonProperty;
@@ -49,7 +48,6 @@ import eu.openanalytics.phaedra.plateservice.dto.WellDTO;
 import eu.openanalytics.phaedra.protocolservice.client.ProtocolServiceClient;
 import eu.openanalytics.phaedra.protocolservice.dto.DRCModelDTO;
 import eu.openanalytics.phaedra.protocolservice.dto.FeatureDTO;
-import eu.openanalytics.phaedra.protocolservice.record.InputParameter;
 import eu.openanalytics.phaedra.resultdataservice.dto.CurveDTO;
 import eu.openanalytics.phaedra.resultdataservice.dto.CurveInputParamDTO;
 import eu.openanalytics.phaedra.resultdataservice.dto.CurveOutputParamDTO;
@@ -134,15 +132,15 @@ public class CurveFittingExecutorService {
     ctx.getStateTracker().addEventListener(CalculationStage.FeatureCurveFit,
         CalculationStateEventCode.ScriptOutputAvailable,
         feature.getId(), requests -> {
-          requests.entrySet().stream().forEach(req -> {
-            if (StringUtils.isBlank(req.getValue().getOutput().getOutput())) {
-              logger.warn("Curve fit response without output: " + req.getValue().getOutput()
-                  .getStatusMessage());
+          requests.forEach((key, value) -> {
+            if (StringUtils.isBlank(value.getOutput().getOutput())) {
+              logger.warn("Curve fit response without output: {}",
+                  value.getOutput().getStatusMessage());
             } else {
               try {
                 DRCInputDTO drcInput = collectCurveFitInputData(ctx.getPlate(), ctx.getWells(),
-                    resultData, feature, req.getKey());
-                Map<String, Object> drcOutput = collectCurveFitOutputData(req.getValue().getOutput());
+                    resultData, feature, key);
+                Map<String, Object> drcOutput = collectCurveFitOutputData(value.getOutput());
                 createNewCurve(drcInput, drcOutput);
               } catch (RuntimeException e) {
                 logger.error("Failed to process curve fit output", e);
@@ -155,13 +153,12 @@ public class CurveFittingExecutorService {
 
     ctx.getStateTracker()
         .addEventListener(CalculationStage.FeatureCurveFit, CalculationStateEventCode.Error,
-            feature.getId(), requests -> {
-              requests.values().stream().map(req -> req.getOutput())
-                  .filter(o -> o.getStatusCode() != ResponseStatusCode.SUCCESS)
-                  .forEach(o -> ctx.getErrorCollector().addError(
-                      String.format("Curve fit failed with status %s", o.getStatusCode()), o,
-                      feature));
-            });
+            feature.getId(), requests -> requests.values().stream()
+                .map(ScriptExecutionRequest::getOutput)
+                .filter(o -> o.getStatusCode() != ResponseStatusCode.SUCCESS)
+                .forEach(o -> ctx.getErrorCollector().addError(
+                    String.format("Curve fit failed with status %s", o.getStatusCode()), o,
+                    feature)));
   }
 
   public void execute(CurveFittingRequestDTO request) {
@@ -217,15 +214,13 @@ public class CurveFittingExecutorService {
     List<CurveOutputParamDTO> curvePropertieDTOs = new ArrayList<>();
     for (String key : drcOutput.keySet()) {
       if (drcOutput.get(key) != null)
-        if (drcOutput.get(key) instanceof String) {
-          String value = (String) drcOutput.get(key);
+        if (drcOutput.get(key) instanceof String value) {
           curvePropertieDTOs
               .add(CurveOutputParamDTO.builder()
                   .name(key)
                   .stringValue(value)
                   .build());
-        } else if (drcOutput.get(key) instanceof Number) {
-          Number value = (Number) drcOutput.get(key);
+        } else if (drcOutput.get(key) instanceof Number value) {
           curvePropertieDTOs
               .add(CurveOutputParamDTO.builder()
                   .name(key)
@@ -261,12 +256,11 @@ public class CurveFittingExecutorService {
 
     List<CurveInputParamDTO> curveInputParams = new ArrayList<>();
     if (drcInput.getDrcModel().isPresent()) {
-      drcInput.getDrcModel().get().getInputParameters().forEach(param -> {
-        curveInputParams.add(CurveInputParamDTO.builder()
-            .name(param.name())
-            .stringValue(param.value())
-            .build());
-      });
+      drcInput.getDrcModel().get().getInputParameters()
+          .forEach(param -> curveInputParams.add(CurveInputParamDTO.builder()
+              .name(param.name())
+              .stringValue(param.value())
+              .build()));
     }
 
     CurveDTO curveDTO = CurveDTO.builder()
@@ -353,9 +347,8 @@ public class CurveFittingExecutorService {
   }
 
   private ScriptExecutionRequest executeCurveFittingModel(DRCInputDTO inputDTO) {
-    logger.info(
-        String.format("Fitting curve for substance %s and feature ID %s", inputDTO.getSubstance(),
-            inputDTO.getFeature().getId()));
+    logger.info("Fitting curve for substance {} and feature ID {}", inputDTO.getSubstance(),
+        inputDTO.getFeature().getId());
 
     var inputVariables = new HashMap<String, Object>();
     inputVariables.put(InputName.doses.name(), inputDTO.getConcs());
@@ -382,9 +375,8 @@ public class CurveFittingExecutorService {
         var curveFittingFormula = formulaService.getFormulaById(Long.parseLong(drcModelId));
         var script = curveFittingFormula.getFormula();
 
-        drcModel.getInputParameters().stream().forEach(param -> {
-            inputVariables.put(param.name(), param.value());
-        });
+        drcModel.getInputParameters()
+            .forEach(param -> inputVariables.put(param.name(), param.value()));
 
         return scriptExecutionService.submit(ScriptLanguage.R, script,
             FormulaCategory.CURVE_FITTING.name(), inputVariables);
@@ -407,157 +399,4 @@ public class CurveFittingExecutorService {
       this.output = output;
     }
   }
-
-//  private static class DRCOutputDTO {
-//
-//    public String pIC50toReport;
-//    public RangeResultsDTO rangeResults;
-//    public DataPredict2PlotDTO[] dataPredict2Plot;
-//    public float[] weights;
-//    public ModelCoefsDTO modelCoefs;
-//    public String residualVariance;
-//    public String warning;
-//
-//    public DRCOutputDTO(@JsonProperty(value = "pIC50toReport") String pIC50toReport,
-//        @JsonProperty(value = "rangeResults") RangeResultsDTO rangeResults,
-//        @JsonProperty(value = "dataPredict2Plot") DataPredict2PlotDTO[] dataPredict2Plot,
-//        @JsonProperty(value = "weights") float[] weights,
-//        @JsonProperty(value = "modelCoefs") ModelCoefsDTO modelCoefs,
-//        @JsonProperty(value = "residulaVariance") String residualVariance,
-//        @JsonProperty(value = "warningFit") String warning) {
-//      this.pIC50toReport = pIC50toReport;
-//      this.rangeResults = rangeResults;
-//      this.dataPredict2Plot = dataPredict2Plot;
-//      this.weights = weights;
-//      this.modelCoefs = modelCoefs;
-//      this.residualVariance = residualVariance;
-//      this.warning = warning;
-//    }
-//  }
-
-//  private static class DataPredict2PlotDTO {
-//
-//    public float dose;
-//    public float prediction;
-//    public float lower;
-//    public float upper;
-//
-//    @JsonCreator
-//    private DataPredict2PlotDTO(@JsonProperty(value = "dose") float dose,
-//        @JsonProperty(value = "Prediction") float prediction,
-//        @JsonProperty(value = "Lower") float lower,
-//        @JsonProperty(value = "Upper") float upper) {
-//      this.dose = dose;
-//      this.prediction = prediction;
-//      this.lower = lower;
-//      this.upper = upper;
-//    }
-//  }
-
-//  private static class ModelCoefsDTO {
-//
-//    public ModelCoefDTO slope;
-//    public ModelCoefDTO bottom;
-//    public ModelCoefDTO top;
-//    public ModelCoefDTO negLog10ED50;
-//
-//    @JsonCreator
-//    private ModelCoefsDTO(@JsonProperty(value = "Slope") String[] slope,
-//        @JsonProperty(value = "Bottom") String[] bottom,
-//        @JsonProperty(value = "Top") String[] top,
-//        @JsonProperty(value = "negLog10ED50") String[] negLog10ED50) {
-//      this.slope = new ModelCoefDTO(slope);
-//      this.bottom = new ModelCoefDTO(bottom);
-//      this.top = new ModelCoefDTO(top);
-//      this.negLog10ED50 = new ModelCoefDTO(negLog10ED50);
-//    }
-//  }
-
-//  private static class ModelCoefDTO {
-//
-//    public float estimate;
-//    public float stdError;
-//    public float tValue;
-//    public float pValue;
-//    public float lowerCI;
-//    public float upperCI;
-//
-//    @JsonCreator
-//    public ModelCoefDTO(String[] values) {
-//      this.estimate = parseFloat(values[0]);
-//      this.stdError = parseFloat(values[1]);
-//      this.tValue = parseFloat(values[2]);
-//      this.pValue = parseFloat(values[3]);
-//      this.lowerCI = parseFloat(values[4]);
-//      this.upperCI = parseFloat(values[5]);
-//    }
-//  }
-
-//  private static class RangeResultsDTO {
-//
-//    public RangeResultDTO eMax;
-//    public RangeResultDTO eMin;
-//
-//    @JsonCreator
-//    public RangeResultsDTO(@JsonProperty(value = "eMax") RangeResultDTO[] eMax,
-//        @JsonProperty(value = "eMin") RangeResultDTO[] eMin) {
-//      this.eMax = (eMax != null && eMax.length > 0) ? eMax[0] : null;
-//      this.eMin = (eMin != null && eMin.length > 0) ? eMin[0] : null;
-//    }
-//  }
-
-//  private static class RangeResultDTO {
-//
-//    public float dose;
-//    public float response;
-//
-//    @JsonCreator
-//    public RangeResultDTO(@JsonProperty(value = "dose") String dose,
-//        @JsonProperty(value = "response") String response) {
-//      this.dose = parseFloat(dose);
-//      this.response = parseFloat(response);
-//    }
-//  }
-
-//  private static class ValidIC50DTO {
-//
-//    public String estimate;
-//    public String stdError;
-//    public String lower;
-//    public String upper;
-//
-//    @JsonCreator
-//    public ValidIC50DTO(@JsonProperty(value = "Estimate") String estimate,
-//        @JsonProperty(value = "Std. Error") String stdError,
-//        @JsonProperty(value = "LowerCI") String lower,
-//        @JsonProperty(value = "upperCI") String upper) {
-//      this.estimate = estimate;
-//      this.stdError = stdError;
-//      this.lower = lower;
-//      this.upper = upper;
-//    }
-//  }
-
-//  private static class ValidICDTO {
-//
-//    public String estimate;
-//    public String stdError;
-//    public String lower;
-//    public String upper;
-//
-//    @JsonCreator
-//    public ValidICDTO(@JsonProperty(value = "Estimate") String estimate,
-//        @JsonProperty(value = "Std. Error") String stdError,
-//        @JsonProperty(value = "Lower") String lower,
-//        @JsonProperty(value = "Upper") String upper) {
-//      this.estimate = estimate;
-//      this.stdError = stdError;
-//      this.lower = lower;
-//      this.upper = upper;
-//    }
-//  }
-
-//  private static float parseFloat(String jsonValue) {
-//    return isCreatable(jsonValue) ? Float.parseFloat(jsonValue) : Float.NaN;
-//  }
 }
