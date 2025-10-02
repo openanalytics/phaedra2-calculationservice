@@ -153,7 +153,7 @@ public class CalculationStatusService {
         var featureStatStatuses = new HashSet<CalculationStatus.StatusDescription>();
 
         var sequenceFeatures = ctx.getProtocolData().protocol.getFeatures().stream()
-        		.filter(f -> f.getSequence() == sequence).toList();
+        		.filter(f -> f.getSequence().equals(sequence)).toList();
 
         for (var feature : sequenceFeatures) {
             var statusCode = getFeatureStatus(resultData.get(feature.getId()), defaultIfMissing);
