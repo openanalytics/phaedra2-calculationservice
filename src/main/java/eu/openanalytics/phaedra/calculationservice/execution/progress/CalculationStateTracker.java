@@ -198,7 +198,7 @@ public class CalculationStateTracker {
 		CalculationStateEventCode stageOutcome = sequenceProgress.getStageOutcome(featureId, stage);
 		CalculationStateEventCode sequenceOutcome = sequenceProgress.getSequenceOutcome(currentSequence, ctx);
 
-		log(logger, ctx, String.format("Progress update [Feature %d] [Stage %s] [Group %s] = %s. Progress: [Stage: %s] [Sequence: %s]", featureId, stage, groupId, code, stageOutcome, sequenceOutcome));
+		logger.debug(String.format("Progress update [Feature %d] [Stage %s] [Group %s] = %s. Progress: [Stage: %s] [Sequence: %s]", featureId, stage, groupId, code, stageOutcome, sequenceOutcome));
 
 		if (stageOutcome != null) {
 			emit(new CalculationStateEvent(stage, stageOutcome, featureId));
