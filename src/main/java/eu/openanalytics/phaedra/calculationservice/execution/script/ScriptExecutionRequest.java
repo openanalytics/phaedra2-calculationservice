@@ -27,6 +27,9 @@ import java.util.List;
 import java.util.concurrent.ForkJoinPool;
 import java.util.function.Consumer;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 import lombok.Builder;
 import lombok.Data;
 
@@ -44,6 +47,8 @@ public class ScriptExecutionRequest {
 
 	private List<Consumer<ScriptExecutionOutputDTO>> callbacks;
 
+	private final Logger logger = LoggerFactory.getLogger(getClass());
+	
 	public synchronized ScriptExecutionRequest addCallback(Consumer<ScriptExecutionOutputDTO> callback) {
 		if (callbacks == null) callbacks = new ArrayList<>();
 		callbacks.add(callback);
@@ -53,6 +58,8 @@ public class ScriptExecutionRequest {
 	public void signalOutputAvailable(ScriptExecutionOutputDTO output) {
 		this.output = output;
         if (callbacks != null) {
+        	logger.debug(String.format("Current queue size of ForkJoinPool.commonPool: %d", ForkJoinPool.commonPool().getQueuedTaskCount()));
+        	//TODO Is there a large queue building up here?
         	ForkJoinPool.commonPool().submit(() -> callbacks.forEach(c -> c.accept(output)));
         }
 	}
