@@ -22,7 +22,6 @@ package eu.openanalytics.phaedra.calculationservice.execution.progress;
 
 import static eu.openanalytics.phaedra.calculationservice.util.LoggerHelper.log;
 
-import eu.openanalytics.phaedra.calculationservice.enumeration.ResponseStatusCode;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
@@ -36,12 +35,14 @@ import java.util.concurrent.Executor;
 import java.util.concurrent.Executors;
 import java.util.function.BiConsumer;
 import java.util.function.Consumer;
+import java.util.function.Function;
 import java.util.stream.Collectors;
 
 import org.apache.commons.lang3.tuple.Pair;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import eu.openanalytics.phaedra.calculationservice.enumeration.ResponseStatusCode;
 import eu.openanalytics.phaedra.calculationservice.execution.CalculationContext;
 import eu.openanalytics.phaedra.calculationservice.execution.script.ScriptExecutionRequest;
 import eu.openanalytics.phaedra.protocolservice.dto.FeatureDTO;
@@ -199,7 +200,8 @@ public class CalculationStateTracker {
 		CalculationStateEventCode sequenceOutcome = sequenceProgress.getSequenceOutcome(currentSequence, ctx);
 
 		logger.debug(String.format("Progress update [Feature %d] [Stage %s] [Group %s] = %s. Progress: [Stage: %s] [Sequence: %s]", featureId, stage, groupId, code, stageOutcome, sequenceOutcome));
-
+		logger.debug(sequenceProgress.printProgress());
+		
 		if (stageOutcome != null) {
 			emit(new CalculationStateEvent(stage, stageOutcome, featureId));
 		}
@@ -300,6 +302,23 @@ public class CalculationStateTracker {
 		public synchronized CalculationStateEventCode getSequenceOutcome(int sequence, CalculationContext ctx) {
 			List<FeatureDTO> features = ctx.getProtocolData().sequences.get(sequence);
 			return aggregateCodes(features.stream().map(f -> getFeatureOutcome(f.getId())).toList(), features.size());
+		}
+		
+		public synchronized String printProgress() {
+			Function<CalculationStage, Long> getStageCompleteCount = stage -> progressMap.entrySet().stream()
+					.filter(entry -> entry.getKey().getRight() == stage)
+					.filter(entry -> entry.getValue().getStageOutcome() == CalculationStateEventCode.Complete)
+					.count();
+			
+			long count = progressMap.keySet().stream().map(pair -> pair.getLeft()).distinct().count();
+			long formulaCompleteCount = getStageCompleteCount.apply(CalculationStage.FeatureFormula);
+			long statsCompleteCount = getStageCompleteCount.apply(CalculationStage.FeatureStatistics);
+			long curvesCompleteCount = getStageCompleteCount.apply(CalculationStage.FeatureCurveFit);
+			
+			return String.format("Sequence progress: [%d/%d formulas] [%d/%d stats] [%d/%d curves]",
+					formulaCompleteCount, count,
+					statsCompleteCount, count,
+					curvesCompleteCount, count);
 		}
 	}
 
