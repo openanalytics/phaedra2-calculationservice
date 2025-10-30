@@ -22,7 +22,6 @@ package eu.openanalytics.phaedra.calculationservice.execution.script;
 
 import java.util.ArrayList;
 import java.util.List;
-import java.util.concurrent.ForkJoinPool;
 import java.util.function.Consumer;
 
 import org.slf4j.Logger;
@@ -58,8 +57,7 @@ public class ScriptExecutionRequest {
 	public void signalOutputAvailable(ScriptExecutionOutputDTO output) {
 		this.output = output;
         if (callbacks != null) {
-        	logger.debug(String.format("Current commonPool queue size: %d submitted + %d queued", ForkJoinPool.commonPool().getQueuedSubmissionCount(), ForkJoinPool.commonPool().getQueuedTaskCount()));
-        	ForkJoinPool.commonPool().submit(() -> callbacks.forEach(c -> c.accept(output)));
+        	callbacks.forEach(c -> c.accept(output));
         }
 	}
 }
