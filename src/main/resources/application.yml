@@ -29,4 +29,4 @@ spring:
 logging:
   level:
     root: INFO
-    eu.openanalytics.phaedra.calculationservice.execution.progress: DEBUG
+    eu.openanalytics.phaedra.calculationservice.execution: DEBUG
