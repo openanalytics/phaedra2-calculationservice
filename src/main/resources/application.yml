@@ -25,3 +25,8 @@ spring:
       resourceserver:
         jwt:
           jwk-set-uri: ${keycloak-base-url}/auth/realms/phaedra2/protocol/openid-connect/certs
+
+logging:
+  level:
+    root: INFO
+    eu.openanalytics.phaedra.calculationservice.execution: DEBUG

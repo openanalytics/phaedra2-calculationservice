@@ -128,10 +128,12 @@ public class ProtocolExecutorService {
     }
 
     private void triggerNextSequence(CalculationContext ctx) {
+    	log(logger, ctx, String.format("Triggering sequence %d", ctx.getStateTracker().getCurrentSequence()));
     	ctx.getStateTracker().incrementCurrentSequence();
     	ctx.getProtocolData().protocol.getFeatures().parallelStream()
-    		.filter(f -> f.getSequence() == ctx.getStateTracker().getCurrentSequence())
+    		.filter(f -> f.getSequence().equals(ctx.getStateTracker().getCurrentSequence()))
     		.forEach(f -> featureExecutorService.executeFeature(ctx, f));
+    	log(logger, ctx, String.format("Submitted all %d features of sequence %d", ctx.getProtocolData().protocol.getFeatures().size(), ctx.getStateTracker().getCurrentSequence()));
     }
 
     private void handleCalculationEnded(CalculationContext ctx) {

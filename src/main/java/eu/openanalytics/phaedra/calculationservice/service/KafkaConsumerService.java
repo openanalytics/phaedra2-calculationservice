@@ -55,7 +55,7 @@ public class KafkaConsumerService {
 
     @KafkaListener(topics = KafkaConfig.TOPIC_CALCULATIONS, groupId = KafkaConfig.GROUP_ID + "_reqPlateCalc", filter = "requestPlateCalculationFilter")
     public void onRequestPlateCalculation(CalculationRequestDTO calculationRequestDTO, @Header(KafkaHeaders.RECEIVED_KEY) String msgKey) throws ExecutionException, InterruptedException {
-        logger.info(KafkaConfig.GROUP_ID + ": received a plate calculation event");
+        logger.debug(KafkaConfig.GROUP_ID + ": received a plate calculation event");
         for (Long plateId: calculationRequestDTO.getPlateIds()) {
           protocolExecutorService.execute(
               calculationRequestDTO.getProtocolId(),
@@ -66,31 +66,31 @@ public class KafkaConsumerService {
 
     @KafkaListener(topics = KafkaConfig.TOPIC_CALCULATIONS, groupId = KafkaConfig.GROUP_ID + "_reqCurveFit", filter = "requestCurveFitFilter")
     public void onCurveFitEvent(CurveFittingRequestDTO curveFittingRequestDTO) throws ExecutionException, InterruptedException {
-        logger.info(KafkaConfig.GROUP_ID + ": received a curve fit event");
+        logger.debug(KafkaConfig.GROUP_ID + ": received a curve fit event");
         curveFittingExecutorService.execute(curveFittingRequestDTO);
     }
 
     @KafkaListener(topics = KafkaConfig.TOPIC_SCRIPTENGINE_UPDATES, groupId = KafkaConfig.GROUP_ID + "_scriptExecUpdate")
     public void onScriptExecutionEvent(ScriptExecutionOutputDTO output) {
-    	logger.info(KafkaConfig.GROUP_ID + ": received a script execution update event");
+    	logger.debug(KafkaConfig.GROUP_ID + ": received a script execution update event");
 		  scriptExecutionService.handleScriptExecutionUpdate(output);
     }
 
     @KafkaListener(topics = KafkaConfig.TOPIC_RESULTDATA, groupId = KafkaConfig.GROUP_ID + "_resSet", filter = "resultSetUpdatedFilter")
     public void onResultSetEvent(ResultSetDTO resultSet) {
-    	logger.info(KafkaConfig.GROUP_ID + ": received a resultSet update event");
+    	logger.debug(KafkaConfig.GROUP_ID + ": received a resultSet update event");
     	protocolExecutorService.handleResultSetUpdate(resultSet.getId(), resultSet);
     }
 
     @KafkaListener(topics = KafkaConfig.TOPIC_RESULTDATA, groupId = KafkaConfig.GROUP_ID + "_resData", filter = "resultDataUpdatedFilter")
     public void onResultDataEvent(ResultDataDTO resultData) {
-    	logger.info(KafkaConfig.GROUP_ID + ": received a resultData update event");
+    	logger.debug(KafkaConfig.GROUP_ID + ": received a resultData update event");
     	protocolExecutorService.handleResultSetUpdate(resultData.getResultSetId(), resultData);
     }
 
     @KafkaListener(topics = KafkaConfig.TOPIC_RESULTDATA, groupId = KafkaConfig.GROUP_ID + "_resStats", filter = "resultFeatureStatUpdatedFilter")
     public void onResultFeatureStatEvent(ResultFeatureStatDTO resultFeatureStat) {
-    	logger.info(KafkaConfig.GROUP_ID + ": received a resultFeatureStat update event");
+    	logger.debug(KafkaConfig.GROUP_ID + ": received a resultFeatureStat update event");
     	protocolExecutorService.handleResultSetUpdate(resultFeatureStat.getResultSetId(), resultFeatureStat);
     }
 }

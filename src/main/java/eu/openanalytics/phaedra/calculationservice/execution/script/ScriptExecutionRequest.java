@@ -20,13 +20,15 @@
  */
 package eu.openanalytics.phaedra.calculationservice.execution.script;
 
-import eu.openanalytics.phaedra.calculationservice.dto.ScriptExecutionInputDTO;
-import eu.openanalytics.phaedra.calculationservice.dto.ScriptExecutionOutputDTO;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.concurrent.ForkJoinPool;
 import java.util.function.Consumer;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
+import eu.openanalytics.phaedra.calculationservice.dto.ScriptExecutionInputDTO;
+import eu.openanalytics.phaedra.calculationservice.dto.ScriptExecutionOutputDTO;
 import lombok.Builder;
 import lombok.Data;
 
@@ -44,6 +46,8 @@ public class ScriptExecutionRequest {
 
 	private List<Consumer<ScriptExecutionOutputDTO>> callbacks;
 
+	private final Logger logger = LoggerFactory.getLogger(getClass());
+	
 	public synchronized ScriptExecutionRequest addCallback(Consumer<ScriptExecutionOutputDTO> callback) {
 		if (callbacks == null) callbacks = new ArrayList<>();
 		callbacks.add(callback);
@@ -53,7 +57,7 @@ public class ScriptExecutionRequest {
 	public void signalOutputAvailable(ScriptExecutionOutputDTO output) {
 		this.output = output;
         if (callbacks != null) {
-        	ForkJoinPool.commonPool().submit(() -> callbacks.forEach(c -> c.accept(output)));
+        	callbacks.forEach(c -> c.accept(output));
         }
 	}
 }

@@ -20,10 +20,10 @@
  */
 package eu.openanalytics.phaedra.calculationservice.execution.script;
 
-import eu.openanalytics.phaedra.calculationservice.dto.ScriptExecutionInputDTO;
-import eu.openanalytics.phaedra.calculationservice.dto.ScriptExecutionOutputDTO;
 import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
@@ -31,6 +31,8 @@ import org.springframework.stereotype.Service;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 
+import eu.openanalytics.phaedra.calculationservice.dto.ScriptExecutionInputDTO;
+import eu.openanalytics.phaedra.calculationservice.dto.ScriptExecutionOutputDTO;
 import eu.openanalytics.phaedra.calculationservice.enumeration.ScriptLanguage;
 import eu.openanalytics.phaedra.calculationservice.exception.CalculationException;
 import eu.openanalytics.phaedra.calculationservice.service.KafkaProducerService;
@@ -46,6 +48,8 @@ public class ScriptExecutionService {
 	@Autowired
 	private ObjectMapper objectMapper;
 
+	private ExecutorService executorService = Executors.newFixedThreadPool(16);
+	
 	private ConcurrentHashMap<String, ScriptExecutionRequest> trackedExecutions = new ConcurrentHashMap<>();
 
 	public ScriptExecutionRequest submit(ScriptLanguage lang, String script, String category, Object inputData) {
@@ -91,8 +95,9 @@ public class ScriptExecutionService {
 			submit(request);
 		} else {
 			// Success or non-retryable failure
-			request.signalOutputAvailable(output);
 			trackedExecutions.remove(request.getId());
+			// Run the signal processing non-blocking, on a separate thread. This includes callback handling.
+			executorService.submit(() -> request.signalOutputAvailable(output));
 		}
 	}
 

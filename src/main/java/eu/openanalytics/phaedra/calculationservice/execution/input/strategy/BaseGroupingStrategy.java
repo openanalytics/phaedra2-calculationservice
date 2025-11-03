@@ -84,7 +84,7 @@ public abstract class BaseGroupingStrategy implements InputGroupingStrategy {
             }
             switch (civ.getInputSource()) {
             case FEATURE:
-            	if (ctx.getStateTracker().getCurrentSequence() == 0) {
+            	if (ctx.getStateTracker().getCurrentSequence().equals(0)) {
             		errorHandler.accept("Cannot reference another feature in sequence 0", civ);
                 } else if (civ.getSourceFeatureId() == null) {
                 	errorHandler.accept("Feature reference is missing ID", civ);
